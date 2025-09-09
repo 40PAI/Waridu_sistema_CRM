@@ -12,6 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Role } from "@/App";
+import { showError } from "@/utils/toast";
+
+export type EmployeeStatus = 'Ativo' | 'Inativo';
 
 export interface Employee {
   id: string;
@@ -19,6 +22,7 @@ export interface Employee {
   role: string;
   email: string;
   avatar: string;
+  status: EmployeeStatus;
 }
 
 interface EmployeeDialogProps {
@@ -33,25 +37,29 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState("");
+  const [status, setStatus] = React.useState<EmployeeStatus>("Ativo");
 
   const isEditing = !!employee;
 
   React.useEffect(() => {
-    if (employee) {
-      setName(employee.name);
-      setEmail(employee.email);
-      setRole(employee.role);
-    } else {
-      setName("");
-      setEmail("");
-      setRole("");
+    if (open) {
+      if (employee) {
+        setName(employee.name);
+        setEmail(employee.email);
+        setRole(employee.role);
+        setStatus(employee.status);
+      } else {
+        setName("");
+        setEmail("");
+        setRole("");
+        setStatus("Ativo");
+      }
     }
   }, [employee, open]);
 
   const handleSubmit = () => {
     if (!name || !email || !role) {
-      // Em uma aplicação real, você usaria um toast de erro aqui.
-      console.error("Todos os campos são obrigatórios.");
+      showError("Nome, email e função são obrigatórios.");
       return;
     }
 
@@ -60,6 +68,7 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
       name,
       email,
       role,
+      status,
     };
 
     onSave(employeeData);
@@ -104,6 +113,20 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
                     {r.name}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="status" className="text-right">
+              Status
+            </Label>
+            <Select value={status} onValueChange={(value) => setStatus(value as EmployeeStatus)}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Inativo">Inativo</SelectItem>
               </SelectContent>
             </Select>
           </div>

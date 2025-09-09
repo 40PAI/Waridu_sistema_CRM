@@ -11,18 +11,9 @@ import { Combobox } from "@/components/ui/combobox";
 import { PlusCircle, XCircle } from "lucide-react";
 import { Event, Roster } from "@/App";
 import { showSuccess } from "@/utils/toast";
+import { Employee } from "../employees/EmployeeDialog";
 
 // Mock data
-const employees = [
-    { id: 'EMP001', name: 'Ana Silva', role: 'Gerente de Eventos' },
-    { id: 'EMP002', name: 'Carlos Souza', role: 'Técnico de Som' },
-    { id: 'EMP003', name: 'Beatriz Costa', role: 'Coordenadora' },
-    { id: 'EMP004', name: 'Daniel Martins', role: 'Assistente' },
-    { id: 'EMP005', name: 'Eduardo Lima', role: 'Técnico de Luz' },
-    { id: 'EMP006', name: 'Fernanda Alves', role: 'VJ' },
-    { id: 'EMP007', name: 'Gabriel Pereira', role: 'Técnico de Som' },
-];
-
 const materials = [
     { id: 'MAT001', name: 'Câmera Sony A7S III', totalQuantity: 5 },
     { id: 'MAT002', name: 'Lente Canon 24-70mm', totalQuantity: 8 },
@@ -36,25 +27,28 @@ const materials = [
 
 interface RosterDialogProps {
   event: Event;
+  employees: Employee[];
   onSaveRoster: (eventId: number, rosterData: Roster) => void;
 }
 
-export function RosterDialog({ event, onSaveRoster }: RosterDialogProps) {
+export function RosterDialog({ event, employees, onSaveRoster }: RosterDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [teamLead, setTeamLead] = React.useState("");
-  const [selectedEmployees, setSelectedEmployees] = React.useState<(typeof employees)[0][]>([]);
+  const [selectedEmployees, setSelectedEmployees] = React.useState<Employee[]>([]);
   const [nameFilter, setNameFilter] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("all");
   
   const [materialFilter, setMaterialFilter] = React.useState("");
   const [selectedMaterials, setSelectedMaterials] = React.useState<Record<string, number>>({});
 
+  const activeEmployees = React.useMemo(() => employees.filter(e => e.status === 'Ativo'), [employees]);
+
   React.useEffect(() => {
     if (open && event.roster) {
       setTeamLead(event.roster.teamLead || "");
       const fullTeamMembers = event.roster.teamMembers
-        .map(member => employees.find(e => e.id === member.id))
-        .filter(Boolean) as (typeof employees)[0][];
+        .map(member => activeEmployees.find(e => e.id === member.id))
+        .filter(Boolean) as Employee[];
       setSelectedEmployees(fullTeamMembers || []);
       setSelectedMaterials(event.roster.materials || {});
     } else if (!open) {
@@ -66,27 +60,27 @@ export function RosterDialog({ event, onSaveRoster }: RosterDialogProps) {
       setRoleFilter("all");
       setMaterialFilter("");
     }
-  }, [open, event.roster]);
+  }, [open, event.roster, activeEmployees]);
 
-  const employeeRoles = React.useMemo(() => ["all", ...new Set(employees.map(e => e.role))], []);
-  const employeeOptions = React.useMemo(() => employees.map(e => ({ value: e.id, label: e.name })), []);
+  const employeeRoles = React.useMemo(() => ["all", ...new Set(activeEmployees.map(e => e.role))], [activeEmployees]);
+  const employeeOptions = React.useMemo(() => activeEmployees.map(e => ({ value: e.id, label: e.name })), [activeEmployees]);
 
   const availableEmployees = React.useMemo(() => {
-    return employees
+    return activeEmployees
       .filter(emp => !selectedEmployees.some(selected => selected.id === emp.id))
       .filter(employee => {
         const nameMatch = employee.name.toLowerCase().includes(nameFilter.toLowerCase());
         const roleMatch = roleFilter === 'all' || employee.role === roleFilter;
         return nameMatch && roleMatch;
       });
-  }, [selectedEmployees, nameFilter, roleFilter]);
+  }, [selectedEmployees, nameFilter, roleFilter, activeEmployees]);
 
   const filteredMaterials = React.useMemo(() => {
     return materials.filter(material => material.name.toLowerCase().includes(materialFilter.toLowerCase()));
   }, [materialFilter]);
 
-  const handleSelectEmployee = (employee: (typeof employees)[0]) => setSelectedEmployees(prev => [...prev, employee]);
-  const handleDeselectEmployee = (employee: (typeof employees)[0]) => setSelectedEmployees(prev => prev.filter(e => e.id !== employee.id));
+  const handleSelectEmployee = (employee: Employee) => setSelectedEmployees(prev => [...prev, employee]);
+  const handleDeselectEmployee = (employee: Employee) => setSelectedEmployees(prev => prev.filter(e => e.id !== employee.id));
 
   const handleMaterialCheck = (checked: boolean, materialId: string) => {
     const newSelection = { ...selectedMaterials };

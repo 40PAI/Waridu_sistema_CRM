@@ -3,13 +3,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { RosterDialog } from "@/components/roster/RosterDialog";
 import { RosterViewerPopover } from "@/components/roster/RosterViewerPopover";
 import { Event, Roster } from "@/App";
+import { Employee } from "@/components/employees/EmployeeDialog";
 
 interface RosterManagementProps {
   events: Event[];
+  employees: Employee[];
   onUpdateRoster: (eventId: number, rosterData: Roster) => void;
 }
 
-const RosterManagement = ({ events, onUpdateRoster }: RosterManagementProps) => {
+const RosterManagement = ({ events, employees, onUpdateRoster }: RosterManagementProps) => {
   return (
     <Card>
       <CardHeader>
@@ -44,7 +46,7 @@ const RosterManagement = ({ events, onUpdateRoster }: RosterManagementProps) => 
                   <TableCell className="text-right">
                     <div className="flex justify-end items-center gap-2">
                       {event.roster && <RosterViewerPopover roster={event.roster} />}
-                      <RosterDialog event={event} onSaveRoster={onUpdateRoster} />
+                      <RosterDialog event={event} employees={employees} onSaveRoster={onUpdateRoster} />
                     </div>
                   </TableCell>
                 </TableRow>

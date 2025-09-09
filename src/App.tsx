@@ -15,6 +15,7 @@ import CalendarPage from "./pages/Calendar";
 import CreateEventPage from "./pages/CreateEvent";
 import MaterialsPage from "./pages/Materials";
 import EmployeesPage from "./pages/Employees";
+import { Employee } from "./components/employees/EmployeeDialog";
 
 const queryClient = new QueryClient();
 
@@ -49,7 +50,15 @@ const App = () => {
     { id: 4, name: "Festa de Fim de Ano", date: "2024-12-20", location: "Salão de Festas", startTime: "20:00" },
   ];
 
+  const initialEmployees: Employee[] = [
+    { id: 'EMP001', name: 'Ana Silva', role: 'Gerente de Eventos', email: 'ana.silva@email.com', avatar: '/avatars/01.png', status: 'Ativo' },
+    { id: 'EMP002', name: 'Carlos Souza', role: 'Técnico de Som', email: 'carlos.souza@email.com', avatar: '/avatars/02.png', status: 'Ativo' },
+    { id: 'EMP003', name: 'Beatriz Costa', role: 'Coordenadora', email: 'beatriz.costa@email.com', avatar: '/avatars/03.png', status: 'Inativo' },
+    { id: 'EMP004', name: 'Daniel Martins', role: 'Assistente', email: 'daniel.martins@email.com', avatar: '/avatars/04.png', status: 'Ativo' },
+  ];
+
   const [events, setEvents] = useState<Event[]>(initialEvents);
+  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [roles, setRoles] = useState<Role[]>([
     { id: 'role-1', name: 'Gerente de Eventos' },
     { id: 'role-2', name: 'Técnico de Som' },
@@ -59,7 +68,7 @@ const App = () => {
     { id: 'role-6', name: 'VJ' },
   ]);
 
-  const addEvent = (newEventData: Omit<Event, 'id'>) => {
+  const addEvent = (newEventData: Omit<Event, 'id' | 'roster'>) => {
     setEvents(prevEvents => [
       ...prevEvents,
       { ...newEventData, id: prevEvents.length + 1 }
@@ -72,6 +81,23 @@ const App = () => {
         event.id === eventId ? { ...event, roster: rosterData } : event
       )
     );
+  };
+
+  const saveEmployee = (employeeData: Omit<Employee, 'id' | 'avatar'> & { id?: string }) => {
+    if (employeeData.id) {
+      setEmployees(prev => 
+        prev.map(emp => 
+          emp.id === employeeData.id ? { ...emp, ...employeeData } as Employee : emp
+        )
+      );
+    } else {
+      const newEmployee: Employee = {
+        ...employeeData,
+        id: `EMP${String(employees.length + 1).padStart(3, '0')}`,
+        avatar: `/avatars/0${Math.floor(Math.random() * 4) + 1}.png`,
+      };
+      setEmployees(prev => [...prev, newEmployee]);
+    }
   };
 
   const addRole = (roleName: string) => {
@@ -101,8 +127,8 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
-              <Route path="/roster-management" element={<RosterManagement events={events} onUpdateRoster={updateEventRoster} />} />
-              <Route path="/employees" element={<EmployeesPage roles={roles} />} />
+              <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateRoster={updateEventRoster} />} />
+              <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
               <Route path="/materials" element={<MaterialsPage />} />
               <Route path="/finance-dashboard" element={<FinanceDashboard />} />
               <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} />} />

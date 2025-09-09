@@ -6,22 +6,23 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmployeeDialog, Employee } from "@/components/employees/EmployeeDialog";
 import { showSuccess } from "@/utils/toast";
 import { Role } from "@/App";
-
-const initialEmployees: Employee[] = [
-    { id: 'EMP001', name: 'Ana Silva', role: 'Gerente de Eventos', email: 'ana.silva@email.com', avatar: '/avatars/01.png' },
-    { id: 'EMP002', name: 'Carlos Souza', role: 'Técnico de Som', email: 'carlos.souza@email.com', avatar: '/avatars/02.png' },
-    { id: 'EMP003', name: 'Beatriz Costa', role: 'Coordenadora', email: 'beatriz.costa@email.com', avatar: '/avatars/03.png' },
-    { id: 'EMP004', name: 'Daniel Martins', role: 'Assistente', email: 'daniel.martins@email.com', avatar: '/avatars/04.png' },
-];
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface EmployeesPageProps {
   roles: Role[];
+  employees: Employee[];
+  onSaveEmployee: (employeeData: Omit<Employee, 'id' | 'avatar'> & { id?: string }) => void;
 }
 
-const EmployeesPage = ({ roles }: EmployeesPageProps) => {
-  const [employees, setEmployees] = React.useState(initialEmployees);
+const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps) => {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);
+  
+  const [nameFilter, setNameFilter] = React.useState("");
+  const [roleFilter, setRoleFilter] = React.useState("all");
+  const [statusFilter, setStatusFilter] = React.useState("all");
 
   const handleAddNew = () => {
     setEditingEmployee(null);
@@ -33,24 +34,14 @@ const EmployeesPage = ({ roles }: EmployeesPageProps) => {
     setIsDialogOpen(true);
   };
 
-  const handleSave = (employeeData: Omit<Employee, 'id' | 'avatar'> & { id?: string }) => {
-    if (employeeData.id) {
-      setEmployees(prev => 
-        prev.map(emp => 
-          emp.id === employeeData.id ? { ...emp, ...employeeData } : emp
-        )
-      );
-      showSuccess("Funcionário atualizado com sucesso!");
-    } else {
-      const newEmployee: Employee = {
-        ...employeeData,
-        id: `EMP${String(employees.length + 1).padStart(3, '0')}`,
-        avatar: `/avatars/0${Math.floor(Math.random() * 4) + 1}.png`,
-      };
-      setEmployees(prev => [...prev, newEmployee]);
-      showSuccess("Funcionário adicionado com sucesso!");
-    }
-  };
+  const filteredEmployees = React.useMemo(() => {
+    return employees.filter(employee => {
+      const nameMatch = employee.name.toLowerCase().includes(nameFilter.toLowerCase());
+      const roleMatch = roleFilter === 'all' || employee.role === roleFilter;
+      const statusMatch = statusFilter === 'all' || employee.status === statusFilter;
+      return nameMatch && roleMatch && statusMatch;
+    });
+  }, [employees, nameFilter, roleFilter, statusFilter]);
 
   return (
     <>
@@ -65,6 +56,33 @@ const EmployeesPage = ({ roles }: EmployeesPageProps) => {
           <Button onClick={handleAddNew}>Adicionar Funcionário</Button>
         </CardHeader>
         <CardContent>
+          <div className="flex items-center gap-4 mb-6">
+            <Input 
+              placeholder="Filtrar por nome..."
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+              className="max-w-sm"
+            />
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por função" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Funções</SelectItem>
+                {roles.map(role => <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Inativo">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Table>
               <TableHeader>
                   <TableRow>
@@ -75,7 +93,7 @@ const EmployeesPage = ({ roles }: EmployeesPageProps) => {
                   </TableRow>
               </TableHeader>
               <TableBody>
-                  {employees.map((employee) => (
+                  {filteredEmployees.map((employee) => (
                       <TableRow key={employee.id}>
                           <TableCell>
                               <div className="flex items-center gap-3">
@@ -90,7 +108,11 @@ const EmployeesPage = ({ roles }: EmployeesPageProps) => {
                               </div>
                           </TableCell>
                           <TableCell>{employee.role}</TableCell>
-                          <TableCell>Ativo</TableCell>
+                          <TableCell>
+                            <Badge variant={employee.status === 'Ativo' ? 'default' : 'secondary'}>
+                              {employee.status}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="text-right">
                               <Button variant="outline" size="sm" onClick={() => handleEdit(employee)}>Editar</Button>
                           </TableCell>
@@ -104,7 +126,7 @@ const EmployeesPage = ({ roles }: EmployeesPageProps) => {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         employee={editingEmployee}
-        onSave={handleSave}
+        onSave={onSaveEmployee}
         roles={roles}
       />
     </>
