@@ -1,22 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RosterDialog } from "@/components/roster/RosterDialog";
-
-interface Event {
-  id: number;
-  name: string;
-  date: string;
-  endDate?: string;
-  location: string;
-  startTime?: string;
-  endTime?: string;
-}
+import { Event, Roster } from "@/App";
 
 interface RosterManagementProps {
   events: Event[];
+  onUpdateRoster: (eventId: number, rosterData: Roster) => void;
 }
 
-const RosterManagement = ({ events }: RosterManagementProps) => {
+const RosterManagement = ({ events, onUpdateRoster }: RosterManagementProps) => {
   return (
     <Card>
       <CardHeader>
@@ -49,7 +41,7 @@ const RosterManagement = ({ events }: RosterManagementProps) => {
                   <TableCell>{event.endTime || 'N/A'}</TableCell>
                   <TableCell>{event.location}</TableCell>
                   <TableCell className="text-right">
-                    <RosterDialog event={event} />
+                    <RosterDialog event={event} onSaveRoster={onUpdateRoster} />
                   </TableCell>
                 </TableRow>
               ))

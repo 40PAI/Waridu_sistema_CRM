@@ -9,6 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Combobox } from "@/components/ui/combobox";
 import { PlusCircle, XCircle } from "lucide-react";
+import { Event, Roster } from "@/App";
+import { showSuccess } from "@/utils/toast";
 
 // Mock data
 const employees = [
@@ -33,10 +35,12 @@ const materials = [
 ];
 
 interface RosterDialogProps {
-  event: { id: number; name: string; };
+  event: Event;
+  onSaveRoster: (eventId: number, rosterData: Roster) => void;
 }
 
-export function RosterDialog({ event }: RosterDialogProps) {
+export function RosterDialog({ event, onSaveRoster }: RosterDialogProps) {
+  const [open, setOpen] = React.useState(false);
   const [teamLead, setTeamLead] = React.useState("");
   const [selectedEmployees, setSelectedEmployees] = React.useState<(typeof employees)[0][]>([]);
   const [nameFilter, setNameFilter] = React.useState("");
@@ -44,6 +48,25 @@ export function RosterDialog({ event }: RosterDialogProps) {
   
   const [materialFilter, setMaterialFilter] = React.useState("");
   const [selectedMaterials, setSelectedMaterials] = React.useState<Record<string, number>>({});
+
+  React.useEffect(() => {
+    if (open && event.roster) {
+      setTeamLead(event.roster.teamLead || "");
+      const fullTeamMembers = event.roster.teamMembers
+        .map(member => employees.find(e => e.id === member.id))
+        .filter(Boolean) as (typeof employees)[0][];
+      setSelectedEmployees(fullTeamMembers || []);
+      setSelectedMaterials(event.roster.materials || {});
+    } else if (!open) {
+      // Reset state when dialog is closed
+      setTeamLead("");
+      setSelectedEmployees([]);
+      setSelectedMaterials({});
+      setNameFilter("");
+      setRoleFilter("all");
+      setMaterialFilter("");
+    }
+  }, [open, event.roster]);
 
   const employeeRoles = React.useMemo(() => ["all", ...new Set(employees.map(e => e.role))], []);
   const employeeOptions = React.useMemo(() => employees.map(e => ({ value: e.id, label: e.name })), []);
@@ -78,10 +101,21 @@ export function RosterDialog({ event }: RosterDialogProps) {
     setSelectedMaterials(prev => ({ ...prev, [materialId]: quantity }));
   };
 
+  const handleSave = () => {
+    const rosterData: Roster = {
+      teamLead,
+      teamMembers: selectedEmployees.map(e => ({ id: e.id, name: e.name, role: e.role })),
+      materials: selectedMaterials,
+    };
+    onSaveRoster(event.id, rosterData);
+    showSuccess("Escalação salva com sucesso!");
+    setOpen(false);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">Criar Escalação</Button>
+        <Button size="sm">{event.roster ? "Editar Escalação" : "Criar Escalação"}</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
@@ -168,7 +202,7 @@ export function RosterDialog({ event }: RosterDialogProps) {
           </TabsContent>
         </Tabs>
         <DialogFooter>
-          <Button type="submit">Salvar Escalação</Button>
+          <Button type="button" onClick={handleSave}>Salvar Escalação</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

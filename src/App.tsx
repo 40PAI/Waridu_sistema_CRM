@@ -18,8 +18,14 @@ import EmployeesPage from "./pages/Employees";
 
 const queryClient = new QueryClient();
 
-// Definindo a interface para um evento
-interface Event {
+// Definindo as interfaces
+export interface Roster {
+  teamLead: string;
+  teamMembers: { id: string; name: string; role: string }[];
+  materials: Record<string, number>;
+}
+
+export interface Event {
   id: number;
   name: string;
   date: string;
@@ -27,10 +33,10 @@ interface Event {
   location: string;
   startTime?: string;
   endTime?: string;
+  roster?: Roster;
 }
 
 const App = () => {
-  // Dados iniciais dos eventos
   const initialEvents: Event[] = [
     { id: 1, name: "Conferência Anual de Tecnologia", date: "2024-08-15", location: "Centro de Convenções", startTime: "09:00", endTime: "18:00" },
     { id: 2, name: "Lançamento do Produto X", date: "2024-09-01", location: "Sede da Empresa", startTime: "19:00", endTime: "22:00" },
@@ -40,12 +46,19 @@ const App = () => {
 
   const [events, setEvents] = useState<Event[]>(initialEvents);
 
-  // Função para adicionar um novo evento à lista
   const addEvent = (newEventData: Omit<Event, 'id'>) => {
     setEvents(prevEvents => [
       ...prevEvents,
       { ...newEventData, id: prevEvents.length + 1 }
     ]);
+  };
+
+  const updateEventRoster = (eventId: number, rosterData: Roster) => {
+    setEvents(prevEvents =>
+      prevEvents.map(event =>
+        event.id === eventId ? { ...event, roster: rosterData } : event
+      )
+    );
   };
 
   return (
@@ -59,7 +72,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
-              <Route path="/roster-management" element={<RosterManagement events={events} />} />
+              <Route path="/roster-management" element={<RosterManagement events={events} onUpdateRoster={updateEventRoster} />} />
               <Route path="/employees" element={<EmployeesPage />} />
               <Route path="/materials" element={<MaterialsPage />} />
               <Route path="/finance-dashboard" element={<FinanceDashboard />} />
