@@ -1,62 +1,182 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { DollarSign, TrendingUp, Wallet, Briefcase } from "lucide-react";
 
-const salesData = [
-  { name: 'Jan', Receita: 4000, Despesa: 2400 },
-  { name: 'Fev', Receita: 3000, Despesa: 1398 },
-  { name: 'Mar', Receita: 2000, Despesa: 9800 },
-  { name: 'Abr', Receita: 2780, Despesa: 3908 },
-  { name: 'Mai', Receita: 1890, Despesa: 4800 },
-  { name: 'Jun', Receita: 2390, Despesa: 3800 },
-  { name: 'Jul', Receita: 3490, Despesa: 4300 },
+// --- Mock Data ---
+
+// Desempenho mensal
+const monthlyPerformanceData = [
+  { month: 'Mai', receita: 4500000, custos: 2900000, lucro: 1600000 },
+  { month: 'Jun', receita: 6200000, custos: 3800000, lucro: 2400000 },
+  { month: 'Jul', receita: 5100000, custos: 3100000, lucro: 2000000 },
+  { month: 'Ago', receita: 7800000, custos: 4500000, lucro: 3300000 },
 ];
 
-const growthData = [
-    { name: 'Semana 1', Crescimento: 20 },
-    { name: 'Semana 2', Crescimento: 45 },
-    { name: 'Semana 3', Crescimento: 30 },
-    { name: 'Semana 4', Crescimento: 60 },
-    { name: 'Semana 5', Crescimento: 80 },
+// Análise de custos
+const costBreakdownData = [
+  { name: 'Pessoal', value: 450000 },
+  { name: 'Aluguel de Equip.', value: 250000 },
+  { name: 'Transporte', value: 120000 },
+  { name: 'Marketing', value: 80000 },
+  { name: 'Outros', value: 50000 },
+];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+
+// Rentabilidade por evento
+const eventProfitabilityData = [
+  { id: 1, name: 'Conferência de Tecnologia', date: '15/08/2024', revenue: 1200000, cost: 750000, status: 'Realizado' },
+  { id: 2, name: 'Lançamento de Produto X', date: '01/09/2024', revenue: 800000, cost: 400000, status: 'Próximo' },
+  { id: 3, name: 'Casamento Silva & Costa', date: '25/08/2024', revenue: 1500000, cost: 950000, status: 'Realizado' },
+  { id: 4, name: 'Workshop de Marketing', date: '10/09/2024', revenue: 500000, cost: 250000, status: 'Próximo' },
+  { id: 5, name: 'Festa Corporativa Acme', date: '20/07/2024', revenue: 900000, cost: 600000, status: 'Realizado' },
 ];
 
+// --- Helper Functions ---
+const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-AO', { style: 'currency', currency: 'AOA', minimumFractionDigits: 2 });
+};
+
+const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'Realizado': return 'default';
+      case 'Próximo': return 'secondary';
+      default: return 'outline';
+    }
+};
+
+// --- Main Component ---
 const FinanceDashboard = () => {
+  const currentMonthData = monthlyPerformanceData[monthlyPerformanceData.length - 1];
+  const totalRevenue = monthlyPerformanceData.reduce((sum, item) => sum + item.receita, 0);
+  const totalCosts = monthlyPerformanceData.reduce((sum, item) => sum + item.custos, 0);
+  const averageMargin = totalRevenue > 0 ? ((totalRevenue - totalCosts) / totalRevenue) * 100 : 0;
+
   return (
-    <div className="grid gap-6">
+    <div className="flex-1 space-y-6">
+      {/* KPIs */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita (Mês Atual)</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(currentMonthData.receita)}</div>
+            <p className="text-xs text-muted-foreground">Faturamento dos eventos no mês</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Custos (Mês Atual)</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(currentMonthData.custos)}</div>
+            <p className="text-xs text-muted-foreground">Despesas operacionais do mês</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lucro Líquido (Mês Atual)</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(currentMonthData.lucro)}</div>
+            <p className="text-xs text-muted-foreground">Resultado final do mês</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Margem Média</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{averageMargin.toFixed(2)}%</div>
+            <p className="text-xs text-muted-foreground">Margem de lucro média</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Desempenho Mensal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={monthlyPerformanceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" fontSize={12} />
+                <YAxis fontSize={12} tickFormatter={(value) => `${(value as number / 1000000).toFixed(1)}M`} />
+                <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                <Legend />
+                <Bar dataKey="receita" fill="#8884d8" name="Receita" />
+                <Bar dataKey="custos" fill="#82ca9d" name="Custos" />
+                <Bar dataKey="lucro" fill="#ffc658" name="Lucro" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Análise de Custos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={costBreakdownData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                  {costBreakdownData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Profitability Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Visão Geral de Vendas</CardTitle>
-          <CardDescription>Receitas e despesas nos últimos meses.</CardDescription>
+          <CardTitle>Rentabilidade por Evento</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={salesData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="Receita" fill="#8884d8" />
-              <Bar dataKey="Despesa" fill="#82ca9d" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Crescimento de Usuários</CardTitle>
-          <CardDescription>Acompanhe o crescimento semanal de novos usuários.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={growthData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="Crescimento" stroke="#8884d8" activeDot={{ r: 8 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Evento</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Receita</TableHead>
+                <TableHead>Custo</TableHead>
+                <TableHead>Lucro</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {eventProfitabilityData.map((event) => {
+                const profit = event.revenue - event.cost;
+                return (
+                  <TableRow key={event.id}>
+                    <TableCell className="font-medium">{event.name}</TableCell>
+                    <TableCell>{event.date}</TableCell>
+                    <TableCell>{formatCurrency(event.revenue)}</TableCell>
+                    <TableCell>{formatCurrency(event.cost)}</TableCell>
+                    <TableCell className={profit > 0 ? "text-green-600" : "text-red-600"}>
+                      {formatCurrency(profit)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(event.status)}>{event.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
