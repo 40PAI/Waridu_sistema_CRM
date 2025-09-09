@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus } from "lucide-react";
+import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Sidebar = () => {
@@ -40,6 +40,10 @@ const Sidebar = () => {
             <NavLink to="/employees" className={navLinkClasses}>
               <Users2 className="h-4 w-4" />
               Funcionários
+            </NavLink>
+            <NavLink to="/roles" className={navLinkClasses}>
+              <Briefcase className="h-4 w-4" />
+              Funções
             </NavLink>
             <NavLink to="/materials" className={navLinkClasses}>
               <Archive className="h-4 w-4" />

@@ -15,6 +15,8 @@ import CalendarPage from "./pages/Calendar";
 import CreateEventPage from "./pages/CreateEvent";
 import MaterialsPage from "./pages/Materials";
 import EmployeesPage from "./pages/Employees";
+import RolesPage from "./pages/Roles";
+import RoleDetailPage from "./pages/RoleDetail";
 import { Employee } from "./components/employees/EmployeeDialog";
 import { showError } from "./utils/toast"; // Import showError for potential use
 
@@ -156,13 +158,7 @@ const App = () => {
   };
 
   const inviteMember = (email: string, roleId: string) => {
-    // In a real application, this would send an actual invitation,
-    // potentially creating a pending user record in a database.
-    // For now, we'll just log it and show a success toast.
     console.log(`Simulating invitation: Email: ${email}, Role ID: ${roleId}`);
-    // You might want to add the invited member to a 'pending invitations' state
-    // or directly to employees with a 'pending' status if that fits your flow.
-    // For this example, we'll just rely on the toast.
   };
 
   return (
@@ -178,6 +174,8 @@ const App = () => {
               <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
               <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} />} />
               <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
+              <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
+              <Route path="/roles/:roleId" element={<RoleDetailPage roles={roles} employees={employees} events={events} />} />
               <Route path="/materials" element={<MaterialsPage />} />
               <Route path="/finance-dashboard" element={<FinanceDashboard />} />
               <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} />} />

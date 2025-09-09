@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { CircleUser, Home, LineChart, Menu, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus } from "lucide-react";
+import { CircleUser, Home, LineChart, Menu, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -43,6 +43,10 @@ const Header = () => {
               <Users2 className="h-5 w-5" />
               Funcionários
             </NavLink>
+            <NavLink to="/roles" className={navLinkClasses}>
+              <Briefcase className="h-5 w-5" />
+              Funções
+            </NavLink>
             <NavLink to="/materials" className={navLinkClasses}>
               <Archive className="h-5 w-5" />
               Materiais
@@ -58,9 +62,7 @@ const Header = () => {
           </nav>
         </SheetContent>
       </Sheet>
-      <div className="w-full flex-1">
-        {/* Pode adicionar breadcrumbs ou título da página aqui */}
-      </div>
+      <div className="w-full flex-1"></div>
       <Link to="/invite-member">
         <Button>Convidar Novo Membro</Button>
       </Link>
