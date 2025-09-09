@@ -1,7 +1,6 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, LineChart, Package, Package2, Settings, ShoppingCart, Users } from "lucide-react";
+import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Sidebar = () => {
   const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
@@ -26,9 +25,25 @@ const Sidebar = () => {
               <Home className="h-4 w-4" />
               Dashboard
             </NavLink>
+            <NavLink to="/calendar" className={navLinkClasses}>
+              <CalendarDays className="h-4 w-4" />
+              Calendário
+            </NavLink>
+            <NavLink to="/create-event" className={navLinkClasses}>
+              <CalendarPlus className="h-4 w-4" />
+              Criar Evento
+            </NavLink>
             <NavLink to="/roster-management" className={navLinkClasses}>
               <Users className="h-4 w-4" />
               Gestão de Escalações
+            </NavLink>
+            <NavLink to="/employees" className={navLinkClasses}>
+              <Users2 className="h-4 w-4" />
+              Funcionários
+            </NavLink>
+            <NavLink to="/materials" className={navLinkClasses}>
+              <Archive className="h-4 w-4" />
+              Materiais
             </NavLink>
             <NavLink to="/finance-dashboard" className={navLinkClasses}>
               <LineChart className="h-4 w-4" />

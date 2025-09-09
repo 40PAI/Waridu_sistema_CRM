@@ -1,8 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
-import { CircleUser, Home, LineChart, Menu, Package, Package2, Search, Settings, ShoppingCart, Users } from "lucide-react";
+import { CircleUser, Home, LineChart, Menu, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const Header = () => {
@@ -28,9 +27,25 @@ const Header = () => {
               <Home className="h-5 w-5" />
               Dashboard
             </NavLink>
+            <NavLink to="/calendar" className={navLinkClasses}>
+              <CalendarDays className="h-5 w-5" />
+              Calendário
+            </NavLink>
+            <NavLink to="/create-event" className={navLinkClasses}>
+              <CalendarPlus className="h-5 w-5" />
+              Criar Evento
+            </NavLink>
             <NavLink to="/roster-management" className={navLinkClasses}>
               <Users className="h-5 w-5" />
               Gestão de Escalações
+            </NavLink>
+            <NavLink to="/employees" className={navLinkClasses}>
+              <Users2 className="h-5 w-5" />
+              Funcionários
+            </NavLink>
+            <NavLink to="/materials" className={navLinkClasses}>
+              <Archive className="h-5 w-5" />
+              Materiais
             </NavLink>
             <NavLink to="/finance-dashboard" className={navLinkClasses}>
               <LineChart className="h-5 w-5" />

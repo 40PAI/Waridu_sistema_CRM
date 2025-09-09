@@ -10,6 +10,10 @@ import RosterManagement from "./pages/RosterManagement";
 import FinanceDashboard from "./pages/FinanceDashboard";
 import AdminSettings from "./pages/AdminSettings";
 import InviteMember from "./pages/InviteMember";
+import CalendarPage from "./pages/Calendar";
+import CreateEventPage from "./pages/CreateEvent";
+import MaterialsPage from "./pages/Materials";
+import EmployeesPage from "./pages/Employees";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +26,11 @@ const App = () => (
         <Routes>
           <Route element={<DashboardLayout />}>
             <Route path="/" element={<Index />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/create-event" element={<CreateEventPage />} />
             <Route path="/roster-management" element={<RosterManagement />} />
+            <Route path="/employees" element={<EmployeesPage />} />
+            <Route path="/materials" element={<MaterialsPage />} />
             <Route path="/finance-dashboard" element={<FinanceDashboard />} />
             <Route path="/admin-settings" element={<AdminSettings />} />
             <Route path="/invite-member" element={<InviteMember />} />
