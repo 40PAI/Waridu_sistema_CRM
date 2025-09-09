@@ -1,20 +1,20 @@
 import * as React from "react";
-import { format, addMonths, subMonths, addYears, subYears, addWeeks, subWeeks } from 'date-fns';
+import { format, addDays, subDays, addMonths, subMonths, addYears, subYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Event } from "@/App";
+import DayView from "@/components/calendar/DayView";
 import MonthView from "@/components/calendar/MonthView";
-import WeekView from "@/components/calendar/WeekView";
 import YearView from "@/components/calendar/YearView";
 
 interface CalendarPageProps {
   events: Event[];
 }
 
-type CalendarView = 'month' | 'week' | 'year';
+type CalendarView = 'day' | 'month' | 'year';
 
 const CalendarPage = ({ events }: CalendarPageProps) => {
   const [currentDate, setCurrentDate] = React.useState(new Date());
@@ -22,11 +22,11 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
 
   const handlePrev = () => {
     switch (view) {
+      case 'day':
+        setCurrentDate(subDays(currentDate, 1));
+        break;
       case 'month':
         setCurrentDate(subMonths(currentDate, 1));
-        break;
-      case 'week':
-        setCurrentDate(subWeeks(currentDate, 1));
         break;
       case 'year':
         setCurrentDate(subYears(currentDate, 1));
@@ -36,11 +36,11 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
 
   const handleNext = () => {
     switch (view) {
+      case 'day':
+        setCurrentDate(addDays(currentDate, 1));
+        break;
       case 'month':
         setCurrentDate(addMonths(currentDate, 1));
-        break;
-      case 'week':
-        setCurrentDate(addWeeks(currentDate, 1));
         break;
       case 'year':
         setCurrentDate(addYears(currentDate, 1));
@@ -50,10 +50,10 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
 
   const getHeaderText = () => {
     switch (view) {
+      case 'day':
+        return format(currentDate, "PPP", { locale: ptBR });
       case 'month':
         return format(currentDate, "MMMM yyyy", { locale: ptBR });
-      case 'week':
-        return `Semana de ${format(currentDate, "dd 'de' MMMM", { locale: ptBR })}`;
       case 'year':
         return format(currentDate, "yyyy", { locale: ptBR });
     }
@@ -65,7 +65,7 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
         <div>
           <CardTitle>Calendário de Eventos</CardTitle>
           <CardDescription>
-            Visualize e gerencie seus eventos por mês, semana ou ano.
+            Visualize e gerencie seus eventos por dia, mês ou ano.
           </CardDescription>
         </div>
         <div className="flex items-center gap-4 w-full sm:w-auto justify-between">
@@ -80,25 +80,41 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <ToggleGroup type="single" value={view} onValueChange={(value) => value && setView(value as CalendarView)} className="hidden sm:flex">
+          <ToggleGroup
+            type="single"
+            value={view}
+            onValueChange={(value) => value && setView(value as CalendarView)}
+            className="hidden sm:flex"
+          >
+            <ToggleGroupItem value="day">Dia</ToggleGroupItem>
             <ToggleGroupItem value="month">Mês</ToggleGroupItem>
-            <ToggleGroupItem value="week">Semana</ToggleGroupItem>
             <ToggleGroupItem value="year">Ano</ToggleGroupItem>
           </ToggleGroup>
         </div>
-         <ToggleGroup type="single" value={view} onValueChange={(value) => value && setView(value as CalendarView)} className="flex sm:hidden w-full">
-            <ToggleGroupItem value="month" className="flex-1">Mês</ToggleGroupItem>
-            <ToggleGroupItem value="week" className="flex-1">Semana</ToggleGroupItem>
-            <ToggleGroupItem value="year" className="flex-1">Ano</ToggleGroupItem>
-          </ToggleGroup>
+        <ToggleGroup
+          type="single"
+          value={view}
+          onValueChange={(value) => value && setView(value as CalendarView)}
+          className="flex sm:hidden w-full"
+        >
+          <ToggleGroupItem value="day" className="flex-1">Dia</ToggleGroupItem>
+          <ToggleGroupItem value="month" className="flex-1">Mês</ToggleGroupItem>
+          <ToggleGroupItem value="year" className="flex-1">Ano</ToggleGroupItem>
+        </ToggleGroup>
       </CardHeader>
       <CardContent>
+        {view === 'day' && <DayView currentDate={currentDate} events={events} />}
         {view === 'month' && <MonthView currentDate={currentDate} events={events} />}
-        {view === 'week' && <WeekView currentDate={currentDate} events={events} />}
-        {view === 'year' && <YearView currentDate={currentDate} events={events} setView={setView} setCurrentDate={setCurrentDate} />}
+        {view === 'year' && (
+          <YearView
+            currentDate={currentDate}
+            events={events}
+            setView={setView}
+            setCurrentDate={setCurrentDate}
+          />
+        )}
       </CardContent>
     </Card>
-  );
-};
+);
 
 export default CalendarPage;
