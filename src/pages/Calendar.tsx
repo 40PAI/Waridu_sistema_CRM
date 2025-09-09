@@ -48,9 +48,18 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
   const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
 
   const getEventsForDay = (day: Date) => {
-    return events.filter(event => 
-      isWithinInterval(day, { start: parseISO(event.startDate), end: parseISO(event.endDate) })
-    );
+    return events.filter(event => {
+      // Safeguard: Ensure both start and end dates are valid strings before parsing
+      if (typeof event.startDate !== 'string' || typeof event.endDate !== 'string' || !event.startDate || !event.endDate) {
+        return false;
+      }
+      try {
+        return isWithinInterval(day, { start: parseISO(event.startDate), end: parseISO(event.endDate) });
+      } catch (error) {
+        console.error("Error parsing event dates:", event, error);
+        return false;
+      }
+    });
   };
 
   return (
