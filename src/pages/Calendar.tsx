@@ -1,28 +1,11 @@
 import * as React from "react";
-import { addDays, startOfMonth, isSameDay } from 'date-fns';
+import { isSameDay, parseISO } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
+import { Event, EventStatus } from "@/App";
 
-type Event = {
-  id: number;
-  name: string;
-  date: Date;
-  status: 'Confirmado' | 'Pendente' | 'Cancelado';
-};
-
-const today = new Date();
-const startOfCurrentMonth = startOfMonth(today);
-
-const events: Event[] = [
-    { id: 1, name: "Conferência de Tecnologia", date: addDays(startOfCurrentMonth, 4), status: 'Confirmado' },
-    { id: 2, name: "Workshop de Design", date: addDays(startOfCurrentMonth, 9), status: 'Confirmado' },
-    { id: 3, name: "Reunião de Alinhamento", date: addDays(startOfCurrentMonth, 9), status: 'Pendente' },
-    { id: 4, name: "Lançamento de Produto", date: addDays(startOfCurrentMonth, 18), status: 'Confirmado' },
-    { id: 5, name: "Evento Cancelado", date: addDays(startOfCurrentMonth, 22), status: 'Cancelado' },
-];
-
-const getStatusBorderClass = (status: Event['status']) => {
+const getStatusBorderClass = (status: EventStatus) => {
     switch (status) {
         case 'Confirmado': return 'border-l-4 border-green-500';
         case 'Pendente': return 'border-l-4 border-yellow-500';
@@ -31,7 +14,7 @@ const getStatusBorderClass = (status: Event['status']) => {
     }
 };
 
-const getStatusBadgeClass = (status: Event['status']) => {
+const getStatusBadgeClass = (status: EventStatus) => {
     switch (status) {
         case 'Confirmado': return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200 dark:border-green-800';
         case 'Pendente': return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-200 dark:border-yellow-800';
@@ -40,7 +23,11 @@ const getStatusBadgeClass = (status: Event['status']) => {
     }
 };
 
-const CalendarPage = () => {
+interface CalendarPageProps {
+  events: Event[];
+}
+
+const CalendarPage = ({ events }: CalendarPageProps) => {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
 
   const { confirmedDays, pendingDays, cancelledDays } = React.useMemo(() => {
@@ -49,17 +36,18 @@ const CalendarPage = () => {
     const cancelled: Date[] = [];
 
     events.forEach(event => {
-      if (event.status === 'Confirmado') confirmed.push(event.date);
-      else if (event.status === 'Pendente') pending.push(event.date);
-      else if (event.status === 'Cancelado') cancelled.push(event.date);
+      const eventDate = parseISO(event.date);
+      if (event.status === 'Confirmado') confirmed.push(eventDate);
+      else if (event.status === 'Pendente') pending.push(eventDate);
+      else if (event.status === 'Cancelado') cancelled.push(eventDate);
     });
-    return { confirmedDays: confirmed, pendingDays: pending, cancelledDays: cancelled };
-  }, []);
+    return { confirmedDays, pendingDays, cancelledDays };
+  }, [events]);
 
   const selectedDayEvents = React.useMemo(() => {
     if (!date) return [];
-    return events.filter(event => isSameDay(event.date, date));
-  }, [date]);
+    return events.filter(event => isSameDay(parseISO(event.date), date));
+  }, [date, events]);
 
   return (
     <Card>

@@ -32,6 +32,8 @@ export interface Roster {
   materials: Record<string, number>;
 }
 
+export type EventStatus = 'Confirmado' | 'Pendente' | 'Cancelado';
+
 export interface Event {
   id: number;
   name: string;
@@ -43,6 +45,7 @@ export interface Event {
   revenue?: number;
   roster?: Roster;
   expenses?: Expense[];
+  status: EventStatus;
 }
 
 export interface Role {
@@ -52,10 +55,10 @@ export interface Role {
 
 const App = () => {
   const initialEvents: Event[] = [
-    { id: 1, name: "Conferência Anual de Tecnologia", date: "2024-08-15", location: "Centro de Convenções", startTime: "09:00", endTime: "18:00", revenue: 50000, expenses: [{id: 'exp1', description: 'Catering', amount: 5000}] },
-    { id: 2, name: "Lançamento do Produto X", date: "2024-09-01", location: "Sede da Empresa", startTime: "19:00", endTime: "22:00", revenue: 25000 },
-    { id: 3, name: "Workshop de Marketing Digital", date: "2024-09-10", location: "Online", startTime: "14:00", endTime: "17:00", revenue: 10000 },
-    { id: 4, name: "Festa de Fim de Ano", date: "2024-12-20", location: "Salão de Festas", startTime: "20:00", revenue: 75000 },
+    { id: 1, name: "Conferência Anual de Tecnologia", date: "2024-08-15", location: "Centro de Convenções", startTime: "09:00", endTime: "18:00", revenue: 50000, expenses: [{id: 'exp1', description: 'Catering', amount: 5000}], status: 'Confirmado' },
+    { id: 2, name: "Lançamento do Produto X", date: "2024-09-01", location: "Sede da Empresa", startTime: "19:00", endTime: "22:00", revenue: 25000, status: 'Confirmado' },
+    { id: 3, name: "Workshop de Marketing Digital", date: "2024-09-10", location: "Online", startTime: "14:00", endTime: "17:00", revenue: 10000, status: 'Pendente' },
+    { id: 4, name: "Festa de Fim de Ano", date: "2024-12-20", location: "Salão de Festas", startTime: "20:00", revenue: 75000, status: 'Cancelado' },
   ];
 
   const initialEmployees: Employee[] = [
@@ -76,10 +79,10 @@ const App = () => {
     { id: 'role-6', name: 'VJ' },
   ]);
 
-  const addEvent = (newEventData: Omit<Event, 'id' | 'roster' | 'expenses'>) => {
+  const addEvent = (newEventData: Omit<Event, 'id' | 'roster' | 'expenses' | 'status'>) => {
     setEvents(prevEvents => [
       ...prevEvents,
-      { ...newEventData, id: prevEvents.length + 1 }
+      { ...newEventData, id: prevEvents.length + 1, status: 'Pendente' }
     ]);
   };
 
@@ -141,7 +144,7 @@ const App = () => {
           <Routes>
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Index />} />
-              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/calendar" element={<CalendarPage events={events} />} />
               <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
               <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} />} />
               <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
