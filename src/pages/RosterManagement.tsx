@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RosterDialog } from "@/components/roster/RosterDialog";
+import { RosterViewerPopover } from "@/components/roster/RosterViewerPopover";
 import { Event, Roster } from "@/App";
 
 interface RosterManagementProps {
@@ -41,7 +42,10 @@ const RosterManagement = ({ events, onUpdateRoster }: RosterManagementProps) => 
                   <TableCell>{event.endTime || 'N/A'}</TableCell>
                   <TableCell>{event.location}</TableCell>
                   <TableCell className="text-right">
-                    <RosterDialog event={event} onSaveRoster={onUpdateRoster} />
+                    <div className="flex justify-end items-center gap-2">
+                      {event.roster && <RosterViewerPopover roster={event.roster} />}
+                      <RosterDialog event={event} onSaveRoster={onUpdateRoster} />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
