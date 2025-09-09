@@ -41,7 +41,7 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
       else if (event.status === 'Pendente') pending.push(eventDate);
       else if (event.status === 'Cancelado') cancelled.push(eventDate);
     });
-    return { confirmedDays, pendingDays, cancelledDays };
+    return { confirmedDays: confirmed, pendingDays: pending, cancelledDays: cancelled };
   }, [events]);
 
   const selectedDayEvents = React.useMemo(() => {
