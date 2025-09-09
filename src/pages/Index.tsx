@@ -1,71 +1,121 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, CreditCard, Activity } from "lucide-react";
-import { RecentSales } from "@/components/dashboard/RecentSales";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
+import { Archive, CheckCircle, Wrench, Truck } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Badge } from "@/components/ui/badge";
 
-const weekPerformanceData = [
-  { day: 'Seg', Receita: 1200 },
-  { day: 'Ter', Receita: 1500 },
-  { day: 'Qua', Receita: 1100 },
-  { day: 'Qui', Receita: 1800 },
-  { day: 'Sex', Receita: 2100 },
-  { day: 'Sáb', Receita: 2500 },
-  { day: 'Dom', Receita: 2300 },
+const materialsData = [
+    { id: 'MAT001', name: 'Câmera Sony A7S III', quantity: 5, status: 'Disponível', category: 'Câmeras' },
+    { id: 'MAT002', name: 'Lente Canon 24-70mm', quantity: 8, status: 'Em uso', category: 'Lentes' },
+    { id: 'MAT003', name: 'Kit de Luz Aputure 300D', quantity: 3, status: 'Disponível', category: 'Iluminação' },
+    { id: 'MAT004', name: 'Microfone Rode NTG5', quantity: 10, status: 'Manutenção', category: 'Áudio' },
+    { id: 'MAT005', name: 'Tripé Manfrotto', quantity: 12, status: 'Disponível', category: 'Acessórios' },
+    { id: 'MAT006', name: 'Cabo HDMI 10m', quantity: 30, status: 'Disponível', category: 'Cabos' },
+    { id: 'MAT007', name: 'Gravador Zoom H6', quantity: 4, status: 'Em uso', category: 'Áudio' },
+    { id: 'MAT008', name: 'Monitor de Referência', quantity: 2, status: 'Disponível', category: 'Acessórios' },
 ];
 
+const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'Disponível':
+        return 'default';
+      case 'Em uso':
+        return 'secondary';
+      case 'Manutenção':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+};
+
+const MaterialStatusList = () => {
+    const activeMaterials = materialsData.filter(m => m.status !== 'Disponível');
+    return (
+        <div className="space-y-4">
+            {activeMaterials.length > 0 ? activeMaterials.map((item) => (
+                <div className="flex items-center" key={item.id}>
+                    <div className="ml-4 space-y-1">
+                        <p className="text-sm font-medium leading-none">{item.name}</p>
+                        <p className="text-sm text-muted-foreground">{item.category}</p>
+                    </div>
+                    <div className="ml-auto font-medium">
+                        <Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>
+                    </div>
+                </div>
+            )) : (
+                <p className="text-sm text-muted-foreground text-center">Todos os materiais estão disponíveis.</p>
+            )}
+        </div>
+    );
+};
+
 const Dashboard = () => {
+  const totalItems = materialsData.reduce((sum, item) => sum + item.quantity, 0);
+  const availableItems = materialsData.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0);
+  const inUseItems = materialsData.filter(m => m.status === 'Em uso').reduce((sum, item) => sum + item.quantity, 0);
+  const inMaintenanceItems = materialsData.filter(m => m.status === 'Manutenção').reduce((sum, item) => sum + item.quantity, 0);
+
+  const categoryData = materialsData.reduce((acc, item) => {
+    const category = acc.find(c => c.name === item.category);
+    if (category) {
+      category.quantidade += item.quantity;
+    } else {
+      acc.push({ name: item.category, quantidade: item.quantity });
+    }
+    return acc;
+  }, [] as { name: string; quantidade: number }[]);
+
   return (
     <div className="flex-1 space-y-4">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Receita Total
+              Total de Itens
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <Archive className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 45.231,89</div>
+            <div className="text-2xl font-bold">{totalItems}</div>
             <p className="text-xs text-muted-foreground">
-              +20.1% do último mês
+              Itens totais no inventário
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Assinaturas
+              Disponíveis
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+2350</div>
+            <div className="text-2xl font-bold">{availableItems}</div>
             <p className="text-xs text-muted-foreground">
-              +180.1% do último mês
+              Itens prontos para uso
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Em Uso</CardTitle>
+            <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+12,234</div>
+            <div className="text-2xl font-bold">{inUseItems}</div>
             <p className="text-xs text-muted-foreground">
-              +19% do último mês
+              Itens alocados em eventos
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ativos Agora</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Em Manutenção</CardTitle>
+            <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+573</div>
+            <div className="text-2xl font-bold">{inMaintenanceItems}</div>
             <p className="text-xs text-muted-foreground">
-              +201 desde a última hora
+              Itens aguardando reparo
             </p>
           </CardContent>
         </Card>
@@ -73,13 +123,14 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Visão Geral</CardTitle>
+            <CardTitle>Inventário por Categoria</CardTitle>
+            <CardDescription>Distribuição de itens nas categorias.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={weekPerformanceData}>
+              <BarChart data={categoryData}>
                 <XAxis
-                  dataKey="day"
+                  dataKey="name"
                   stroke="#888888"
                   fontSize={12}
                   tickLine={false}
@@ -90,23 +141,23 @@ const Dashboard = () => {
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `R$${value}`}
                 />
                 <Tooltip />
-                <Line type="monotone" dataKey="Receita" stroke="#8884d8" activeDot={{ r: 8 }} />
-              </LineChart>
+                <Legend />
+                <Bar dataKey="quantidade" fill="#8884d8" name="Quantidade" />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Vendas Recentes</CardTitle>
+            <CardTitle>Status dos Materiais</CardTitle>
             <CardDescription>
-              Você fez 265 vendas este mês.
+              Materiais em uso ou em manutenção.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <RecentSales />
+            <MaterialStatusList />
           </CardContent>
         </Card>
       </div>
