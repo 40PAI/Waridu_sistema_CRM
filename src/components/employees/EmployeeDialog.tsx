@@ -63,9 +63,14 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
       return;
     }
 
+    const formattedName = name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+
     const employeeData = {
       id: employee?.id,
-      name,
+      name: formattedName,
       email,
       role,
       status,
