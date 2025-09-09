@@ -23,6 +23,7 @@ export interface Employee {
   email: string;
   avatar: string;
   status: EmployeeStatus;
+  costPerDay?: number;
 }
 
 interface EmployeeDialogProps {
@@ -38,6 +39,7 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState("");
   const [status, setStatus] = React.useState<EmployeeStatus>("Ativo");
+  const [costPerDay, setCostPerDay] = React.useState<number | undefined>(undefined);
 
   const isEditing = !!employee;
 
@@ -48,11 +50,13 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
         setEmail(employee.email);
         setRole(employee.role);
         setStatus(employee.status);
+        setCostPerDay(employee.costPerDay);
       } else {
         setName("");
         setEmail("");
         setRole("");
         setStatus("Ativo");
+        setCostPerDay(undefined);
       }
     }
   }, [employee, open]);
@@ -74,6 +78,7 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
       email,
       role,
       status,
+      costPerDay,
     };
 
     onSave(employeeData);
@@ -134,6 +139,12 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
                 <SelectItem value="Inativo">Inativo</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="costPerDay" className="text-right">
+              Custo/Dia (AOA)
+            </Label>
+            <Input id="costPerDay" type="number" value={costPerDay || ''} onChange={(e) => setCostPerDay(e.target.value ? Number(e.target.value) : undefined)} className="col-span-3" />
           </div>
         </div>
         <DialogFooter>

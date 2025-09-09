@@ -15,6 +15,7 @@ interface CreateEventPageProps {
     location: string;
     startTime: string;
     endTime: string;
+    revenue?: number;
   }) => void;
 }
 
@@ -26,6 +27,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
   const [startTime, setStartTime] = React.useState("");
   const [endTime, setEndTime] = React.useState("");
   const [eventLocation, setEventLocation] = React.useState("");
+  const [revenue, setRevenue] = React.useState<number | undefined>(undefined);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +43,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
       location: eventLocation,
       startTime: startTime,
       endTime: endTime,
+      revenue: revenue,
     });
 
     showSuccess("Evento criado com sucesso!");
@@ -95,6 +98,11 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
               <Label htmlFor="contactPerson">Pessoa de Contato</Label>
               <Input id="contactPerson" placeholder="Ex: João da Silva" />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="revenue">Receita Bruta do Evento (AOA)</Label>
+            <Input id="revenue" type="number" placeholder="Ex: 50000" value={revenue || ''} onChange={(e) => setRevenue(e.target.value ? Number(e.target.value) : undefined)} />
           </div>
 
           <div className="space-y-2">

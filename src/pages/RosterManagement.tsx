@@ -2,16 +2,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RosterDialog } from "@/components/roster/RosterDialog";
 import { RosterViewerPopover } from "@/components/roster/RosterViewerPopover";
-import { Event, Roster } from "@/App";
+import { Event, Roster, Expense } from "@/App";
 import { Employee } from "@/components/employees/EmployeeDialog";
 
 interface RosterManagementProps {
   events: Event[];
   employees: Employee[];
-  onUpdateRoster: (eventId: number, rosterData: Roster) => void;
+  onUpdateEventDetails: (eventId: number, details: { roster: Roster; expenses: Expense[] }) => void;
 }
 
-const RosterManagement = ({ events, employees, onUpdateRoster }: RosterManagementProps) => {
+const RosterManagement = ({ events, employees, onUpdateEventDetails }: RosterManagementProps) => {
   return (
     <Card>
       <CardHeader>
@@ -46,7 +46,7 @@ const RosterManagement = ({ events, employees, onUpdateRoster }: RosterManagemen
                   <TableCell className="text-right">
                     <div className="flex justify-end items-center gap-2">
                       {event.roster && <RosterViewerPopover roster={event.roster} />}
-                      <RosterDialog event={event} employees={employees} onSaveRoster={onUpdateRoster} />
+                      <RosterDialog event={event} employees={employees} onSaveDetails={onUpdateEventDetails} />
                     </div>
                   </TableCell>
                 </TableRow>
