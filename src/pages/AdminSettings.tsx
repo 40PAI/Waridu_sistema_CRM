@@ -1,12 +1,28 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { RoleManager } from "@/components/settings/RoleManager";
+import { Role } from "@/App";
+import { Button } from "@/components/ui/button";
 
-const AdminSettings = () => {
+interface AdminSettingsProps {
+  roles: Role[];
+  onAddRole: (name: string) => void;
+  onUpdateRole: (id: string, name: string) => void;
+  onDeleteRole: (id: string) => void;
+}
+
+const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole }: AdminSettingsProps) => {
   return (
     <div className="grid gap-6">
+      <RoleManager
+        roles={roles}
+        onAddRole={onAddRole}
+        onUpdateRole={onUpdateRole}
+        onDeleteRole={onDeleteRole}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>Configurações Gerais</CardTitle>

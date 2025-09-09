@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Role } from "@/App";
 
 export interface Employee {
   id: string;
@@ -24,9 +26,10 @@ interface EmployeeDialogProps {
   onOpenChange: (open: boolean) => void;
   employee?: Employee | null;
   onSave: (employeeData: Omit<Employee, 'id' | 'avatar'> & { id?: string }) => void;
+  roles: Role[];
 }
 
-export function EmployeeDialog({ open, onOpenChange, employee, onSave }: EmployeeDialogProps) {
+export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: EmployeeDialogProps) {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState("");
@@ -91,7 +94,18 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave }: Employe
             <Label htmlFor="role" className="text-right">
               Função
             </Label>
-            <Input id="role" value={role} onChange={(e) => setRole(e.target.value)} className="col-span-3" />
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Selecione uma função" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((r) => (
+                  <SelectItem key={r.id} value={r.name}>
+                    {r.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>

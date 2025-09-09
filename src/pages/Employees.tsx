@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmployeeDialog, Employee } from "@/components/employees/EmployeeDialog";
 import { showSuccess } from "@/utils/toast";
+import { Role } from "@/App";
 
 const initialEmployees: Employee[] = [
     { id: 'EMP001', name: 'Ana Silva', role: 'Gerente de Eventos', email: 'ana.silva@email.com', avatar: '/avatars/01.png' },
@@ -13,7 +14,11 @@ const initialEmployees: Employee[] = [
     { id: 'EMP004', name: 'Daniel Martins', role: 'Assistente', email: 'daniel.martins@email.com', avatar: '/avatars/04.png' },
 ];
 
-const EmployeesPage = () => {
+interface EmployeesPageProps {
+  roles: Role[];
+}
+
+const EmployeesPage = ({ roles }: EmployeesPageProps) => {
   const [employees, setEmployees] = React.useState(initialEmployees);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);
@@ -100,6 +105,7 @@ const EmployeesPage = () => {
         onOpenChange={setIsDialogOpen}
         employee={editingEmployee}
         onSave={handleSave}
+        roles={roles}
       />
     </>
   );
