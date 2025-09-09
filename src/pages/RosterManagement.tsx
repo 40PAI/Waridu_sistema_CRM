@@ -65,7 +65,7 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
                 filteredEvents.map((event) => (
                   <TableRow key={event.id}>
                     <TableCell className="font-medium">{event.name}</TableCell>
-                    <TableCell>{event.date}</TableCell>
+                    <TableCell>{event.startDate}</TableCell>
                     <TableCell>{event.location}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-2">

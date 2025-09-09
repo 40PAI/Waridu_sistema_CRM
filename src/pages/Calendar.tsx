@@ -1,101 +1,152 @@
 import * as React from "react";
-import { isSameDay, parseISO } from 'date-fns';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
-import { Badge } from "@/components/ui/badge";
+import {
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, 
+  format, isSameMonth, isToday, addMonths, subMonths, getDay, 
+  isWithinInterval, parseISO, differenceInDays,
+} from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Event, EventStatus } from "@/App";
-
-const getStatusBorderClass = (status: EventStatus) => {
-    switch (status) {
-        case 'Confirmado': return 'border-l-4 border-green-500';
-        case 'Pendente': return 'border-l-4 border-yellow-500';
-        case 'Cancelado': return 'border-l-4 border-red-500';
-        default: return 'border-l-4 border-transparent';
-    }
-};
-
-const getStatusBadgeClass = (status: EventStatus) => {
-    switch (status) {
-        case 'Confirmado': return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200 dark:border-green-800';
-        case 'Pendente': return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-200 dark:border-yellow-800';
-        case 'Cancelado': return 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-200 dark:border-red-800';
-        default: return '';
-    }
-};
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface CalendarPageProps {
   events: Event[];
 }
 
+const statusColors: Record<EventStatus, string> = {
+  'Planejado': 'bg-blue-500 hover:bg-blue-600',
+  'Em Andamento': 'bg-green-500 hover:bg-green-600',
+  'Concluído': 'bg-gray-500 hover:bg-gray-600',
+  'Cancelado': 'bg-red-500 hover:bg-red-600',
+};
+
+const statusBadgeColors: Record<EventStatus, string> = {
+    'Planejado': 'bg-blue-100 text-blue-800 border-blue-200',
+    'Em Andamento': 'bg-green-100 text-green-800 border-green-200',
+    'Concluído': 'bg-gray-100 text-gray-800 border-gray-200',
+    'Cancelado': 'bg-red-100 text-red-800 border-red-200',
+};
+
 const CalendarPage = ({ events }: CalendarPageProps) => {
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
+  const [currentDate, setCurrentDate] = React.useState(new Date());
 
-  const { confirmedDays, pendingDays, cancelledDays } = React.useMemo(() => {
-    const confirmed: Date[] = [];
-    const pending: Date[] = [];
-    const cancelled: Date[] = [];
+  const calendarDays = React.useMemo(() => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const startDate = startOfWeek(monthStart);
+    const endDate = endOfWeek(monthEnd);
+    return eachDayOfInterval({ start: startDate, end: endDate });
+  }, [currentDate]);
 
-    events.forEach(event => {
-      const eventDate = parseISO(event.date);
-      if (event.status === 'Confirmado') confirmed.push(eventDate);
-      else if (event.status === 'Pendente') pending.push(eventDate);
-      else if (event.status === 'Cancelado') cancelled.push(eventDate);
-    });
-    return { confirmedDays: confirmed, pendingDays: pending, cancelledDays: cancelled };
-  }, [events]);
+  const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-  const selectedDayEvents = React.useMemo(() => {
-    if (!date) return [];
-    return events.filter(event => isSameDay(parseISO(event.date), date));
-  }, [date, events]);
+  const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
+  const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
+
+  const getEventsForDay = (day: Date) => {
+    return events.filter(event => 
+      isWithinInterval(day, { start: parseISO(event.startDate), end: parseISO(event.endDate) })
+    );
+  };
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Calendário de Eventos</CardTitle>
-        <CardDescription>
-          Selecione uma data para ver os eventos agendados. Os dias estão coloridos de acordo com o status do evento.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid md:grid-cols-2 gap-8">
+      <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={setDate}
-            className="rounded-md border"
-            modifiers={{
-              confirmed: confirmedDays,
-              pending: pendingDays,
-              cancelled: cancelledDays,
-            }}
-            modifiersClassNames={{
-              confirmed: 'confirmed',
-              pending: 'pending',
-              cancelled: 'cancelled',
-            }}
-          />
+          <CardTitle>Calendário de Eventos</CardTitle>
+          <CardDescription>
+            Visualize a duração dos eventos e clique para ver os detalhes.
+          </CardDescription>
         </div>
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">
-            Eventos para {date ? date.toLocaleDateString('pt-BR') : 'Nenhuma data selecionada'}
-          </h3>
-          {selectedDayEvents.length > 0 ? (
-            <ul className="space-y-3">
-              {selectedDayEvents.map(event => (
-                <li key={event.id} className={`p-3 bg-muted/50 rounded-md border ${getStatusBorderClass(event.status)}`}>
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">{event.name}</span>
-                    <Badge variant="outline" className={getStatusBadgeClass(event.status)}>{event.status}</Badge>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="flex items-center justify-center h-full p-4 border-2 border-dashed rounded-lg">
-                <p className="text-muted-foreground">Nenhum evento para esta data.</p>
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-semibold">
+            {format(currentDate, "MMMM yyyy", { locale: ptBR })}
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={handleNextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-7 border-t border-l">
+          {weekDays.map(day => (
+            <div key={day} className="text-center font-medium p-2 border-b border-r bg-muted/50">
+              {day}
             </div>
-          )}
+          ))}
+          {calendarDays.map((day, dayIdx) => {
+            const dayEvents = getEventsForDay(day);
+            return (
+              <div
+                key={day.toString()}
+                className={cn(
+                  "relative h-36 border-b border-r p-2 flex flex-col",
+                  !isSameMonth(day, currentDate) && "bg-muted/20 text-muted-foreground"
+                )}
+              >
+                <span className={cn(
+                  "font-medium",
+                  isToday(day) && "bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center"
+                )}>
+                  {format(day, "d")}
+                </span>
+                <div className="mt-1 space-y-1 overflow-y-auto">
+                  {dayEvents.map(event => {
+                    const eventStart = parseISO(event.startDate);
+                    const isFirstDay = getDay(day) === 0 || dayIdx % 7 === 0 || format(day, 'yyyy-MM-dd') === event.startDate;
+                    if (!isFirstDay) return null;
+
+                    const eventEnd = parseISO(event.endDate);
+                    const duration = differenceInDays(eventEnd, day) + 1;
+                    const weekEndDay = 6 - getDay(day);
+                    const span = Math.min(duration, weekEndDay + 1);
+
+                    return (
+                      <Popover key={event.id}>
+                        <PopoverTrigger asChild>
+                          <div
+                            className={cn(
+                              "text-white text-sm p-1 rounded-md cursor-pointer truncate",
+                              statusColors[event.status]
+                            )}
+                            style={{ width: `calc(${span * 100}% + ${span - 1} * 1px)` }}
+                          >
+                            {event.name}
+                          </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="grid gap-4">
+                            <div className="space-y-2">
+                              <h4 className="font-medium leading-none">{event.name}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {format(eventStart, "dd/MM/yyyy")} - {format(eventEnd, "dd/MM/yyyy")}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm">Status:</span>
+                                <Badge variant="outline" className={statusBadgeColors[event.status]}>{event.status}</Badge>
+                            </div>
+                            {event.description && (
+                                <p className="text-sm">{event.description}</p>
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

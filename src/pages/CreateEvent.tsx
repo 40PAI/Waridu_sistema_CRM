@@ -10,7 +10,7 @@ import { showSuccess, showError } from "@/utils/toast";
 interface CreateEventPageProps {
   onAddEvent: (event: { 
     name: string; 
-    date: string; 
+    startDate: string; 
     endDate: string; 
     location: string;
     startTime: string;
@@ -22,7 +22,7 @@ interface CreateEventPageProps {
 const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
   const navigate = useNavigate();
   const [eventName, setEventName] = React.useState("");
-  const [eventDate, setEventDate] = React.useState("");
+  const [startDate, setStartDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
   const [startTime, setStartTime] = React.useState("");
   const [endTime, setEndTime] = React.useState("");
@@ -31,15 +31,15 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventName || !eventDate || !eventLocation) {
+    if (!eventName || !startDate || !eventLocation) {
       showError("Por favor, preencha os campos obrigatórios: Nome, Data de Início e Local.");
       return;
     }
 
     onAddEvent({
       name: eventName,
-      date: eventDate,
-      endDate: endDate,
+      startDate: startDate,
+      endDate: endDate || startDate, // Se a data de fim não for preenchida, assume-se que é um evento de um dia
       location: eventLocation,
       startTime: startTime,
       endTime: endTime,
@@ -67,8 +67,8 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="eventDate">Data de Início</Label>
-              <Input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+              <Label htmlFor="startDate">Data de Início</Label>
+              <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
              <div className="space-y-2">
               <Label htmlFor="startTime">Hora de Início</Label>

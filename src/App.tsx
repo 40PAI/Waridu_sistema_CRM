@@ -32,13 +32,13 @@ export interface Roster {
   materials: Record<string, number>;
 }
 
-export type EventStatus = 'Confirmado' | 'Pendente' | 'Cancelado';
+export type EventStatus = 'Planejado' | 'Em Andamento' | 'Concluído' | 'Cancelado';
 
 export interface Event {
   id: number;
   name: string;
-  date: string;
-  endDate?: string;
+  startDate: string;
+  endDate: string;
   location: string;
   startTime?: string;
   endTime?: string;
@@ -46,6 +46,7 @@ export interface Event {
   roster?: Roster;
   expenses?: Expense[];
   status: EventStatus;
+  description?: string;
 }
 
 export interface Role {
@@ -55,10 +56,11 @@ export interface Role {
 
 const App = () => {
   const initialEvents: Event[] = [
-    { id: 1, name: "Conferência Anual de Tecnologia", date: "2024-08-15", location: "Centro de Convenções", startTime: "09:00", endTime: "18:00", revenue: 50000, expenses: [{id: 'exp1', description: 'Catering', amount: 5000}], status: 'Confirmado' },
-    { id: 2, name: "Lançamento do Produto X", date: "2024-09-01", location: "Sede da Empresa", startTime: "19:00", endTime: "22:00", revenue: 25000, status: 'Confirmado' },
-    { id: 3, name: "Workshop de Marketing Digital", date: "2024-09-10", location: "Online", startTime: "14:00", endTime: "17:00", revenue: 10000, status: 'Pendente' },
-    { id: 4, name: "Festa de Fim de Ano", date: "2024-12-20", location: "Salão de Festas", startTime: "20:00", revenue: 75000, status: 'Cancelado' },
+    { id: 1, name: "Conferência Anual de Tecnologia", startDate: "2024-08-15", endDate: "2024-08-17", location: "Centro de Convenções", startTime: "09:00", endTime: "18:00", revenue: 50000, expenses: [{id: 'exp1', description: 'Catering', amount: 5000}], status: 'Concluído', description: 'Evento anual para discutir as novas tendências em tecnologia.' },
+    { id: 2, name: "Lançamento do Produto X", startDate: "2024-09-01", endDate: "2024-09-01", location: "Sede da Empresa", startTime: "19:00", endTime: "22:00", revenue: 25000, status: 'Planejado' },
+    { id: 3, name: "Workshop de Marketing Digital", startDate: "2024-09-10", endDate: "2024-09-12", location: "Online", startTime: "14:00", endTime: "17:00", revenue: 10000, status: 'Planejado' },
+    { id: 4, name: "Festa de Fim de Ano", startDate: "2024-12-20", endDate: "2024-12-20", location: "Salão de Festas", startTime: "20:00", revenue: 75000, status: 'Cancelado' },
+    { id: 5, name: "Imersão de Vendas Q3", startDate: "2024-09-09", endDate: "2024-09-13", location: "Hotel Fazenda", status: 'Em Andamento', description: 'Treinamento intensivo para a equipe de vendas.' },
   ];
 
   const initialEmployees: Employee[] = [
@@ -99,7 +101,7 @@ const App = () => {
   const addEvent = (newEventData: Omit<Event, 'id' | 'roster' | 'expenses' | 'status'>) => {
     setEvents(prevEvents => [
       ...prevEvents,
-      { ...newEventData, id: prevEvents.length > 0 ? Math.max(...prevEvents.map(e => e.id)) + 1 : 1, status: 'Pendente' }
+      { ...newEventData, id: prevEvents.length > 0 ? Math.max(...prevEvents.map(e => e.id)) + 1 : 1, status: 'Planejado' }
     ]);
   };
 

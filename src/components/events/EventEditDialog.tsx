@@ -22,7 +22,7 @@ interface EventEditDialogProps {
 
 export function EventEditDialog({ open, onOpenChange, event, onSave }: EventEditDialogProps) {
   const [eventName, setEventName] = React.useState("");
-  const [eventDate, setEventDate] = React.useState("");
+  const [startDate, setStartDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
   const [startTime, setStartTime] = React.useState("");
   const [endTime, setEndTime] = React.useState("");
@@ -32,7 +32,7 @@ export function EventEditDialog({ open, onOpenChange, event, onSave }: EventEdit
   React.useEffect(() => {
     if (event) {
       setEventName(event.name);
-      setEventDate(event.date);
+      setStartDate(event.startDate);
       setEndDate(event.endDate || "");
       setStartTime(event.startTime || "");
       setEndTime(event.endTime || "");
@@ -42,7 +42,7 @@ export function EventEditDialog({ open, onOpenChange, event, onSave }: EventEdit
   }, [event]);
 
   const handleSubmit = () => {
-    if (!eventName || !eventDate || !eventLocation) {
+    if (!eventName || !startDate || !eventLocation) {
       showError("Nome, Data de Início e Local são obrigatórios.");
       return;
     }
@@ -50,8 +50,8 @@ export function EventEditDialog({ open, onOpenChange, event, onSave }: EventEdit
     const updatedEvent: Event = {
       ...event,
       name: eventName,
-      date: eventDate,
-      endDate: endDate,
+      startDate: startDate,
+      endDate: endDate || startDate,
       startTime: startTime,
       endTime: endTime,
       location: eventLocation,
@@ -79,8 +79,8 @@ export function EventEditDialog({ open, onOpenChange, event, onSave }: EventEdit
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="eventDate">Data de Início</Label>
-              <Input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+              <Label htmlFor="startDate">Data de Início</Label>
+              <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="endDate">Data de Fim</Label>
