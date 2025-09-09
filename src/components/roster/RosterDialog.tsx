@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Combobox } from "@/components/ui/combobox";
 import { PlusCircle, XCircle } from "lucide-react";
+import { showSuccess } from "@/utils/toast";
 
 // Mock data
 const employees = [
@@ -37,6 +38,7 @@ interface RosterDialogProps {
 }
 
 export function RosterDialog({ event }: RosterDialogProps) {
+  const [open, setOpen] = React.useState(false);
   const [teamLead, setTeamLead] = React.useState("");
   const [selectedEmployees, setSelectedEmployees] = React.useState<(typeof employees)[0][]>([]);
   const [nameFilter, setNameFilter] = React.useState("");
@@ -78,8 +80,20 @@ export function RosterDialog({ event }: RosterDialogProps) {
     setSelectedMaterials(prev => ({ ...prev, [materialId]: quantity }));
   };
 
+  const handleSubmit = () => {
+    // Aqui você enviaria os dados para o seu backend.
+    console.log("Escalação salva:", {
+      eventId: event.id,
+      teamLead,
+      selectedEmployees,
+      selectedMaterials,
+    });
+    showSuccess("Escalação salva com sucesso!");
+    setOpen(false);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">Criar Escalação</Button>
       </DialogTrigger>
@@ -168,7 +182,7 @@ export function RosterDialog({ event }: RosterDialogProps) {
           </TabsContent>
         </Tabs>
         <DialogFooter>
-          <Button type="submit">Salvar Escalação</Button>
+          <Button type="button" onClick={handleSubmit}>Salvar Escalação</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
