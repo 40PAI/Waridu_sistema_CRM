@@ -1,6 +1,7 @@
 import * as React from "react";
-import { format, addDays, subDays, addMonths, subMonths, addYears, subYears } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useState } from "react";
+import { format, addDays, subDays, addMonths, subMonths, addYears, subYears } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -14,49 +15,28 @@ interface CalendarPageProps {
   events: Event[];
 }
 
-type CalendarView = 'day' | 'month' | 'year';
+type CalendarView = "day" | "month" | "year";
 
-const CalendarPage = ({ events }: CalendarPageProps) => {
-  const [currentDate, setCurrentDate] = React.useState(new Date());
-  const [view, setView] = React.useState<CalendarView>('month');
+export function CalendarPage({ events }: CalendarPageProps) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState<CalendarView>("month");
 
   const handlePrev = () => {
-    switch (view) {
-      case 'day':
-        setCurrentDate(subDays(currentDate, 1));
-        break;
-      case 'month':
-        setCurrentDate(subMonths(currentDate, 1));
-        break;
-      case 'year':
-        setCurrentDate(subYears(currentDate, 1));
-        break;
-    }
+    if (view === "day") setCurrentDate(subDays(currentDate, 1));
+    if (view === "month") setCurrentDate(subMonths(currentDate, 1));
+    if (view === "year") setCurrentDate(subYears(currentDate, 1));
   };
 
   const handleNext = () => {
-    switch (view) {
-      case 'day':
-        setCurrentDate(addDays(currentDate, 1));
-        break;
-      case 'month':
-        setCurrentDate(addMonths(currentDate, 1));
-        break;
-      case 'year':
-        setCurrentDate(addYears(currentDate, 1));
-        break;
-    }
+    if (view === "day") setCurrentDate(addDays(currentDate, 1));
+    if (view === "month") setCurrentDate(addMonths(currentDate, 1));
+    if (view === "year") setCurrentDate(addYears(currentDate, 1));
   };
 
   const getHeaderText = () => {
-    switch (view) {
-      case 'day':
-        return format(currentDate, "PPP", { locale: ptBR });
-      case 'month':
-        return format(currentDate, "MMMM yyyy", { locale: ptBR });
-      case 'year':
-        return format(currentDate, "yyyy", { locale: ptBR });
-    }
+    if (view === "day") return format(currentDate, "PPP", { locale: ptBR });
+    if (view === "month") return format(currentDate, "MMMM yyyy", { locale: ptBR });
+    return format(currentDate, "yyyy", { locale: ptBR });
   };
 
   return (
@@ -83,7 +63,7 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
           <ToggleGroup
             type="single"
             value={view}
-            onValueChange={(value) => value && setView(value as CalendarView)}
+            onValueChange={(v) => v && setView(v as CalendarView)}
             className="hidden sm:flex"
           >
             <ToggleGroupItem value="day">Dia</ToggleGroupItem>
@@ -94,7 +74,7 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
         <ToggleGroup
           type="single"
           value={view}
-          onValueChange={(value) => value && setView(value as CalendarView)}
+          onValueChange={(v) => v && setView(v as CalendarView)}
           className="flex sm:hidden w-full"
         >
           <ToggleGroupItem value="day" className="flex-1">Dia</ToggleGroupItem>
@@ -103,9 +83,9 @@ const CalendarPage = ({ events }: CalendarPageProps) => {
         </ToggleGroup>
       </CardHeader>
       <CardContent>
-        {view === 'day' && <DayView currentDate={currentDate} events={events} />}
-        {view === 'month' && <MonthView currentDate={currentDate} events={events} />}
-        {view === 'year' && (
+        {view === "day" && <DayView currentDate={currentDate} events={events} />}
+        {view === "month" && <MonthView currentDate={currentDate} events={events} />}
+        {view === "year" && (
           <YearView
             currentDate={currentDate}
             events={events}
