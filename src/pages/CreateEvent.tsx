@@ -1,11 +1,43 @@
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { showSuccess } from "@/utils/toast";
+import { showError } from "@/utils/toast";
 
-const CreateEventPage = () => {
+interface CreateEventPageProps {
+  onAddEvent: (event: { name: string; date: string; endDate: string; location: string; }) => void;
+}
+
+const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
+  const navigate = useNavigate();
+  const [eventName, setEventName] = React.useState("");
+  const [eventDate, setEventDate] = React.useState("");
+  const [endDate, setEndDate] = React.useState("");
+  const [eventLocation, setEventLocation] = React.useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventName || !eventDate || !eventLocation) {
+      showError("Por favor, preencha os campos obrigatórios: Nome, Data de Início e Local.");
+      return;
+    }
+
+    onAddEvent({
+      name: eventName,
+      date: eventDate,
+      endDate: endDate,
+      location: eventLocation,
+    });
+
+    showSuccess("Evento criado com sucesso!");
+    navigate("/roster-management");
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -15,7 +47,28 @@ const CreateEventPage = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="eventName">Nome do Evento</Label>
+            <Input id="eventName" placeholder="Ex: Conferência Anual de Tecnologia" value={eventName} onChange={(e) => setEventName(e.target.value)} />
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="eventDate">Data de Início</Label>
+              <Input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endDate">Data de Fim</Label>
+              <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="eventLocation">Local do Evento</Label>
+            <Input id="eventLocation" placeholder="Ex: Centro de Convenções Morumbi" value={eventLocation} onChange={(e) => setEventLocation(e.target.value)} />
+          </div>
+          
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="clientName">Nome do Cliente</Label>
@@ -25,50 +78,6 @@ const CreateEventPage = () => {
               <Label htmlFor="contactPerson">Pessoa de Contato</Label>
               <Input id="contactPerson" placeholder="Ex: João da Silva" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="contactPhone">Telefone de Contato</Label>
-              <Input id="contactPhone" type="tel" placeholder="(11) 99999-9999" />
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="eventType">Tipo de Evento</Label>
-              <Select>
-                <SelectTrigger id="eventType">
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="corporativo">Corporativo</SelectItem>
-                  <SelectItem value="casamento">Casamento</SelectItem>
-                  <SelectItem value="show">Show/Concerto</SelectItem>
-                  <SelectItem value="conferencia">Conferência</SelectItem>
-                  <SelectItem value="outro">Outro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="eventName">Nome do Evento</Label>
-            <Input id="eventName" placeholder="Ex: Conferência Anual de Tecnologia" />
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="eventDate">Data do Evento</Label>
-              <Input id="eventDate" type="date" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="startTime">Hora de Início</Label>
-              <Input id="startTime" type="time" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endTime">Hora de Fim</Label>
-              <Input id="endTime" type="time" />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="eventLocation">Local do Evento</Label>
-            <Input id="eventLocation" placeholder="Ex: Centro de Convenções Morumbi" />
           </div>
 
           <div className="space-y-2">
@@ -76,7 +85,7 @@ const CreateEventPage = () => {
             <Textarea id="observations" placeholder="Qualquer detalhe importante, como horários de montagem, restrições do local, etc." />
           </div>
 
-          <Button className="w-full" size="lg">Criar Evento</Button>
+          <Button className="w-full" size="lg" type="submit">Criar Evento</Button>
         </form>
       </CardContent>
     </Card>
