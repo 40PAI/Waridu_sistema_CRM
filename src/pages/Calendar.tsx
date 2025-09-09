@@ -53,7 +53,7 @@ const CalendarPage = () => {
       else if (event.status === 'Pendente') pending.push(event.date);
       else if (event.status === 'Cancelado') cancelled.push(event.date);
     });
-    return { confirmedDays, pendingDays, cancelledDays };
+    return { confirmedDays: confirmed, pendingDays: pending, cancelledDays: cancelled };
   }, []);
 
   const selectedDayEvents = React.useMemo(() => {
