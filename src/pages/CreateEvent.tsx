@@ -5,12 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { showSuccess } from "@/utils/toast";
-import { showError } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast";
 
 interface CreateEventPageProps {
-  onAddEvent: (event: { name: string; date: string; endDate: string; location: string; }) => void;
+  onAddEvent: (event: { 
+    name: string; 
+    date: string; 
+    endDate: string; 
+    location: string;
+    startTime: string;
+    endTime: string;
+  }) => void;
 }
 
 const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
@@ -18,6 +23,8 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
   const [eventName, setEventName] = React.useState("");
   const [eventDate, setEventDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
+  const [startTime, setStartTime] = React.useState("");
+  const [endTime, setEndTime] = React.useState("");
   const [eventLocation, setEventLocation] = React.useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,6 +39,8 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
       date: eventDate,
       endDate: endDate,
       location: eventLocation,
+      startTime: startTime,
+      endTime: endTime,
     });
 
     showSuccess("Evento criado com sucesso!");
@@ -53,14 +62,22 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
             <Input id="eventName" placeholder="Ex: Conferência Anual de Tecnologia" value={eventName} onChange={(e) => setEventName(e.target.value)} />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="space-y-2">
               <Label htmlFor="eventDate">Data de Início</Label>
               <Input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
             </div>
+             <div className="space-y-2">
+              <Label htmlFor="startTime">Hora de Início</Label>
+              <Input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="endDate">Data de Fim</Label>
               <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endTime">Hora de Fim</Label>
+              <Input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
             </div>
           </div>
 

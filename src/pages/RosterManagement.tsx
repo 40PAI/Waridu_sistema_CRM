@@ -8,6 +8,8 @@ interface Event {
   date: string;
   endDate?: string;
   location: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 interface RosterManagementProps {
@@ -29,7 +31,9 @@ const RosterManagement = ({ events }: RosterManagementProps) => {
             <TableRow>
               <TableHead>Evento</TableHead>
               <TableHead>Data de Início</TableHead>
+              <TableHead>Hora de Início</TableHead>
               <TableHead>Data de Fim</TableHead>
+              <TableHead>Hora de Fim</TableHead>
               <TableHead>Local</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -40,7 +44,9 @@ const RosterManagement = ({ events }: RosterManagementProps) => {
                 <TableRow key={event.id}>
                   <TableCell className="font-medium">{event.name}</TableCell>
                   <TableCell>{event.date}</TableCell>
+                  <TableCell>{event.startTime || 'N/A'}</TableCell>
                   <TableCell>{event.endDate || 'N/A'}</TableCell>
+                  <TableCell>{event.endTime || 'N/A'}</TableCell>
                   <TableCell>{event.location}</TableCell>
                   <TableCell className="text-right">
                     <RosterDialog event={event} />
@@ -49,7 +55,7 @@ const RosterManagement = ({ events }: RosterManagementProps) => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center h-24">
+                <TableCell colSpan={7} className="text-center h-24">
                   Nenhum evento encontrado. Crie um novo para começar.
                 </TableCell>
               </TableRow>
