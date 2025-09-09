@@ -22,6 +22,24 @@ const events: Event[] = [
     { id: 5, name: "Evento Cancelado", date: addDays(startOfCurrentMonth, 22), status: 'Cancelado' },
 ];
 
+const getStatusBorderClass = (status: Event['status']) => {
+    switch (status) {
+        case 'Confirmado': return 'border-l-4 border-green-500';
+        case 'Pendente': return 'border-l-4 border-yellow-500';
+        case 'Cancelado': return 'border-l-4 border-red-500';
+        default: return 'border-l-4 border-transparent';
+    }
+};
+
+const getStatusBadgeClass = (status: Event['status']) => {
+    switch (status) {
+        case 'Confirmado': return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-200 dark:border-green-800';
+        case 'Pendente': return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-200 dark:border-yellow-800';
+        case 'Cancelado': return 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-200 dark:border-red-800';
+        default: return '';
+    }
+};
+
 const CalendarPage = () => {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
 
@@ -31,34 +49,17 @@ const CalendarPage = () => {
     const cancelled: Date[] = [];
 
     events.forEach(event => {
-      if (event.status === 'Confirmado') {
-        confirmed.push(event.date);
-      } else if (event.status === 'Pendente') {
-        pending.push(event.date);
-      } else if (event.status === 'Cancelado') {
-        cancelled.push(event.date);
-      }
+      if (event.status === 'Confirmado') confirmed.push(event.date);
+      else if (event.status === 'Pendente') pending.push(event.date);
+      else if (event.status === 'Cancelado') cancelled.push(event.date);
     });
-    return { confirmedDays: confirmed, pendingDays: pending, cancelledDays: cancelled };
+    return { confirmedDays, pendingDays, cancelledDays };
   }, []);
 
   const selectedDayEvents = React.useMemo(() => {
     if (!date) return [];
     return events.filter(event => isSameDay(event.date, date));
   }, [date]);
-
-  const getStatusVariant = (status: Event['status']) => {
-    switch (status) {
-      case 'Confirmado':
-        return 'default';
-      case 'Pendente':
-        return 'secondary';
-      case 'Cancelado':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
 
   return (
     <Card>
@@ -94,10 +95,10 @@ const CalendarPage = () => {
           {selectedDayEvents.length > 0 ? (
             <ul className="space-y-3">
               {selectedDayEvents.map(event => (
-                <li key={event.id} className="p-3 bg-muted/50 rounded-md border">
+                <li key={event.id} className={`p-3 bg-muted/50 rounded-md border ${getStatusBorderClass(event.status)}`}>
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{event.name}</span>
-                    <Badge variant={getStatusVariant(event.status)}>{event.status}</Badge>
+                    <Badge variant="outline" className={getStatusBadgeClass(event.status)}>{event.status}</Badge>
                   </div>
                 </li>
               ))}
