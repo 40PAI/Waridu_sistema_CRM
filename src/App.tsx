@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -68,7 +68,16 @@ const App = () => {
     { id: 'EMP004', name: 'Daniel Martins', role: 'Assistente', email: 'daniel.martins@email.com', avatar: '/avatars/04.png', status: 'Ativo', costPerDay: 200 },
   ];
 
-  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const [events, setEvents] = useState<Event[]>(() => {
+    try {
+      const storedEvents = localStorage.getItem('events');
+      return storedEvents ? JSON.parse(storedEvents) : initialEvents;
+    } catch (error) {
+      console.error("Failed to parse events from localStorage", error);
+      return initialEvents;
+    }
+  });
+
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [roles, setRoles] = useState<Role[]>([
     { id: 'role-1', name: 'Gerente de Eventos' },
@@ -79,10 +88,18 @@ const App = () => {
     { id: 'role-6', name: 'VJ' },
   ]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('events', JSON.stringify(events));
+    } catch (error) {
+      console.error("Failed to save events to localStorage", error);
+    }
+  }, [events]);
+
   const addEvent = (newEventData: Omit<Event, 'id' | 'roster' | 'expenses' | 'status'>) => {
     setEvents(prevEvents => [
       ...prevEvents,
-      { ...newEventData, id: prevEvents.length + 1, status: 'Pendente' }
+      { ...newEventData, id: prevEvents.length > 0 ? Math.max(...prevEvents.map(e => e.id)) + 1 : 1, status: 'Pendente' }
     ]);
   };
 
