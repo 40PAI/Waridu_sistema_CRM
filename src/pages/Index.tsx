@@ -123,7 +123,7 @@ const Dashboard = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {totalRevenue.toLocaleString('pt-BR')}</div>
+            <div className="text-2xl font-bold">AOA {totalRevenue.toLocaleString('pt-AO')}</div>
             <p className="text-xs text-muted-foreground">Nos últimos 4 meses</p>
           </CardContent>
         </Card>
