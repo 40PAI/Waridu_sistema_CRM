@@ -16,6 +16,7 @@ import CreateEventPage from "./pages/CreateEvent";
 import MaterialsPage from "./pages/Materials";
 import EmployeesPage from "./pages/Employees";
 import { Employee } from "./components/employees/EmployeeDialog";
+import { showError } from "./utils/toast"; // Import showError for potential use
 
 const queryClient = new QueryClient();
 
@@ -154,6 +155,16 @@ const App = () => {
     setRoles(prev => prev.filter(r => r.id !== roleId));
   };
 
+  const inviteMember = (email: string, roleId: string) => {
+    // In a real application, this would send an actual invitation,
+    // potentially creating a pending user record in a database.
+    // For now, we'll just log it and show a success toast.
+    console.log(`Simulating invitation: Email: ${email}, Role ID: ${roleId}`);
+    // You might want to add the invited member to a 'pending invitations' state
+    // or directly to employees with a 'pending' status if that fits your flow.
+    // For this example, we'll just rely on the toast.
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -170,7 +181,7 @@ const App = () => {
               <Route path="/materials" element={<MaterialsPage />} />
               <Route path="/finance-dashboard" element={<FinanceDashboard />} />
               <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} />} />
-              <Route path="/invite-member" element={<InviteMember />} />
+              <Route path="/invite-member" element={<InviteMember roles={roles} onInviteMember={inviteMember} />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
