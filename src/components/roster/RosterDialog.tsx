@@ -69,13 +69,19 @@ export function RosterDialog({ event, employees, onSaveDetails }: RosterDialogPr
 
   const availableEmployees = React.useMemo(() => {
     return activeEmployees
-      .filter(emp => !selectedEmployees.some(selected => selected.id === emp.id))
       .filter(employee => {
+        // Exclude if they are the team lead
+        if (employee.id === teamLead) return false;
+        
+        // Exclude if they are already in the selected members list
+        if (selectedEmployees.some(selected => selected.id === employee.id)) return false;
+
+        // Apply name and role filters
         const nameMatch = employee.name.toLowerCase().includes(nameFilter.toLowerCase());
         const roleMatch = roleFilter === 'all' || employee.role === roleFilter;
         return nameMatch && roleMatch;
       });
-  }, [selectedEmployees, nameFilter, roleFilter, activeEmployees]);
+  }, [selectedEmployees, nameFilter, roleFilter, activeEmployees, teamLead]);
 
   const filteredMaterials = React.useMemo(() => {
     return materials.filter(material => material.name.toLowerCase().includes(materialFilter.toLowerCase()));
