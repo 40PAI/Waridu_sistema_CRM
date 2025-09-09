@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RosterDialog } from "@/components/roster/RosterDialog";
 
 const events = [
   { id: 1, name: "Conferência Anual de Tecnologia", date: "2024-08-15", location: "Centro de Convenções" },
@@ -35,7 +35,7 @@ const RosterManagement = () => {
                 <TableCell>{event.date}</TableCell>
                 <TableCell>{event.location}</TableCell>
                 <TableCell className="text-right">
-                  <Button size="sm">Criar Escalação</Button>
+                  <RosterDialog event={event} />
                 </TableCell>
               </TableRow>
             ))}

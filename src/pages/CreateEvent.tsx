@@ -71,17 +71,6 @@ const CreateEventPage = () => {
             <Input id="eventLocation" placeholder="Ex: Centro de Convenções Morumbi" />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="equipment">Equipamentos Necessários</Label>
-              <Textarea id="equipment" placeholder="Liste os equipamentos de som, luz, vídeo, etc." rows={5} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="crew">Equipe Necessária</Label>
-              <Textarea id="crew" placeholder="Ex: 1 Técnico de Som, 1 Técnico de Luz, 1 VJ" rows={5} />
-            </div>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="observations">Observações Adicionais</Label>
             <Textarea id="observations" placeholder="Qualquer detalhe importante, como horários de montagem, restrições do local, etc." />
