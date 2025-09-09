@@ -91,3 +91,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .rdp-day_modifier_confirmed:not([aria-selected="true"]) {
+    @apply bg-green-100 text-green-800 font-bold;
+  }
+  .dark .rdp-day_modifier_confirmed:not([aria-selected="true"]) {
+    @apply bg-green-900 text-green-200;
+  }
+
+  .rdp-day_modifier_pending:not([aria-selected="true"]) {
+    @apply bg-yellow-100 text-yellow-800 font-bold;
+  }
+  .dark .rdp-day_modifier_pending:not([aria-selected="true"]) {
+    @apply bg-yellow-900 text-yellow-200;
+  }
+
+  .rdp-day_modifier_cancelled:not([aria-selected="true"]) {
+    @apply bg-red-100 text-red-800 font-bold;
+  }
+  .dark .rdp-day_modifier_cancelled:not([aria-selected="true"]) {
+    @apply bg-red-900 text-red-200;
+  }
+}

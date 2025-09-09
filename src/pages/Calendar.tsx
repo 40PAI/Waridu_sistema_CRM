@@ -25,8 +25,21 @@ const events: Event[] = [
 const CalendarPage = () => {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
 
-  const eventDays = React.useMemo(() => {
-    return events.map(event => event.date);
+  const { confirmedDays, pendingDays, cancelledDays } = React.useMemo(() => {
+    const confirmed: Date[] = [];
+    const pending: Date[] = [];
+    const cancelled: Date[] = [];
+
+    events.forEach(event => {
+      if (event.status === 'Confirmado') {
+        confirmed.push(event.date);
+      } else if (event.status === 'Pendente') {
+        pending.push(event.date);
+      } else if (event.status === 'Cancelado') {
+        cancelled.push(event.date);
+      }
+    });
+    return { confirmedDays: confirmed, pendingDays: pending, cancelledDays: cancelled };
   }, []);
 
   const selectedDayEvents = React.useMemo(() => {
@@ -52,7 +65,7 @@ const CalendarPage = () => {
       <CardHeader>
         <CardTitle>Calendário de Eventos</CardTitle>
         <CardDescription>
-          Selecione uma data para ver os eventos agendados. Os dias com eventos estão sublinhados.
+          Selecione uma data para ver os eventos agendados. Os dias estão coloridos de acordo com o status do evento.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid md:grid-cols-2 gap-8">
@@ -63,12 +76,14 @@ const CalendarPage = () => {
             onSelect={setDate}
             className="rounded-md border"
             modifiers={{
-              event: eventDays,
+              confirmed: confirmedDays,
+              pending: pendingDays,
+              cancelled: cancelledDays,
             }}
-            modifiersStyles={{
-              event: {
-                textDecoration: 'underline',
-              }
+            modifiersClassNames={{
+              confirmed: 'confirmed',
+              pending: 'pending',
+              cancelled: 'cancelled',
             }}
           />
         </div>
