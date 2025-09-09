@@ -4,8 +4,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
-import { Roster } from "@/App";
+import { Eye, DollarSign, Wallet } from "lucide-react";
+import { Event } from "@/App";
+import { Separator } from "@/components/ui/separator";
 
 // Mock data para buscar nomes - em uma aplicação real, isso viria de uma fonte de dados compartilhada.
 const materialsData = [
@@ -31,28 +32,30 @@ const employeesData = [
 
 const getMaterialNameById = (id: string) => materialsData.find(m => m.id === id)?.name || 'Desconhecido';
 const getEmployeeNameById = (id: string) => employeesData.find(e => e.id === id)?.name || 'Não definido';
+const formatCurrency = (value: number) => value.toLocaleString('pt-AO', { style: 'currency', currency: 'AOA' });
 
 interface RosterViewerPopoverProps {
-  roster: Roster;
+  event: Event;
 }
 
-export const RosterViewerPopover = ({ roster }: RosterViewerPopoverProps) => {
-  const teamLeadName = getEmployeeNameById(roster.teamLead);
+export const RosterViewerPopover = ({ event }: RosterViewerPopoverProps) => {
+  const teamLeadName = event.roster ? getEmployeeNameById(event.roster.teamLead) : 'Não definido';
+  const totalExpenses = event.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="icon" className="h-9 w-9">
           <Eye className="h-4 w-4" />
-          <span className="sr-only">Visualizar Escalação</span>
+          <span className="sr-only">Visualizar Detalhes</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80">
+      <PopoverContent className="w-96">
         <div className="grid gap-4">
           <div className="space-y-2">
-            <h4 className="font-medium leading-none">Detalhes da Escalação</h4>
+            <h4 className="font-medium leading-none">Detalhes do Evento</h4>
             <p className="text-sm text-muted-foreground">
-              Resumo da equipe e materiais alocados.
+              Resumo da equipe, materiais e finanças.
             </p>
           </div>
           <div className="grid gap-3">
@@ -64,7 +67,7 @@ export const RosterViewerPopover = ({ roster }: RosterViewerPopoverProps) => {
             <div>
               <h5 className="font-semibold text-sm">Equipe</h5>
               <ul className="list-disc list-inside text-sm text-muted-foreground pl-2">
-                {roster.teamMembers.length > 0 ? roster.teamMembers.map(member => (
+                {event.roster && event.roster.teamMembers.length > 0 ? event.roster.teamMembers.map(member => (
                   <li key={member.id}>{member.name}</li>
                 )) : <li>Nenhum membro na equipe.</li>}
               </ul>
@@ -72,9 +75,9 @@ export const RosterViewerPopover = ({ roster }: RosterViewerPopoverProps) => {
 
             <div>
               <h5 className="font-semibold text-sm">Materiais</h5>
-              {Object.keys(roster.materials).length > 0 ? (
+              {event.roster && Object.keys(event.roster.materials).length > 0 ? (
                 <ul className="list-disc list-inside text-sm text-muted-foreground pl-2">
-                  {Object.entries(roster.materials).map(([id, quantity]) => (
+                  {Object.entries(event.roster.materials).map(([id, quantity]) => (
                     <li key={id}>{getMaterialNameById(id)}: {quantity}</li>
                   ))}
                 </ul>
@@ -82,6 +85,30 @@ export const RosterViewerPopover = ({ roster }: RosterViewerPopoverProps) => {
                 <p className="text-sm text-muted-foreground">Nenhum material alocado.</p>
               )}
             </div>
+            
+            <Separator />
+
+            <div>
+                <h5 className="font-semibold text-sm mb-2">Financeiro</h5>
+                <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground flex items-center"><DollarSign className="h-4 w-4 mr-2"/>Receita Bruta</span>
+                        <span className="font-medium">{formatCurrency(event.revenue || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground flex items-center"><Wallet className="h-4 w-4 mr-2"/>Total de Despesas</span>
+                        <span className="font-medium text-red-600">-{formatCurrency(totalExpenses)}</span>
+                    </div>
+                    {event.expenses && event.expenses.length > 0 && (
+                        <ul className="list-disc list-inside text-xs text-muted-foreground pl-4 pt-1">
+                            {event.expenses.map(exp => (
+                                <li key={exp.id}>{exp.description}: {formatCurrency(exp.amount)}</li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </div>
+
           </div>
         </div>
       </PopoverContent>

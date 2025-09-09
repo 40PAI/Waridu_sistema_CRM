@@ -83,6 +83,14 @@ const App = () => {
     ]);
   };
 
+  const updateEvent = (updatedEvent: Event) => {
+    setEvents(prevEvents =>
+      prevEvents.map(event =>
+        event.id === updatedEvent.id ? updatedEvent : event
+      )
+    );
+  };
+
   const updateEventDetails = (eventId: number, details: { roster: Roster; expenses: Expense[] }) => {
     setEvents(prevEvents =>
       prevEvents.map(event =>
@@ -135,7 +143,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
-              <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} />} />
+              <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} />} />
               <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
               <Route path="/materials" element={<MaterialsPage />} />
               <Route path="/finance-dashboard" element={<FinanceDashboard />} />
