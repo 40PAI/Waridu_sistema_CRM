@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
-import { PERMISSIONS } from "@/config/roles";
+import { PAGE_PERMISSIONS, hasActionPermission } from "@/config/roles";
 
 const Header = () => {
   const { user, logout, switchRole } = useAuth();
@@ -30,7 +30,7 @@ const Header = () => {
     { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
   ];
 
-  const allowedRoutes = user ? PERMISSIONS[user.role] : [];
+  const allowedRoutes = user ? PAGE_PERMISSIONS[user.role] : [];
   const visibleNavItems = navItems.filter(item => allowedRoutes.includes(item.to));
 
   return (
@@ -58,7 +58,7 @@ const Header = () => {
         </SheetContent>
       </Sheet>
       <div className="w-full flex-1"></div>
-      {user && PERMISSIONS[user.role].includes('/invite-member') && (
+      {user && hasActionPermission(user.role, 'members:invite') && (
         <Link to="/invite-member">
           <Button>Convidar Novo Membro</Button>
         </Link>

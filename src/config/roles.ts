@@ -1,6 +1,6 @@
 export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico';
 
-export const PERMISSIONS: Record<Role, string[]> = {
+export const PAGE_PERMISSIONS: Record<Role, string[]> = {
   Admin: [
     '/',
     '/calendar',
@@ -22,7 +22,7 @@ export const PERMISSIONS: Record<Role, string[]> = {
     '/employees',
     '/roles',
     '/materials',
-    '/finance-dashboard', // Adicionado conforme solicitado
+    '/finance-dashboard',
     '/invite-member',
     '/roles/:roleId'
   ],
@@ -46,18 +46,21 @@ export const PERMISSIONS: Record<Role, string[]> = {
   ],
 };
 
+export const ACTION_PERMISSIONS: Record<string, Role[]> = {
+  'materials:write': ['Admin', 'Gestor de Material'],
+  'members:invite': ['Admin', 'Coordenador'],
+};
+
 export const hasPermission = (role: Role, path: string): boolean => {
   if (!role) return false;
   
-  const allowedRoutes = PERMISSIONS[role];
+  const allowedRoutes = PAGE_PERMISSIONS[role];
   if (!allowedRoutes) return false;
 
-  // Verifica por correspondência exata primeiro
   if (allowedRoutes.includes(path)) {
     return true;
   }
 
-  // Verifica por rotas dinâmicas (ex: /roles/123 corresponde a /roles/:roleId)
   const pathParts = path.split('/').filter(p => p);
   
   for (const allowedRoute of allowedRoutes) {
@@ -73,4 +76,10 @@ export const hasPermission = (role: Role, path: string): boolean => {
   }
 
   return false;
+};
+
+export const hasActionPermission = (role: Role, action: string): boolean => {
+  if (!role) return false;
+  const allowedRoles = ACTION_PERMISSIONS[action];
+  return !!allowedRoles?.includes(role);
 };

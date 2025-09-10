@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { MaterialDialog } from "@/components/materials/MaterialDialog";
 import { showSuccess } from "@/utils/toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasActionPermission } from "@/config/roles";
 
 export type MaterialStatus = 'Disponível' | 'Em uso' | 'Manutenção';
 export interface Material {
@@ -29,6 +31,9 @@ const initialMaterialsData: Material[] = [
 ];
 
 const MaterialsPage = () => {
+  const { user } = useAuth();
+  const canWrite = user ? hasActionPermission(user.role, 'materials:write') : false;
+
   const [materials, setMaterials] = React.useState<Material[]>(initialMaterialsData);
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [categoryFilter, setCategoryFilter] = React.useState('all');
@@ -82,7 +87,7 @@ const MaterialsPage = () => {
               Gerencie o inventário de materiais da empresa.
               </CardDescription>
           </div>
-          <Button onClick={handleAddNew}>Adicionar Material</Button>
+          {canWrite && <Button onClick={handleAddNew}>Adicionar Material</Button>}
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4 mb-6">
@@ -126,7 +131,7 @@ const MaterialsPage = () => {
                       <TableHead>Categoria</TableHead>
                       <TableHead>Quantidade</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      {canWrite && <TableHead className="text-right">Ações</TableHead>}
                   </TableRow>
               </TableHeader>
               <TableBody>
@@ -137,9 +142,11 @@ const MaterialsPage = () => {
                           <TableCell>{material.category}</TableCell>
                           <TableCell>{material.quantity}</TableCell>
                           <TableCell>{material.status}</TableCell>
-                          <TableCell className="text-right">
-                              <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>Editar</Button>
-                          </TableCell>
+                          {canWrite && (
+                            <TableCell className="text-right">
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>Editar</Button>
+                            </TableCell>
+                          )}
                       </TableRow>
                   ))}
               </TableBody>

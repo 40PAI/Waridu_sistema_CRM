@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { PERMISSIONS } from "@/config/roles";
+import { PAGE_PERMISSIONS } from "@/config/roles";
 
 const Sidebar = () => {
   const { user } = useAuth();
@@ -21,7 +21,7 @@ const Sidebar = () => {
     { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
   ];
 
-  const allowedRoutes = user ? PERMISSIONS[user.role] : [];
+  const allowedRoutes = user ? PAGE_PERMISSIONS[user.role] : [];
   const visibleNavItems = navItems.filter(item => allowedRoutes.includes(item.to));
 
   return (
