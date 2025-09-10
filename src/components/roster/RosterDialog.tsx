@@ -9,8 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Combobox } from "@/components/ui/combobox";
 import { PlusCircle, XCircle, Trash2 } from "lucide-react";
 import { Event, Roster, Expense } from "@/App";
-import { showSuccess } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast";
 import { Employee } from "../employees/EmployeeDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasActionPermission } from "@/config/roles";
 
 // Mock data
 const materials = [
@@ -28,9 +30,10 @@ interface RosterDialogProps {
   event: Event;
   employees: Employee[];
   onSaveDetails: (eventId: number, details: { roster: Roster; expenses: Expense[] }) => void;
+  onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => void;
 }
 
-export function RosterDialog({ event, employees, onSaveDetails }: RosterDialogProps) {
+export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterialRequest }: RosterDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [teamLead, setTeamLead] = React.useState("");
   const [selectedEmployees, setSelectedEmployees] = React.useState<Employee[]>([]);
@@ -41,6 +44,9 @@ export function RosterDialog({ event, employees, onSaveDetails }: RosterDialogPr
   const [selectedMaterials, setSelectedMaterials] = React.useState<Record<string, number>>({});
   
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
+
+  const { user } = useAuth();
+  const canAllocateMaterials = !!user && hasActionPermission(user.role, 'materials:write');
 
   const activeEmployees = React.useMemo(() => employees.filter(e => e.status === 'Ativo'), [employees]);
 
@@ -70,13 +76,8 @@ export function RosterDialog({ event, employees, onSaveDetails }: RosterDialogPr
   const availableEmployees = React.useMemo(() => {
     return activeEmployees
       .filter(employee => {
-        // Exclude if they are the team lead
         if (employee.id === teamLead) return false;
-        
-        // Exclude if they are already in the selected members list
         if (selectedEmployees.some(selected => selected.id === employee.id)) return false;
-
-        // Apply name and role filters
         const nameMatch = employee.name.toLowerCase().includes(nameFilter.toLowerCase());
         const roleMatch = roleFilter === 'all' || employee.role === roleFilter;
         return nameMatch && roleMatch;
@@ -124,12 +125,35 @@ export function RosterDialog({ event, employees, onSaveDetails }: RosterDialogPr
     const rosterData: Roster = {
       teamLead,
       teamMembers: selectedEmployees.map(e => ({ id: e.id, name: e.name, role: e.role })),
-      materials: selectedMaterials,
+      materials: canAllocateMaterials ? selectedMaterials : {}, // se não puder alocar, não grava materiais
     };
     const details = {
       roster: rosterData,
       expenses: expenses,
     };
+
+    if (!canAllocateMaterials) {
+      // Coordenadores/ Técnicos: criam requisição em vez de alocar
+      const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
+      if (hasRequestedItems) {
+        if (!user) {
+          showError("Sessão inválida. Faça login novamente.");
+          return;
+        }
+        onCreateMaterialRequest(event.id, selectedMaterials, {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        });
+        showSuccess("Requisição de materiais enviada para aprovação.");
+      }
+      onSaveDetails(event.id, details);
+      showSuccess("Detalhes da equipe/ despesas salvos.");
+      setOpen(false);
+      return;
+    }
+
+    // Gestor de Material / Admin: grava diretamente
     onSaveDetails(event.id, details);
     showSuccess("Detalhes do evento salvos com sucesso!");
     setOpen(false);
@@ -222,6 +246,11 @@ export function RosterDialog({ event, employees, onSaveDetails }: RosterDialogPr
                 ))}
               </div>
             </ScrollArea>
+            {!canAllocateMaterials && (
+              <p className="text-xs text-muted-foreground">
+                Você não possui permissão para alocar diretamente. Um pedido será enviado para aprovação.
+              </p>
+            )}
           </TabsContent>
           <TabsContent value="despesas" className="space-y-4 mt-4">
             <div className="flex justify-between items-center">

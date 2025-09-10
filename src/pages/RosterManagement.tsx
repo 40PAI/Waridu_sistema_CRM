@@ -15,9 +15,10 @@ interface RosterManagementProps {
   employees: Employee[];
   onUpdateEventDetails: (eventId: number, details: { roster: Roster; expenses: Expense[] }) => void;
   onUpdateEvent: (updatedEvent: Event) => void;
+  onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => void;
 }
 
-const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEvent }: RosterManagementProps) => {
+const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEvent, onCreateMaterialRequest }: RosterManagementProps) => {
   const [nameFilter, setNameFilter] = React.useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
@@ -74,7 +75,12 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
                           <Edit className="h-4 w-4" />
                           <span className="sr-only">Editar Evento</span>
                         </Button>
-                        <RosterDialog event={event} employees={employees} onSaveDetails={onUpdateEventDetails} />
+                        <RosterDialog
+                          event={event}
+                          employees={employees}
+                          onSaveDetails={onUpdateEventDetails}
+                          onCreateMaterialRequest={onCreateMaterialRequest}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>

@@ -83,6 +83,25 @@ interface AllocationHistoryEntry {
   materials: Record<string, number>;
 }
 
+// Requisições de Materiais (novo)
+export type MaterialRequestStatus = 'Pendente' | 'Aprovada' | 'Rejeitada';
+
+export interface MaterialRequestItem {
+  materialId: string;
+  quantity: number;
+}
+
+export interface MaterialRequest {
+  id: string;
+  eventId: number;
+  items: MaterialRequestItem[];
+  requestedBy: { name: string; email: string; role: string };
+  status: MaterialRequestStatus;
+  reason?: string; // motivo da rejeição (quando houver)
+  createdAt: string;
+  decidedAt?: string;
+}
+
 const App = () => {
   const initialEvents: Event[] = [
     { id: 1, name: "Conferência Anual de Tecnologia", startDate: "2024-08-15", endDate: "2024-08-17", location: "Centro de Convenções", startTime: "09:00", endTime: "18:00", revenue: 50000, expenses: [{id: 'exp1', description: 'Catering', amount: 5000}], status: 'Concluído', description: 'Evento anual para discutir as novas tendências em tecnologia.' },
@@ -138,6 +157,7 @@ const App = () => {
   const [locations, setLocations] = useState<Location[]>(initialLocations);
   const [materials, setMaterials] = useState<InventoryMaterial[]>(initialMaterials);
   const [allocationHistory, setAllocationHistory] = useState<AllocationHistoryEntry[]>([]);
+  const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]); // novo
 
   useEffect(() => {
     try {
@@ -291,6 +311,27 @@ const App = () => {
     }));
   };
 
+  // Requisições de materiais (criação)
+  const createMaterialRequest = (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => {
+    const normalizedItems = Object.entries(items)
+      .filter(([_, qty]) => qty > 0)
+      .map(([materialId, quantity]) => ({ materialId, quantity }));
+
+    if (normalizedItems.length === 0) {
+      return;
+    }
+
+    const req: MaterialRequest = {
+      id: `req-${Date.now()}`,
+      eventId,
+      items: normalizedItems,
+      requestedBy,
+      status: 'Pendente',
+      createdAt: new Date().toISOString(),
+    };
+    setMaterialRequests(prev => [req, ...prev]);
+  };
+
   // Materiais mapeados para a página (inclui quantity total)
   const pageMaterials: PageMaterial[] = materials.map(m => ({
     id: m.id,
@@ -317,7 +358,7 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/calendar" element={<CalendarPage events={events} />} />
                 <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
-                <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} />} />
+                <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} onCreateMaterialRequest={createMaterialRequest} />} />
                 <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
                 <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
                 <Route path="/roles/:roleId" element={<RoleDetailPage roles={roles} employees={employees} events={events} />} />
