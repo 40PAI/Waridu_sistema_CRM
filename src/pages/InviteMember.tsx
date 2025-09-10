@@ -7,28 +7,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
-import { Role } from "@/App"; // Import Role interface
+import { Role } from "@/App";
 
 interface InviteMemberProps {
   roles: Role[];
-  onInviteMember: (email: string, roleId: string) => void;
+  onInviteMember: (email: string, roleId: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const InviteMember = ({ roles, onInviteMember }: InviteMemberProps) => {
   const [email, setEmail] = React.useState("");
   const [selectedRoleId, setSelectedRoleId] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !selectedRoleId) {
       showError("Por favor, preencha o e-mail e selecione uma função.");
       return;
     }
 
-    onInviteMember(email, selectedRoleId);
-    showSuccess(`Convite enviado para ${email} com a função de ${roles.find(r => r.id === selectedRoleId)?.name || 'desconhecida'}!`);
-    setEmail("");
-    setSelectedRoleId("");
+    setLoading(true);
+    const res = await onInviteMember(email, selectedRoleId);
+    setLoading(false);
+
+    if (res.ok) {
+      const roleName = roles.find(r => r.id === selectedRoleId)?.name || "desconhecida";
+      showSuccess(`Convite enviado para ${email} com a função de ${roleName}!`);
+      setEmail("");
+      setSelectedRoleId("");
+    } else {
+      showError(res.error || "Falha ao enviar convite. Tente novamente.");
+    }
   };
 
   return (
@@ -68,7 +77,9 @@ const InviteMember = ({ roles, onInviteMember }: InviteMemberProps) => {
                 </Select>
               </div>
             </div>
-            <Button className="w-full mt-6" type="submit">Enviar Convite</Button>
+            <Button className="w-full mt-6" type="submit" disabled={loading}>
+              {loading ? "Enviando..." : "Enviar Convite"}
+            </Button>
           </form>
         </CardContent>
       </Card>

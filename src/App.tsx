@@ -194,8 +194,7 @@ const App = () => {
         return;
       }
 
-      // Transformar os dados do Supabase para o formato da aplicação
-      const formattedRequests: MaterialRequest[] = data.map(req => ({
+      const formattedRequests: MaterialRequest[] = (data || []).map((req: any) => ({
         id: req.id,
         eventId: req.event_id,
         requestedBy: req.requested_by_details || { name: 'Desconhecido', email: '', role: '' },
@@ -203,7 +202,7 @@ const App = () => {
         reason: req.reason,
         createdAt: req.created_at,
         decidedAt: req.decided_at,
-        items: req.material_request_items.map(item => ({
+        items: (req.material_request_items || []).map((item: any) => ({
           materialId: item.material_id,
           quantity: item.quantity
         }))
@@ -286,8 +285,25 @@ const App = () => {
     setRoles(prev => prev.filter(r => r.id !== roleId));
   };
 
-  const inviteMember = (email: string, roleId: string) => {
-    console.log(`Simulating invitation: Email: ${email}, Role ID: ${roleId}`);
+  // Convidar membro via Edge Function
+  const inviteMember = async (email: string, roleId: string) => {
+    const roleName = roles.find(r => r.id === roleId)?.name || "Técnico";
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+
+    const { data, error } = await supabase.functions.invoke(
+      "https://lqateupwzmedotgvcacp.supabase.co/functions/v1/invite-member",
+      {
+        body: { email, roleId, roleName },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
+    );
+
+    if (error) {
+      return { ok: false as const, error: error.message || "Falha ao enviar convite" };
+    }
+
+    return { ok: true as const };
   };
 
   // Localizações
@@ -307,7 +323,7 @@ const App = () => {
         return prev;
       }
       const remaining = prev.filter(l => l.id !== id);
-      const fallback = remaining[0]; // mover quantidades para a primeira restante
+      const fallback = remaining[0];
       setMaterials(mats => mats.map(m => {
         const qty = m.locations[id] || 0;
         if (!qty) return m;
@@ -322,7 +338,6 @@ const App = () => {
 
   // Materiais
   const saveMaterial = (materialData: Omit<PageMaterial, 'id' | 'locations'> & { id?: string }) => {
-    // materialData inclui quantity total, mas distribuição é gerida separadamente
     if (materialData.id) {
       setMaterials(prev =>
         prev.map(m => m.id === materialData.id ? {
@@ -369,7 +384,6 @@ const App = () => {
       return;
     }
 
-    // Inserir o cabeçalho da requisição
     const { data: requestHeader, error: headerError } = await supabase
       .from('material_requests')
       .insert({
@@ -389,7 +403,6 @@ const App = () => {
 
     const requestId = requestHeader.id;
 
-    // Inserir os itens da requisição
     const itemsToInsert = normalizedItems.map(item => ({
       request_id: requestId,
       material_id: item.materialId,
@@ -408,7 +421,6 @@ const App = () => {
       }
     }
 
-    // Atualizar o estado local
     const newRequest: MaterialRequest = {
       id: requestId,
       eventId: eventId,
@@ -421,7 +433,6 @@ const App = () => {
     showSuccess("Requisição de materiais enviada com sucesso!");
   };
 
-  // Aprovação: valida inventário, abate das localizações em ordem e vincula ao evento
   const approveMaterialRequest = async (requestId: string) => {
     const req = materialRequests.find((r) => r.id === requestId);
     if (!req || req.status !== "Pendente") return { ok: false, shortages: [] as any[] } as const;
@@ -438,7 +449,6 @@ const App = () => {
       return { ok: false, shortages } as const;
     }
 
-    // Abater estoque
     setMaterials((prev) =>
       prev.map((m) => {
         const item = req.items.find((it) => it.materialId === m.id);
@@ -456,7 +466,6 @@ const App = () => {
       })
     );
 
-    // Vincular ao roster do evento (somando)
     setEvents((prev) =>
       prev.map((ev) => {
         if (ev.id !== req.eventId) return ev;
@@ -474,7 +483,6 @@ const App = () => {
       })
     );
 
-    // Atualizar status da requisição no Supabase
     const { error } = await supabase
       .from('material_requests')
       .update({ 
@@ -489,7 +497,6 @@ const App = () => {
       return { ok: false, shortages: [] } as const;
     }
 
-    // Atualizar status da requisição no estado local
     setMaterialRequests((prev) =>
       prev.map((r) => (r.id === requestId ? { ...r, status: "Aprovada", decidedAt: new Date().toISOString() } : r))
     );
@@ -499,7 +506,6 @@ const App = () => {
   };
 
   const rejectMaterialRequest = async (requestId: string, reason: string) => {
-    // Atualizar status da requisição no Supabase
     const { error } = await supabase
       .from('material_requests')
       .update({ 
@@ -523,7 +529,6 @@ const App = () => {
     showSuccess("Requisição rejeitada.");
   };
 
-  // Materiais mapeados para a página (inclui quantity total)
   const pageMaterials: PageMaterial[] = materials.map(m => ({
     id: m.id,
     name: m.name,
