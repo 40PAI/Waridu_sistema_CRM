@@ -285,14 +285,14 @@ const App = () => {
     setRoles(prev => prev.filter(r => r.id !== roleId));
   };
 
-  // Convidar membro via Edge Function
+  // Convidar membro via Edge Function (não é mais usado diretamente pela página; mantido para compatibilidade)
   const inviteMember = async (email: string, roleId: string) => {
     const roleName = roles.find(r => r.id === roleId)?.name || "Técnico";
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token;
 
     const { data, error } = await supabase.functions.invoke(
-      "invite-member", // Usar apenas o nome da função
+      "invite-member",
       {
         body: { email, roleId, roleName },
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -568,7 +568,7 @@ const App = () => {
                 <Route path="/material-requests" element={<MaterialRequestsPage requests={materialRequests} events={events} materialNameMap={materialNameMap} onApproveRequest={approveMaterialRequest} onRejectRequest={rejectMaterialRequest} />} />
                 <Route path="/finance-dashboard" element={<FinanceDashboard />} />
                 <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />
-                <Route path="/invite-member" element={<InviteMember roles={roles} onInviteMember={inviteMember} />} />
+                <Route path="/invite-member" element={<InviteMember />} />
                 <Route path="/debug" element={<DebugPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
