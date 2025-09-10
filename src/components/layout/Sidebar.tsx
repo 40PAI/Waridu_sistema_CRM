@@ -28,7 +28,6 @@ const Sidebar = () => {
     { to: "/technician/events", icon: Users, label: "Meus Eventos" },
     { to: "/technician/tasks", icon: CheckCircle, label: "Minhas Tarefas" },
     { to: "/technician/profile", icon: User, label: "Meu Perfil" },
-    { to: "/technician/notifications", icon: Bell, label: "Notificações" },
   ];
 
   const userRole = user?.profile?.role;

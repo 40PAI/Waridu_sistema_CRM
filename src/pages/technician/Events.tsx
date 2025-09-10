@@ -25,7 +25,6 @@ const TechnicianEvents = () => {
   const { user } = useAuth();
   const [events, setEvents] = React.useState<Event[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
 
   // Carregar eventos do Supabase
   React.useEffect(() => {
@@ -34,16 +33,15 @@ const TechnicianEvents = () => {
       
       try {
         setLoading(true);
-        setError(null);
         
         // Buscar eventos onde o técnico está escalado
-        const { data, error: fetchError } = await supabase
+        const { data, error } = await supabase
           .from('events')
           .select('*')
           .eq('technician_id', user.id)
           .order('start_date', { ascending: true });
 
-        if (fetchError) throw new Error(`Erro ao carregar eventos: ${fetchError.message}`);
+        if (error) throw error;
         
         // Formatar eventos
         const formattedEvents: Event[] = (data || []).map((event: any) => ({
@@ -60,9 +58,8 @@ const TechnicianEvents = () => {
         }));
         
         setEvents(formattedEvents);
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error fetching events:", error);
-        setError(error.message || "Erro desconhecido ao carregar eventos");
       } finally {
         setLoading(false);
       }
@@ -75,22 +72,6 @@ const TechnicianEvents = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <p>Carregando eventos...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Erro ao carregar</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
-          </CardContent>
-        </Card>
       </div>
     );
   }

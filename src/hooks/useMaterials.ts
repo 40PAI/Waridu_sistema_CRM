@@ -1,17 +1,7 @@
 import { useState, useEffect } from "react";
-import { InventoryMaterial, MaterialStatus } from "@/types";
+import { PageMaterial, InventoryMaterial, MaterialStatus } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
-
-type PageMaterial = {
-  id: string;
-  name: string;
-  category: string;
-  status: MaterialStatus;
-  description: string;
-  locations: Record<string, number>;
-  quantity: number;
-};
 
 export const useMaterials = () => {
   const [materials, setMaterials] = useState<InventoryMaterial[]>([]);

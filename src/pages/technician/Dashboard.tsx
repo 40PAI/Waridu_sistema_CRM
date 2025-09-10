@@ -20,7 +20,6 @@ const TechnicianDashboard = () => {
   const [earnings, setEarnings] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [unreadCount, setUnreadCount] = React.useState(0);
-  const [error, setError] = React.useState<string | null>(null);
 
   // Carregar dados do Supabase
   React.useEffect(() => {
@@ -29,7 +28,6 @@ const TechnicianDashboard = () => {
       
       try {
         setLoading(true);
-        setError(null);
         
         // Buscar eventos onde o técnico está escalado
         const { data: eventsData, error: eventsError } = await supabase
@@ -38,7 +36,7 @@ const TechnicianDashboard = () => {
           .eq('technician_id', user.id)
           .order('start_date', { ascending: true });
 
-        if (eventsError) throw new Error(`Erro ao carregar eventos: ${eventsError.message}`);
+        if (eventsError) throw eventsError;
         
         // Formatar eventos
         const formattedEvents: Event[] = (eventsData || []).map((event: any) => ({
@@ -64,7 +62,7 @@ const TechnicianDashboard = () => {
           .order('created_at', { ascending: false })
           .limit(5);
 
-        if (notificationsError) throw new Error(`Erro ao carregar notificações: ${notificationsError.message}`);
+        if (notificationsError) throw notificationsError;
         
         setNotifications(notificationsData || []);
         setUnreadCount((notificationsData || []).filter((n: any) => !n.read).length);
@@ -78,9 +76,8 @@ const TechnicianDashboard = () => {
         ];
         setEarnings(mockEarnings);
         
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error fetching data:", error);
-        setError(error.message || "Erro desconhecido ao carregar dados");
       } finally {
         setLoading(false);
       }
@@ -101,22 +98,6 @@ const TechnicianDashboard = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <p>Carregando dashboard...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Erro ao carregar</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
-          </CardContent>
-        </Card>
       </div>
     );
   }

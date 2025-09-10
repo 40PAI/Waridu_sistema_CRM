@@ -15,8 +15,8 @@ type Task = {
   title: string;
   description?: string;
   done: boolean;
-  has_issues?: boolean;
-  issue_description?: string;
+  hasIssues?: boolean;
+  issueDescription?: string;
   created_at: string;
 };
 
@@ -26,7 +26,6 @@ const TechnicianTasks = () => {
   const [issueTaskId, setIssueTaskId] = React.useState<string | null>(null);
   const [issueDescription, setIssueDescription] = React.useState("");
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
 
   // Carregar tarefas do Supabase
   React.useEffect(() => {
@@ -35,20 +34,17 @@ const TechnicianTasks = () => {
       
       try {
         setLoading(true);
-        setError(null);
-        
-        const { data, error: fetchError } = await supabase
+        const { data, error } = await supabase
           .from('tasks')
           .select('*')
           .eq('assigned_to', user.id)
           .order('created_at', { ascending: false });
 
-        if (fetchError) throw new Error(`Erro ao carregar tarefas: ${fetchError.message}`);
+        if (error) throw error;
         
         setTasks(data || []);
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error fetching tasks:", error);
-        setError(error.message || "Erro desconhecido ao carregar tarefas");
         showError("Erro ao carregar as tarefas.");
       } finally {
         setLoading(false);
@@ -65,7 +61,7 @@ const TechnicianTasks = () => {
       const task = tasks.find(t => t.id === id);
       if (!task) return;
       
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('tasks')
         .update({ 
           done: !task.done,
@@ -74,19 +70,19 @@ const TechnicianTasks = () => {
         })
         .eq('id', id);
 
-      if (updateError) throw new Error(`Erro ao atualizar tarefa: ${updateError.message}`);
+      if (error) throw error;
 
       setTasks(tasks.map(task => 
         task.id === id ? { 
           ...task, 
           done: !task.done, 
-          has_issues: false, 
-          issue_description: "" 
+          hasIssues: false, 
+          issueDescription: "" 
         } : task
       ));
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating task:", error);
-      showError(error.message || "Erro ao atualizar a tarefa.");
+      showError("Erro ao atualizar a tarefa.");
     }
   };
 
@@ -97,31 +93,31 @@ const TechnicianTasks = () => {
       // Atualizar todas as tarefas no Supabase
       const taskIds = tasks.map(t => t.id);
       
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('tasks')
         .update({ done: done })
         .in('id', taskIds);
 
-      if (updateError) throw new Error(`Erro ao atualizar tarefas: ${updateError.message}`);
+      if (error) throw error;
 
       setTasks(tasks.map(task => ({ ...task, done })));
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating tasks:", error);
-      showError(error.message || "Erro ao atualizar as tarefas.");
+      showError("Erro ao atualizar as tarefas.");
     }
   };
 
   const openIssueDialog = (id: string) => {
     setIssueTaskId(id);
     const task = tasks.find(t => t.id === id);
-    setIssueDescription(task?.issue_description || "");
+    setIssueDescription(task?.issueDescription || "");
   };
 
   const reportIssue = async () => {
     if (!issueTaskId || !user) return;
     
     try {
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('tasks')
         .update({ 
           has_issues: true, 
@@ -130,20 +126,20 @@ const TechnicianTasks = () => {
         })
         .eq('id', issueTaskId);
 
-      if (updateError) throw new Error(`Erro ao reportar problema: ${updateError.message}`);
+      if (error) throw error;
       
       setTasks(tasks.map(task => 
         task.id === issueTaskId 
-          ? { ...task, has_issues: true, issue_description: issueDescription, done: false } 
+          ? { ...task, hasIssues: true, issueDescription, done: false } 
           : task
       ));
       
       showSuccess("Problema reportado com sucesso!");
       setIssueTaskId(null);
       setIssueDescription("");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error reporting issue:", error);
-      showError(error.message || "Erro ao reportar o problema.");
+      showError("Erro ao reportar o problema.");
     }
   };
 
@@ -154,22 +150,6 @@ const TechnicianTasks = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <p>Carregando tarefas...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Erro ao carregar</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -223,25 +203,25 @@ const TechnicianTasks = () => {
                     {task.description}
                   </p>
                 )}
-                {task.has_issues && (
+                {task.hasIssues && (
                   <div className="mt-2 p-2 bg-yellow-100 border border-yellow-200 rounded-md">
                     <div className="flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 text-yellow-600" />
                       <span className="text-sm font-medium text-yellow-800">Problema Reportado</span>
                     </div>
-                    <p className="text-sm text-yellow-700 mt-1">{task.issue_description}</p>
+                    <p className="text-sm text-yellow-700 mt-1">{task.issueDescription}</p>
                   </div>
                 )}
               </div>
               <div className="flex flex-col items-center gap-2">
                 {task.done ? (
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                ) : task.has_issues ? (
+                ) : task.hasIssues ? (
                   <AlertCircle className="h-5 w-5 text-yellow-500" />
                 ) : (
                   <Circle className="h-5 w-5 text-muted-foreground" />
                 )}
-                {!task.done && !task.has_issues && (
+                {!task.done && !task.hasIssues && (
                   <Dialog open={issueTaskId === task.id} onOpenChange={(open) => !open && setIssueTaskId(null)}>
                     <DialogTrigger asChild>
                       <Button 
