@@ -93,6 +93,7 @@ const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps)
                       <TableHead>Funcionário</TableHead>
                       <TableHead>Função</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Custo/Dia</TableHead>
                       {canWrite && <TableHead className="text-right">Ações</TableHead>}
                   </TableRow>
               </TableHeader>
@@ -116,6 +117,9 @@ const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps)
                             <Badge variant={employee.status === 'Ativo' ? 'default' : 'secondary'}>
                               {employee.status}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {employee.costPerDay ? `AOA ${employee.costPerDay.toLocaleString('pt-AO')}` : 'N/A'}
                           </TableCell>
                           {canWrite && (
                             <TableCell className="text-right">
