@@ -39,6 +39,7 @@ const TechnicianNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   // Carregar notificações do Supabase
   React.useEffect(() => {
@@ -47,13 +48,15 @@ const TechnicianNotifications = () => {
       
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        setError(null);
+        
+        const { data, error: fetchError } = await supabase
           .from('notifications')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (fetchError) throw new Error(`Erro ao carregar notificações: ${fetchError.message}`);
         
         // Formatar notificações
         const formattedNotifications: Notification[] = (data || []).map((notification: any) => ({
@@ -66,8 +69,9 @@ const TechnicianNotifications = () => {
         }));
         
         setNotifications(formattedNotifications);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching notifications:", error);
+        setError(error.message || "Erro desconhecido ao carregar notificações");
         showError("Erro ao carregar as notificações.");
       } finally {
         setLoading(false);
@@ -81,21 +85,21 @@ const TechnicianNotifications = () => {
     if (!user) return;
     
     try {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', id);
 
-      if (error) throw error;
+      if (updateError) throw new Error(`Erro ao marcar como lida: ${updateError.message}`);
 
       setNotifications(notifications.map(n => 
         n.id === id ? { ...n, read: true } : n
       ));
       
       showSuccess("Notificação marcada como lida.");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error marking notification as read:", error);
-      showError("Erro ao marcar notificação como lida.");
+      showError(error.message || "Erro ao marcar notificação como lida.");
     }
   };
 
@@ -103,19 +107,19 @@ const TechnicianNotifications = () => {
     if (!user) return;
     
     try {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
         .eq('read', false);
 
-      if (error) throw error;
+      if (updateError) throw new Error(`Erro ao marcar todas como lidas: ${updateError.message}`);
 
       setNotifications(notifications.map(n => ({ ...n, read: true })));
       showSuccess("Todas as notificações marcadas como lidas.");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error marking all notifications as read:", error);
-      showError("Erro ao marcar todas as notificações como lidas.");
+      showError(error.message || "Erro ao marcar todas as notificações como lidas.");
     }
   };
 
@@ -125,6 +129,22 @@ const TechnicianNotifications = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <p>Carregando notificações...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Erro ao carregar</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

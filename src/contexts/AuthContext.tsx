@@ -19,7 +19,7 @@ interface User extends SupabaseUser {
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -42,7 +42,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       avatar_url: typeof raw.avatar_url === "string" ? raw.avatar_url : null,
       role: raw.role as Role,
     };
-    // Nota: Caso precise, podemos adicionar um fallback de role padrão.
   };
 
   useEffect(() => {
@@ -99,18 +98,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!mounted) return;
         setSession(nextSession);
         if (nextSession?.user) {
-          const { data: profileData, error: profileError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, avatar_url, role")
-            .eq("id", nextSession.user.id)
-            .single();
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from("profiles")
+              .select("id, first_name, last_name, avatar_url, role")
+              .eq("id", nextSession.user.id)
+              .single();
 
-          if (profileError) {
-            console.error("Auth state profile error:", profileError);
+            if (profileError) {
+              console.error("Auth state profile error:", profileError);
+            }
+
+            const normalized = normalizeProfile(profileData, nextSession.user.id);
+            setUser({ ...nextSession.user, profile: normalized });
+          } catch (err) {
+            console.error("Error loading profile in auth state change:", err);
+            setUser({ ...nextSession.user, profile: null });
           }
-
-          const normalized = normalizeProfile(profileData, nextSession.user.id);
-          setUser({ ...nextSession.user, profile: normalized });
         } else {
           setUser(null);
         }
@@ -134,6 +138,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err) {
       console.error("Unexpected logout error:", err);
+    } finally {
+      setSession(null);
+      setUser(null);
     }
   };
 
