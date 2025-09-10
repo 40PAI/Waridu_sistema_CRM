@@ -47,7 +47,8 @@ interface MaterialsPageProps {
 
 const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMaterial, history, pendingRequests }: MaterialsPageProps) => {
   const { user } = useAuth();
-  const canWrite = user ? hasActionPermission(user.role, 'materials:write') : false;
+  const userRole = user?.profile?.role;
+  const canWrite = userRole ? hasActionPermission(userRole, 'materials:write') : false;
 
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [categoryFilter, setCategoryFilter] = React.useState('all');

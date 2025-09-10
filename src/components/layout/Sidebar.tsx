@@ -22,7 +22,8 @@ const Sidebar = () => {
     { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
   ];
 
-  const allowedRoutes = user ? PAGE_PERMISSIONS[user.role] : [];
+  const userRole = user?.profile?.role;
+  const allowedRoutes = userRole ? PAGE_PERMISSIONS[userRole] : [];
   const visibleNavItems = navItems.filter(item => allowedRoutes.includes(item.to));
 
   return (

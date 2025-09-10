@@ -19,7 +19,8 @@ interface EmployeesPageProps {
 
 const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps) => {
   const { user } = useAuth();
-  const canWrite = user ? hasActionPermission(user.role, 'employees:write') : false;
+  const userRole = user?.profile?.role;
+  const canWrite = userRole ? hasActionPermission(userRole, 'employees:write') : false;
 
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);

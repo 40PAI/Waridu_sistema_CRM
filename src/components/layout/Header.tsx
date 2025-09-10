@@ -1,13 +1,13 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { CircleUser, Home, LineChart, Menu, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { PAGE_PERMISSIONS, hasActionPermission } from "@/config/roles";
 
 const Header = () => {
-  const { user, logout, switchRole } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -31,7 +31,8 @@ const Header = () => {
     { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
   ];
 
-  const allowedRoutes = user ? PAGE_PERMISSIONS[user.role] : [];
+  const userRole = user?.profile?.role;
+  const allowedRoutes = userRole ? PAGE_PERMISSIONS[userRole] : [];
   const visibleNavItems = navItems.filter(item => allowedRoutes.includes(item.to));
 
   return (
@@ -59,7 +60,7 @@ const Header = () => {
         </SheetContent>
       </Sheet>
       <div className="w-full flex-1"></div>
-      {user && hasActionPermission(user.role, 'members:invite') && (
+      {userRole && hasActionPermission(userRole, 'members:invite') && (
         <Link to="/invite-member">
           <Button>Convidar Novo Membro</Button>
         </Link>
@@ -73,20 +74,9 @@ const Header = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>
-            <p>{user?.name}</p>
+            <p>{user?.profile?.first_name || user?.email}</p>
             <p className="text-xs font-normal text-muted-foreground">{user?.email}</p>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>Mudar Papel (Dev)</DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem onClick={() => switchRole('Admin')}>Admin</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => switchRole('Coordenador')}>Coordenador</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => switchRole('Gestor de Material')}>Gestor de Material</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => switchRole('Financeiro')}>Financeiro</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => switchRole('Técnico')}>Técnico</DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout}>Sair</DropdownMenuItem>
         </DropdownMenuContent>

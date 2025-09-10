@@ -39,7 +39,8 @@ const statusVariant = (status: MaterialRequest["status"]) => {
 
 const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequest, onRejectRequest }: MaterialRequestsPageProps) => {
   const { user } = useAuth();
-  const canManage = !!user && hasActionPermission(user.role, "materials:write");
+  const userRole = user?.profile?.role;
+  const canManage = !!userRole && hasActionPermission(userRole, "materials:write");
 
   const [statusFilter, setStatusFilter] = React.useState<MaterialRequest["status"] | "all">("all");
   const [eventFilter, setEventFilter] = React.useState<string>("all");

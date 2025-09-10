@@ -47,7 +47,8 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
   const [isSaving, setIsSaving] = React.useState(false);
 
   const { user } = useAuth();
-  const canAllocateMaterials = !!user && hasActionPermission(user.role, 'materials:write');
+  const userRole = user?.profile?.role;
+  const canAllocateMaterials = !!userRole && hasActionPermission(userRole, 'materials:write');
 
   const activeEmployees = React.useMemo(() => employees.filter(e => e.status === 'Ativo'), [employees]);
 
@@ -130,7 +131,7 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
     const rosterData: Roster = {
       teamLead,
       teamMembers: selectedEmployees.map(e => ({ id: e.id, name: e.name, role: e.role })),
-      materials: canAllocateMaterials ? selectedMaterials : {}, // se não puder alocar, não grava materiais
+      materials: canAllocateMaterials ? selectedMaterials : (event.roster?.materials || {}),
     };
     const details = {
       roster: rosterData,
@@ -140,23 +141,18 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
     if (!canAllocateMaterials) {
       const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
       if (hasRequestedItems) {
-        if (!user) {
+        if (!user || !user.email || !user.profile) {
           showError("Sessão inválida. Faça login novamente.");
           setIsSaving(false);
           return;
         }
         onCreateMaterialRequest(event.id, selectedMaterials, {
-          name: user.name,
+          name: user.profile.first_name || user.email,
           email: user.email,
-          role: user.role,
+          role: user.profile.role,
         });
         showSuccess("Requisição de materiais enviada para aprovação.");
       }
-      onSaveDetails(event.id, details);
-      showSuccess("Detalhes da equipe/ despesas salvos.");
-      setOpen(false);
-      setIsSaving(false);
-      return;
     }
 
     onSaveDetails(event.id, details);

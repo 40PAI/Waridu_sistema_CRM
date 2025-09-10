@@ -27,12 +27,12 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
   const [nameFilter, setNameFilter] = React.useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
-  const { user, isAuthenticated } = useAuth();
+  const { user, session } = useAuth();
 
   const canViewRequestsPage = React.useMemo(() => {
-    if (!isAuthenticated || !user) return false;
-    return hasPermission(user.role, "/material-requests");
-  }, [isAuthenticated, user]);
+    if (!session || !user?.profile) return false;
+    return hasPermission(user.profile.role, "/material-requests");
+  }, [session, user]);
 
   const handleEditClick = (event: Event) => {
     setEditingEvent(event);
