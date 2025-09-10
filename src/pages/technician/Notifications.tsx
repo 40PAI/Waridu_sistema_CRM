@@ -40,83 +40,67 @@ const TechnicianNotifications = () => {
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [loading, setLoading] = React.useState(true);
 
-  // Carregar notificações do Supabase
   React.useEffect(() => {
+    let active = true;
     const fetchNotifications = async () => {
       if (!user) return;
-      
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('id, title, description, type, read, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        
-        // Formatar notificações
-        const formattedNotifications: Notification[] = (data || []).map((notification: any) => ({
-          id: notification.id,
-          title: notification.title,
-          description: notification.description,
-          type: notification.type,
-          read: notification.read,
-          created_at: notification.created_at
-        }));
-        
-        setNotifications(formattedNotifications);
-      } catch (error) {
+      if (!active) return;
+
+      if (error) {
         console.error("Error fetching notifications:", error);
         showError("Erro ao carregar as notificações.");
-      } finally {
-        setLoading(false);
+      } else {
+        setNotifications((data || []) as Notification[]);
       }
+      setLoading(false);
     };
 
     fetchNotifications();
+    return () => { active = false; };
   }, [user]);
 
   const markAsRead = async (id: string) => {
     if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', id);
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', id);
 
-      if (error) throw error;
-
-      setNotifications(notifications.map(n => 
-        n.id === id ? { ...n, read: true } : n
-      ));
-      
-      showSuccess("Notificação marcada como lida.");
-    } catch (error) {
+    if (error) {
       console.error("Error marking notification as read:", error);
       showError("Erro ao marcar notificação como lida.");
+      return;
     }
+
+    setNotifications(notifications.map(n => 
+      n.id === id ? { ...n, read: true } : n
+    ));
+    showSuccess("Notificação marcada como lida.");
   };
 
   const markAllAsRead = async () => {
     if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user.id)
-        .eq('read', false);
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
 
-      if (error) throw error;
-
-      setNotifications(notifications.map(n => ({ ...n, read: true })));
-      showSuccess("Todas as notificações marcadas como lidas.");
-    } catch (error) {
+    if (error) {
       console.error("Error marking all notifications as read:", error);
       showError("Erro ao marcar todas as notificações como lidas.");
+      return;
     }
+
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    showSuccess("Todas as notificações marcadas como lidas.");
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
