@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import DashboardLayout from "./components/layout/DashboardLayout";
 import RosterManagement from "./pages/RosterManagement";
 import FinanceDashboard from "./pages/FinanceDashboard";
 import AdminSettings from "./pages/AdminSettings";
@@ -172,7 +171,7 @@ const App = () => {
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
-              <Route element={<DashboardLayout />}>
+              <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/calendar" element={<CalendarPage events={events} />} />
                 <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
