@@ -43,9 +43,11 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/finance-dashboard',
   ],
   Técnico: [
-    '/calendar',
-    '/roster-management',
-    '/materials',
+    '/technician/dashboard',
+    '/technician/calendar',
+    '/technician/events',
+    '/technician/tasks',
+    '/technician/profile',
   ],
 };
 
@@ -53,6 +55,7 @@ export const ACTION_PERMISSIONS: Record<string, Role[]> = {
   'materials:write': ['Admin', 'Gestor de Material'],
   'members:invite': ['Admin', 'Coordenador'],
   'employees:write': ['Admin', 'Coordenador'],
+  'roster:manage': ['Admin', 'Coordenador'], // New permission for managing rosters
 };
 
 export const hasPermission = (role: Role, path: string): boolean => {

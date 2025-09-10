@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { CircleUser, Home, LineChart, Menu, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList } from "lucide-react";
+import { CircleUser, Home, LineChart, Menu, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList, CheckCircle, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -31,9 +31,23 @@ const Header = () => {
     { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
   ];
 
+  const technicianNavItems = [
+    { to: "/technician/dashboard", icon: Home, label: "Dashboard" },
+    { to: "/technician/calendar", icon: CalendarDays, label: "Meu Calendário" },
+    { to: "/technician/events", icon: Users, label: "Meus Eventos" },
+    { to: "/technician/tasks", icon: CheckCircle, label: "Minhas Tarefas" },
+    { to: "/technician/profile", icon: User, label: "Meu Perfil" },
+  ];
+
   const userRole = user?.profile?.role;
   const allowedRoutes = userRole ? PAGE_PERMISSIONS[userRole] : [];
-  const visibleNavItems = navItems.filter(item => allowedRoutes.includes(item.to));
+  
+  let visibleNavItems = [];
+  if (userRole === 'Técnico') {
+    visibleNavItems = technicianNavItems.filter(item => allowedRoutes.includes(item.to));
+  } else {
+    visibleNavItems = navItems.filter(item => allowedRoutes.includes(item.to));
+  }
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
@@ -46,12 +60,17 @@ const Header = () => {
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col">
           <nav className="grid gap-2 text-lg font-medium">
-            <Link to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
+            <Link to={userRole === 'Técnico' ? "/technician/dashboard" : "/"} className="flex items-center gap-2 text-lg font-semibold mb-4">
               <Package2 className="h-6 w-6" />
               <span className="sr-only">Sua Empresa</span>
             </Link>
             {visibleNavItems.map(item => (
-              <NavLink to={item.to} className={navLinkClasses} key={item.to} end={item.to === "/"}>
+              <NavLink 
+                to={item.to} 
+                className={navLinkClasses} 
+                key={item.to} 
+                end={item.to === "/" || item.to === "/technician/dashboard"}
+              >
                 <item.icon className="h-5 w-5" />
                 {item.label}
               </NavLink>
@@ -78,6 +97,9 @@ const Header = () => {
             <p className="text-xs font-normal text-muted-foreground">{user?.email}</p>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to={userRole === 'Técnico' ? "/technician/profile" : "/"}>Perfil</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleLogout}>Sair</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

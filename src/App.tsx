@@ -25,6 +25,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import DebugPage from "@/pages/Debug";
 import HealthCheck from "@/pages/HealthCheck";
+import TechnicianDashboard from "@/pages/technician/Dashboard";
+import TechnicianEvents from "@/pages/technician/Events";
+import TechnicianTasks from "@/pages/technician/Tasks";
+import TechnicianProfile from "@/pages/technician/Profile";
+import TechnicianCalendar from "@/pages/technician/Calendar";
 import type {
   Expense,
   Roster,
@@ -489,6 +494,7 @@ const App = () => {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route element={<ProtectedRoute />}>
+                {/* Admin/Coordinator/Gestor routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/calendar" element={<CalendarPage events={events} />} />
                 <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
@@ -502,6 +508,13 @@ const App = () => {
                 <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />
                 <Route path="/invite-member" element={<InviteMember />} />
                 <Route path="/debug" element={<DebugPage />} />
+                
+                {/* Technician routes */}
+                <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
+                <Route path="/technician/calendar" element={<TechnicianCalendar />} />
+                <Route path="/technician/events" element={<TechnicianEvents />} />
+                <Route path="/technician/tasks" element={<TechnicianTasks />} />
+                <Route path="/technician/profile" element={<TechnicianProfile />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
