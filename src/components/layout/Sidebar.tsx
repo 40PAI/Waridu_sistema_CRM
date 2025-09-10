@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase } from "lucide-react";
+import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { PAGE_PERMISSIONS } from "@/config/roles";
@@ -17,6 +17,7 @@ const Sidebar = () => {
     { to: "/employees", icon: Users2, label: "Funcionários" },
     { to: "/roles", icon: Briefcase, label: "Funções" },
     { to: "/materials", icon: Archive, label: "Materiais" },
+    { to: "/material-requests", icon: ClipboardList, label: "Requisições" },
     { to: "/finance-dashboard", icon: LineChart, label: "Finance Dashboard" },
     { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
   ];

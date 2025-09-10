@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { CircleUser, Home, LineChart, Menu, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase } from "lucide-react";
+import { CircleUser, Home, LineChart, Menu, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -26,6 +26,7 @@ const Header = () => {
     { to: "/employees", icon: Users2, label: "Funcionários" },
     { to: "/roles", icon: Briefcase, label: "Funções" },
     { to: "/materials", icon: Archive, label: "Materiais" },
+    { to: "/material-requests", icon: ClipboardList, label: "Requisições" },
     { to: "/finance-dashboard", icon: LineChart, label: "Finance Dashboard" },
     { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
   ];

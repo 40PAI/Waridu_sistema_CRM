@@ -17,6 +17,7 @@ import EmployeesPage from "./pages/Employees";
 import RolesPage from "./pages/Roles";
 import RoleDetailPage from "./pages/RoleDetail";
 import LoginPage from "./pages/Login";
+import MaterialRequestsPage from "./pages/MaterialRequests";
 import { Employee } from "./components/employees/EmployeeDialog";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -157,8 +158,7 @@ const App = () => {
   const [locations, setLocations] = useState<Location[]>(initialLocations);
   const [materials, setMaterials] = useState<InventoryMaterial[]>(initialMaterials);
   const [allocationHistory, setAllocationHistory] = useState<AllocationHistoryEntry[]>([]);
-  const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]); // novo
-
+  const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
   useEffect(() => {
     try {
       localStorage.setItem('events', JSON.stringify(events));
@@ -311,7 +311,7 @@ const App = () => {
     }));
   };
 
-  // Requisições de materiais (criação)
+  // Requisições de materiais
   const createMaterialRequest = (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => {
     const normalizedItems = Object.entries(items)
       .filter(([_, qty]) => qty > 0)
@@ -332,6 +332,75 @@ const App = () => {
     setMaterialRequests(prev => [req, ...prev]);
   };
 
+  // Aprovação: valida inventário, abate das localizações em ordem e vincula ao evento
+  const approveMaterialRequest = (requestId: string) => {
+    const req = materialRequests.find((r) => r.id === requestId);
+    if (!req || req.status !== "Pendente") return { ok: false, shortages: [] as any[] } as const;
+
+    const shortages: { materialId: string; needed: number; available: number }[] = [];
+    req.items.forEach((it) => {
+      const mat = materials.find((m) => m.id === it.materialId);
+      const available = mat ? Object.values(mat.locations).reduce((a, b) => a + b, 0) : 0;
+      if (available < it.quantity) {
+        shortages.push({ materialId: it.materialId, needed: it.quantity, available });
+      }
+    });
+    if (shortages.length > 0) {
+      return { ok: false, shortages } as const;
+    }
+
+    // Abater estoque
+    setMaterials((prev) =>
+      prev.map((m) => {
+        const item = req.items.find((it) => it.materialId === m.id);
+        if (!item) return m;
+        let remaining = item.quantity;
+        const newLocs = { ...m.locations };
+        for (const locId of Object.keys(newLocs)) {
+          if (remaining <= 0) break;
+          const have = newLocs[locId] || 0;
+          const take = Math.min(have, remaining);
+          newLocs[locId] = have - take;
+          remaining -= take;
+        }
+        return { ...m, locations: newLocs };
+      })
+    );
+
+    // Vincular ao roster do evento (somando)
+    setEvents((prev) =>
+      prev.map((ev) => {
+        if (ev.id !== req.eventId) return ev;
+        const currentMaterials = ev.roster?.materials || {};
+        const merged: Record<string, number> = { ...currentMaterials };
+        req.items.forEach((it) => {
+          merged[it.materialId] = (merged[it.materialId] || 0) + it.quantity;
+        });
+        const newRoster: Roster = {
+          teamLead: ev.roster?.teamLead || "",
+          teamMembers: ev.roster?.teamMembers || [],
+          materials: merged,
+        };
+        return { ...ev, roster: newRoster };
+      })
+    );
+
+    // Atualizar status da requisição
+    setMaterialRequests((prev) =>
+      prev.map((r) => (r.id === requestId ? { ...r, status: "Aprovada", decidedAt: new Date().toISOString() } : r))
+    );
+
+    return { ok: true } as const;
+  };
+
+  const rejectMaterialRequest = (requestId: string, reason: string) => {
+    setMaterialRequests((prev) =>
+      prev.map((r) =>
+        r.id === requestId ? { ...r, status: "Rejeitada", reason, decidedAt: new Date().toISOString() } : r
+      )
+    );
+  };
+
   // Materiais mapeados para a página (inclui quantity total)
   const pageMaterials: PageMaterial[] = materials.map(m => ({
     id: m.id,
@@ -342,6 +411,11 @@ const App = () => {
     locations: m.locations,
     quantity: Object.values(m.locations).reduce((a, b) => a + b, 0),
   }));
+
+  const materialNameMap: Record<string, string> = materials.reduce((acc, m) => {
+    acc[m.id] = m.name;
+    return acc;
+  }, {} as Record<string, string>);
 
   const historyForPage = allocationHistory;
 
@@ -363,6 +437,7 @@ const App = () => {
                 <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
                 <Route path="/roles/:roleId" element={<RoleDetailPage roles={roles} employees={employees} events={events} />} />
                 <Route path="/materials" element={<MaterialsPage materials={pageMaterials} locations={locations} onSaveMaterial={saveMaterial} onTransferMaterial={transferMaterial} history={historyForPage} />} />
+                <Route path="/material-requests" element={<MaterialRequestsPage requests={materialRequests} events={events} materialNameMap={materialNameMap} onApproveRequest={approveMaterialRequest} onRejectRequest={rejectMaterialRequest} />} />
                 <Route path="/finance-dashboard" element={<FinanceDashboard />} />
                 <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />
                 <Route path="/invite-member" element={<InviteMember roles={roles} onInviteMember={inviteMember} />} />

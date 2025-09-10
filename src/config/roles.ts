@@ -9,6 +9,7 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/employees',
     '/roles',
     '/materials',
+    '/material-requests',
     '/finance-dashboard',
     '/admin-settings',
     '/invite-member',
@@ -31,6 +32,7 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/calendar',
     '/roster-management',
     '/materials',
+    '/material-requests',
   ],
   Financeiro: [
     '/',
