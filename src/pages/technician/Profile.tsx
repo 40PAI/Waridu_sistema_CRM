@@ -19,11 +19,11 @@ const TechnicianProfile = () => {
 
   const onDrop = React.useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     setUploading(true);
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user?.id}.${fileExt}`;
+    const fileName = `${user.id}.${fileExt}`;
     const filePath = `avatars/${fileName}`;
 
     try {
@@ -43,13 +43,13 @@ const TechnicianProfile = () => {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: data.publicUrl })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (updateError) throw updateError;
 
       // Update local state
       setAvatarUrl(data.publicUrl);
-      if (user?.profile) {
+      if (user.profile) {
         setUser({
           ...user,
           profile: {
@@ -74,19 +74,21 @@ const TechnicianProfile = () => {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif']
     },
     maxFiles: 1,
-    maxSize: 1048576 // 1MB
+    maxSize: 2097152 // 2MB
   });
 
   const handleSave = async () => {
+    if (!user) return;
+    
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ first_name: name })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (error) throw error;
 
-      if (user?.profile) {
+      if (user.profile) {
         setUser({
           ...user,
           profile: {
