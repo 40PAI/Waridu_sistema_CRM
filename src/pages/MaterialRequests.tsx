@@ -13,6 +13,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { Eye } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 type ApproveResult = { ok: true } | { ok: false; shortages: { materialId: string; needed: number; available: number }[] };
 
@@ -72,10 +73,10 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     });
   }, [requests, statusFilter, eventFilter, search, eventsMap, materialNameMap]);
 
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
     if (processingId) return;
     setProcessingId(id);
-    const res = onApproveRequest(id);
+    const res = await onApproveRequest(id);
     if (res.ok) {
       showSuccess("Requisição aprovada e estoque atualizado.");
     } else {
@@ -94,14 +95,14 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     setRejectOpen(true);
   };
 
-  const confirmReject = () => {
+  const confirmReject = async () => {
     if (!rejectId) return;
     if (!rejectReason.trim()) {
       showError("Informe o motivo da rejeição.");
       return;
     }
     setProcessingId(rejectId);
-    onRejectRequest(rejectId, rejectReason.trim());
+    await onRejectRequest(rejectId, rejectReason.trim());
     showSuccess("Requisição rejeitada.");
     setRejectOpen(false);
     setRejectId(null);
@@ -166,7 +167,7 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
               {filtered.length > 0 ? (
                 filtered.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.id}</TableCell>
+                    <TableCell className="font-medium">{r.id.substring(0, 8)}</TableCell>
                     <TableCell>{eventsMap[r.eventId] || r.eventId}</TableCell>
                     <TableCell>
                       <div className="text-sm">

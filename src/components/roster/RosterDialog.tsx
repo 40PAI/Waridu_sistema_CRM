@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Combobox } from "@/components/ui/combobox";
 import { PlusCircle, XCircle, Trash2 } from "lucide-react";
-import { Event, Roster, Expense, InventoryMaterial } from "@/App"; // Importar InventoryMaterial
+import { Event, Roster, Expense, InventoryMaterial } from "@/App";
 import { showSuccess, showError } from "@/utils/toast";
 import { Employee } from "../employees/EmployeeDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,8 +19,8 @@ interface RosterDialogProps {
   employees: Employee[];
   onSaveDetails: (eventId: number, details: { roster: Roster; expenses: Expense[] }) => void;
   onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => void;
-  materials: InventoryMaterial[]; // Adicionado
-  onRequestsChange?: () => void; // Novo: Callback para notificar mudança nas requisições
+  materials: InventoryMaterial[];
+  onRequestsChange?: () => void;
 }
 
 export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterialRequest, materials, onRequestsChange }: RosterDialogProps) {
@@ -115,7 +115,7 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
     setExpenses(newExpenses);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (isSaving) return;
     setIsSaving(true);
 
@@ -137,7 +137,7 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
           setIsSaving(false);
           return;
         }
-        onCreateMaterialRequest(event.id, selectedMaterials, {
+        await onCreateMaterialRequest(event.id, selectedMaterials, {
           name: user.profile.first_name || user.email,
           email: user.email,
           role: user.profile.role,
