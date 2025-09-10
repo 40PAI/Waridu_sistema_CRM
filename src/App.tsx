@@ -22,9 +22,9 @@ import { Employee } from "./components/employees/EmployeeDialog";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { showError, showSuccess } from "@/utils/toast";
 import DebugPage from "./pages/Debug";
+import HealthCheck from "./pages/HealthCheck";
 
 const queryClient = new QueryClient();
 
@@ -551,6 +551,7 @@ const App = () => {
         <BrowserRouter>
           <AuthProvider>
             <Routes>
+              <Route path="/health" element={<HealthCheck />} />
               <Route path="/login" element={<LoginPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Index />} />
