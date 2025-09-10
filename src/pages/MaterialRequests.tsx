@@ -10,10 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 import type { Event, MaterialRequest } from "@/types";
 import { showError, showSuccess } from "@/utils/toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { hasActionPermission } from "@/config/roles";
 import { Eye } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 type ApproveResult = { ok: true } | { ok: false; shortages: { materialId: string; needed: number; available: number }[] };
 
@@ -39,18 +36,14 @@ const statusVariant = (status: MaterialRequest["status"]) => {
 };
 
 const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequest, onRejectRequest }: MaterialRequestsPageProps) => {
-  const { user } = useAuth();
-  const userRole = user?.profile?.role;
-  const canManage = !!userRole && hasActionPermission(userRole, "materials:write");
-
   const [statusFilter, setStatusFilter] = React.useState<MaterialRequest["status"] | "all">("all");
   const [eventFilter, setEventFilter] = React.useState<string>("all");
   const [search, setSearch] = React.useState("");
+  const [processingId, setProcessingId] = React.useState<string | null>(null);
 
   const [rejectOpen, setRejectOpen] = React.useState(false);
   const [rejectId, setRejectId] = React.useState<string | null>(null);
   const [rejectReason, setRejectReason] = React.useState("");
-  const [processingId, setProcessingId] = React.useState<string | null>(null);
 
   const eventsMap = React.useMemo(() => {
     const map: Record<number, string> = {};
@@ -109,9 +102,132 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     setProcessingId(null);
   };
 
+  const approveAllFilteredPending = async () => {
+    const pendentes = filtered.filter((r) => r.status === "Pendente");
+    if (pendentes.length === 0) {
+      showError("Nenhuma requisição pendente nos filtros atuais.");
+      return;
+    }
+    let okCount = 0;
+    for (const req of pendentes) {
+      const res = await onApproveRequest(req.id);
+      if (res.ok) okCount++;
+    }
+    if (okCount > 0) showSuccess(`${okCount} requisição(ões) aprovada(s).`);
+  };
+
   return (
     <>
-      {/* ...conteúdo idêntico ao arquivo original, removido por brevidade, já atualizado acima... */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Requisições de Materiais</CardTitle>
+          <CardDescription>Gerencie aprovações e histórico de requisições.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Input placeholder="Buscar por evento, solicitante ou material..." value={search} onChange={(e) => setSearch(e.target.value)} className="md:col-span-2" />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="Pendente">Pendente</SelectItem>
+                <SelectItem value="Aprovada">Aprovada</SelectItem>
+                <SelectItem value="Rejeitada">Rejeitada</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={eventFilter} onValueChange={(v) => setEventFilter(v)}>
+              <SelectTrigger><SelectValue placeholder="Evento" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Eventos</SelectItem>
+                {events.map((ev) => <SelectItem key={ev.id} value={String(ev.id)}>{ev.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end mb-4">
+            <Button variant="outline" onClick={approveAllFilteredPending}>Aprovar todos os pendentes filtrados</Button>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Evento</TableHead>
+                <TableHead>Solicitante</TableHead>
+                <TableHead>Itens</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Criada em</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length ? filtered.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium">{eventsMap[r.eventId] || `Evento ${r.eventId}`}</TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <div className="font-medium">{r.requestedBy.name}</div>
+                      <div className="text-muted-foreground">{r.requestedBy.email}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-2" /> Ver itens ({r.items.length})
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm">Itens Solicitados</h4>
+                          <ul className="list-disc list-inside text-sm text-muted-foreground">
+                            {r.items.map((it, idx) => (
+                              <li key={idx}>
+                                {materialNameMap[it.materialId] || it.materialId}: {it.quantity}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
+                  </TableCell>
+                  <TableCell>{new Date(r.createdAt).toLocaleString()}</TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button variant="outline" size="sm" onClick={() => handleApprove(r.id)} disabled={processingId === r.id || r.status !== "Pendente"}>
+                      Aprovar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openReject(r.id)} disabled={processingId === r.id || r.status !== "Pendente"}>
+                      Rejeitar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center h-24">Nenhuma requisição encontrada.</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeitar Requisição</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <label className="text-sm">Motivo</label>
+            <Textarea placeholder="Descreva o motivo..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmReject} disabled={!rejectId}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

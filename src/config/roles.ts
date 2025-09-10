@@ -29,11 +29,13 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/roles/:roleId'
   ],
   'Gestor de Material': [
-    '/',
-    '/calendar',
-    '/roster-management',
-    '/materials',
-    '/material-requests',
+    '/material-manager/dashboard',
+    '/material-manager/calendar',
+    '/material-manager/requests',
+    '/material-manager/inventory',
+    '/material-manager/tasks',
+    '/material-manager/profile',
+    '/material-manager/notifications'
   ],
   Financeiro: [
     '/',
@@ -56,33 +58,26 @@ export const ACTION_PERMISSIONS: Record<string, Role[]> = {
   'materials:write': ['Admin', 'Gestor de Material'],
   'members:invite': ['Admin', 'Coordenador'],
   'employees:write': ['Admin', 'Coordenador'],
-  'roster:manage': ['Admin', 'Coordenador'], // New permission for managing rosters
+  'roster:manage': ['Admin', 'Coordenador'],
 };
 
 export const hasPermission = (role: Role, path: string): boolean => {
   if (!role) return false;
-  
   const allowedRoutes = PAGE_PERMISSIONS[role];
   if (!allowedRoutes) return false;
 
-  if (allowedRoutes.includes(path)) {
-    return true;
-  }
+  if (allowedRoutes.includes(path)) return true;
 
   const pathParts = path.split('/').filter(p => p);
-  
   for (const allowedRoute of allowedRoutes) {
     if (allowedRoute.includes(':')) {
       const allowedParts = allowedRoute.split('/').filter(p => p);
       if (pathParts.length === allowedParts.length) {
-        const match = allowedParts.every((part, index) => {
-          return part.startsWith(':') || part === pathParts[index];
-        });
+        const match = allowedParts.every((part, index) => part.startsWith(':') || part === pathParts[index]);
         if (match) return true;
       }
     }
   }
-
   return false;
 };
 
