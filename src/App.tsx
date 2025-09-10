@@ -24,6 +24,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { showError, showSuccess } from "@/utils/toast";
+import DebugPage from "./pages/Debug";
 
 const queryClient = new QueryClient();
 
@@ -564,6 +565,7 @@ const App = () => {
                 <Route path="/finance-dashboard" element={<FinanceDashboard />} />
                 <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />
                 <Route path="/invite-member" element={<InviteMember roles={roles} onInviteMember={inviteMember} />} />
+                <Route path="/debug" element={<DebugPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
