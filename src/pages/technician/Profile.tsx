@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDropzone } from "react-dropzone";
 
 const TechnicianProfile = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);

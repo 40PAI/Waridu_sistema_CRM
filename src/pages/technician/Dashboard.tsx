@@ -21,31 +21,25 @@ const TechnicianDashboard = () => {
   const [loading, setLoading] = React.useState(true);
   const [unreadCount, setUnreadCount] = React.useState(0);
 
+  // Carregar dados do Supabase
   React.useEffect(() => {
-    let active = true;
     const fetchData = async () => {
       if (!user) return;
-      setLoading(true);
+      
+      try {
+        setLoading(true);
+        
+        // Buscar eventos onde o técnico está escalado
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('events')
+          .select('*')
+          .eq('technician_id', user.id)
+          .order('start_date', { ascending: true });
 
-      const eventsPromise = supabase
-        .from('events')
-        .select('id, name, start_date, end_date, location, start_time, end_time, revenue, status, description')
-        .eq('technician_id', user.id)
-        .order('start_date', { ascending: true });
-
-      const notificationsPromise = supabase
-        .from('notifications')
-        .select('id, title, description, type, read, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      const [eventsRes, notificationsRes] = await Promise.all([eventsPromise, notificationsPromise]);
-
-      if (!active) return;
-
-      if (!eventsRes.error) {
-        const formattedEvents: Event[] = (eventsRes.data || []).map((event: any) => ({
+        if (eventsError) throw eventsError;
+        
+        // Formatar eventos
+        const formattedEvents: Event[] = (eventsData || []).map((event: any) => ({
           id: event.id,
           name: event.name,
           startDate: event.start_date,
@@ -57,30 +51,42 @@ const TechnicianDashboard = () => {
           status: event.status,
           description: event.description
         }));
+        
         setEvents(formattedEvents);
+        
+        // Buscar notificações do técnico
+        const { data: notificationsData, error: notificationsError } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (notificationsError) throw notificationsError;
+        
+        setNotifications(notificationsData || []);
+        setUnreadCount((notificationsData || []).filter((n: any) => !n.read).length);
+        
+        // Dados de ganhos fictícios para demonstração
+        const mockEarnings = [
+          { name: 'Evento A', Ganho: 1500 },
+          { name: 'Evento B', Ganho: 2300 },
+          { name: 'Evento C', Ganho: 1890 },
+          { name: 'Evento D', Ganho: 3000 },
+        ];
+        setEarnings(mockEarnings);
+        
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
       }
-
-      if (!notificationsRes.error) {
-        const notifs = notificationsRes.data || [];
-        setNotifications(notifs);
-        setUnreadCount(notifs.filter((n: any) => !n.read).length);
-      }
-
-      // Dados de ganhos fictícios para demo
-      setEarnings([
-        { name: 'Evento A', Ganho: 1500 },
-        { name: 'Evento B', Ganho: 2300 },
-        { name: 'Evento C', Ganho: 1890 },
-        { name: 'Evento D', Ganho: 3000 },
-      ]);
-
-      setLoading(false);
     };
 
     fetchData();
-    return () => { active = false; };
   }, [user]);
 
+  // Filter events for this technician
   const upcomingEvents = events.filter(e => e.status === 'Planejado' || e.status === 'Em Andamento');
   const pastEvents = events.filter(e => e.status === 'Concluído');
   
@@ -169,7 +175,7 @@ const TechnicianDashboard = () => {
               <BarChart data={earnings}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `AOA ${Number(value) / 1000}k`}/>
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `AOA ${value/1000}k`}/>
                 <Tooltip formatter={(value) => [`AOA ${Number(value).toLocaleString('pt-AO')}`, 'Ganho']} />
                 <Legend />
                 <Bar dataKey="Ganho" fill="#8884d8" name="Ganho (AOA)" radius={[4, 4, 0, 0]} />

@@ -64,8 +64,8 @@ const HealthCheck = () => {
               <Button onClick={fetchSession} disabled={loading}>
                 {loading ? "Verificando..." : "Reverificar Sessão"}
               </Button>
-              <Button asChild variant="outline">
-                <a href="/debug">Abrir /debug</a>
+              <Button as="a" href="/debug" variant="outline">
+                Abrir /debug
               </Button>
             </div>
 

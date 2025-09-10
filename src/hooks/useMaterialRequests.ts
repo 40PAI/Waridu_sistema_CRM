@@ -3,8 +3,6 @@ import { MaterialRequest, MaterialRequestItem, MaterialRequestStatus } from "@/t
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 
-type ApproveResult = { ok: true } | { ok: false; shortages: { materialId: string; needed: number; available: number }[] };
-
 export const useMaterialRequests = () => {
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +109,7 @@ export const useMaterialRequests = () => {
     }
   };
 
-  const approveMaterialRequest = async (requestId: string): Promise<ApproveResult> => {
+  const approveMaterialRequest = async (requestId: string) => {
     try {
       const { error } = await supabase
         .from('material_requests')
@@ -128,11 +126,11 @@ export const useMaterialRequests = () => {
       );
 
       showSuccess("Requisição aprovada e estoque atualizado.");
-      return { ok: true };
+      return { ok: true } as const;
     } catch (error) {
       console.error("Error approving request:", error);
       showError("Falha ao aprovar requisição.");
-      return { ok: false, shortages: [] as { materialId: string; needed: number; available: number }[] };
+      return { ok: false, shortages: [] } as const;
     }
   };
 

@@ -24,7 +24,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import type { Role as ConfigRole } from "@/config/roles";
 
 interface RoleManagerProps {
   roles: Role[];
@@ -147,11 +146,7 @@ export const RoleManager = ({ roles, onAddRole, onUpdateRole, onDeleteRole }: Ro
             <Input 
               id="edit-role-name"
               value={editingRole?.name || ""}
-              onChange={(e) =>
-                setEditingRole((prev: Role | null) =>
-                  prev ? { ...prev, name: e.target.value as ConfigRole } : prev
-                )
-              }
+              onChange={(e) => setEditingRole(prev => prev ? { ...prev, name: e.target.value } : null)}
             />
           </div>
           <DialogFooter>

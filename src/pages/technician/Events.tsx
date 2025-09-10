@@ -26,21 +26,25 @@ const TechnicianEvents = () => {
   const [events, setEvents] = React.useState<Event[]>([]);
   const [loading, setLoading] = React.useState(true);
 
+  // Carregar eventos do Supabase
   React.useEffect(() => {
-    let active = true;
     const fetchEvents = async () => {
       if (!user) return;
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, name, start_date, end_date, location, start_time, end_time, revenue, status, description')
-        .eq('technician_id', user.id)
-        .order('start_date', { ascending: true });
+      
+      try {
+        setLoading(true);
+        
+        // Buscar eventos onde o técnico está escalado
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('technician_id', user.id)
+          .order('start_date', { ascending: true });
 
-      if (!active) return;
-
-      if (!error) {
-        const formatted: Event[] = (data || []).map((event: any) => ({
+        if (error) throw error;
+        
+        // Formatar eventos
+        const formattedEvents: Event[] = (data || []).map((event: any) => ({
           id: event.id,
           name: event.name,
           startDate: event.start_date,
@@ -52,13 +56,16 @@ const TechnicianEvents = () => {
           status: event.status,
           description: event.description
         }));
-        setEvents(formatted);
+        
+        setEvents(formattedEvents);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchEvents();
-    return () => { active = false; };
   }, [user]);
 
   if (loading) {
