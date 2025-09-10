@@ -39,17 +39,18 @@ import { showError, showSuccess } from "@/utils/toast";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { events, addEvent, updateEvent, updateEventDetails } = useEvents();
-  const { employees, saveEmployee } = useEmployees();
-  const { roles, addRole, updateRole, deleteRole } = useRoles();
-  const { locations, addLocation, updateLocation, deleteLocation } = useLocations();
-  const { materials, rawMaterials, saveMaterial, transferMaterial } = useMaterials();
+  const { events, addEvent, updateEvent, updateEventDetails, loading: eventsLoading } = useEvents();
+  const { employees, saveEmployee, loading: employeesLoading } = useEmployees();
+  const { roles, addRole, updateRole, deleteRole, loading: rolesLoading } = useRoles();
+  const { locations, addLocation, updateLocation, deleteLocation, loading: locationsLoading } = useLocations();
+  const { materials, rawMaterials, saveMaterial, transferMaterial, loading: materialsLoading } = useMaterials();
   const { 
     materialRequests, 
     pendingRequests, 
     createMaterialRequest, 
     approveMaterialRequest, 
-    rejectMaterialRequest 
+    rejectMaterialRequest,
+    loading: requestsLoading
   } = useMaterialRequests();
 
   const inviteMember = async (email: string, roleId: string) => {
@@ -76,6 +77,15 @@ const AppContent = () => {
     acc[m.id] = m.name;
     return acc;
   }, {} as Record<string, string>);
+
+  // Show loading state while fetching initial data
+  if (eventsLoading || employeesLoading || rolesLoading || locationsLoading || materialsLoading || requestsLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Carregando dados...</p>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider>

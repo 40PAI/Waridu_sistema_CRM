@@ -1,56 +1,193 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageMaterial, InventoryMaterial, MaterialStatus } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { showError, showSuccess } from "@/utils/toast";
 
 export const useMaterials = () => {
-  const initialMaterials: InventoryMaterial[] = [
-    { id: 'MAT001', name: 'Câmera Sony A7S III', status: 'Disponível', category: 'Câmeras', description: 'Câmera mirrorless full-frame com alta sensibilidade.', locations: { 'loc-1': 5 } },
-    { id: 'MAT002', name: 'Lente Canon 24-70mm', status: 'Em uso', category: 'Lentes', description: 'Lente zoom padrão versátil com abertura f/2.8.', locations: { 'loc-1': 8 } },
-    { id: 'MAT003', name: 'Kit de Luz Aputure 300D', status: 'Disponível', category: 'Iluminação', description: 'Kit de iluminação LED potente com 3 pontos de luz.', locations: { 'loc-1': 3 } },
-    { id: 'MAT004', name: 'Microfone Rode NTG5', status: 'Manutenção', category: 'Áudio', description: 'Microfone shotgun profissional para gravação de áudio direcional.', locations: { 'loc-1': 10 } },
-    { id: 'MAT005', name: 'Tripé Manfrotto', status: 'Disponível', category: 'Acessórios', description: 'Tripé de vídeo robusto com cabeça fluida.', locations: { 'loc-1': 12 } },
-    { id: 'MAT006', name: 'Cabo HDMI 10m', status: 'Disponível', category: 'Cabos', description: 'Cabo HDMI 2.0 de alta velocidade com 10 metros.', locations: { 'loc-1': 30 } },
-    { id: 'MAT007', name: 'Gravador Zoom H6', status: 'Em uso', category: 'Áudio', description: 'Gravador de áudio portátil com 6 canais.', locations: { 'loc-1': 4 } },
-    { id: 'MAT008', name: 'Monitor de Referência', status: 'Disponível', category: 'Acessórios', description: 'Monitor de 7 polegadas para referência de vídeo em campo.', locations: { 'loc-1': 2 } },
-  ];
+  const [materials, setMaterials] = useState<InventoryMaterial[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [materials, setMaterials] = useState<InventoryMaterial[]>(initialMaterials);
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
 
-  const saveMaterial = (materialData: Omit<PageMaterial, 'id' | 'locations'> & { id?: string }) => {
-    if (materialData.id) {
-      setMaterials(prev =>
-        prev.map(m => m.id === materialData.id ? {
-          ...m,
-          name: materialData.name,
-          category: materialData.category,
-          status: materialData.status as MaterialStatus,
-          description: materialData.description,
-        } : m)
-      );
-    } else {
-      // In a real app, we would get the first location from the locations hook
-      const firstLoc = { id: 'loc-1', name: 'Armazém' };
-      const newMat: InventoryMaterial = {
-        id: `MAT${Math.floor(Math.random() * 900) + 100}`,
-        name: materialData.name,
-        category: materialData.category,
-        status: materialData.status as MaterialStatus,
-        description: materialData.description,
-        locations: firstLoc ? { [firstLoc.id]: materialData.quantity } : {},
-      };
-      setMaterials(prev => [...prev, newMat]);
+  const fetchMaterials = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch materials with their locations
+      const { data: materialsData, error: materialsError } = await supabase
+        .from('materials')
+        .select(`
+          id,
+          name,
+          status,
+          category,
+          description,
+          material_locations(location_id, quantity)
+        `)
+        .order('name', { ascending: true });
+
+      if (materialsError) throw materialsError;
+
+      // Fetch all locations for reference
+      const { data: locationsData, error: locationsError } = await supabase
+        .from('locations')
+        .select('id, name');
+
+      if (locationsError) throw locationsError;
+
+      // Format materials with location distribution
+      const formattedMaterials: InventoryMaterial[] = (materialsData || []).map((mat: any) => {
+        const locations: Record<string, number> = {};
+        
+        // Create a map of all locations with 0 quantity
+        locationsData?.forEach((loc: any) => {
+          locations[loc.id] = 0;
+        });
+        
+        // Update with actual quantities
+        mat.material_locations?.forEach((ml: any) => {
+          locations[ml.location_id] = ml.quantity;
+        });
+
+        return {
+          id: mat.id,
+          name: mat.name,
+          status: mat.status as MaterialStatus,
+          category: mat.category,
+          description: mat.description,
+          locations
+        };
+      });
+
+      setMaterials(formattedMaterials);
+    } catch (error) {
+      console.error("Error fetching materials:", error);
+      showError("Erro ao carregar materiais.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const transferMaterial = (materialId: string, fromLocationId: string, toLocationId: string, quantity: number) => {
-    setMaterials(prev => prev.map(m => {
-      if (m.id !== materialId) return m;
-      const available = (m.locations[fromLocationId] || 0);
-      if (quantity <= 0 || quantity > available) return m;
-      const newLocs = { ...m.locations };
-      newLocs[fromLocationId] = available - quantity;
-      newLocs[toLocationId] = (newLocs[toLocationId] || 0) + quantity;
-      return { ...m, locations: newLocs };
-    }));
+  const saveMaterial = async (materialData: Omit<PageMaterial, 'id' | 'locations'> & { id?: string }) => {
+    try {
+      if (materialData.id) {
+        // Update existing material
+        const { error } = await supabase
+          .from('materials')
+          .update({
+            name: materialData.name,
+            category: materialData.category,
+            status: materialData.status,
+            description: materialData.description
+          })
+          .eq('id', materialData.id);
+
+        if (error) throw error;
+        showSuccess("Material atualizado com sucesso!");
+      } else {
+        // Create new material
+        const { error } = await supabase
+          .from('materials')
+          .insert({
+            name: materialData.name,
+            category: materialData.category,
+            status: materialData.status,
+            description: materialData.description
+          });
+
+        if (error) throw error;
+        showSuccess("Material adicionado com sucesso!");
+      }
+
+      fetchMaterials(); // Refresh the list
+    } catch (error) {
+      console.error("Error saving material:", error);
+      showError("Erro ao salvar material.");
+    }
+  };
+
+  const transferMaterial = async (materialId: string, fromLocationId: string, toLocationId: string, quantity: number) => {
+    try {
+      // Get current quantity at source location
+      const { data: sourceData, error: sourceError } = await supabase
+        .from('material_locations')
+        .select('quantity')
+        .eq('material_id', materialId)
+        .eq('location_id', fromLocationId)
+        .single();
+
+      if (sourceError && sourceError.code !== 'PGRST116') throw sourceError; // PGRST116 means no rows found
+
+      const currentSourceQty = sourceData?.quantity || 0;
+      if (quantity <= 0 || quantity > currentSourceQty) {
+        showError("Quantidade inválida para transferência.");
+        return;
+      }
+
+      // Update source location
+      if (currentSourceQty === quantity) {
+        // Remove the record if quantity becomes 0
+        const { error: deleteError } = await supabase
+          .from('material_locations')
+          .delete()
+          .eq('material_id', materialId)
+          .eq('location_id', fromLocationId);
+
+        if (deleteError) throw deleteError;
+      } else {
+        // Update the quantity
+        const { error: updateError } = await supabase
+          .from('material_locations')
+          .update({ quantity: currentSourceQty - quantity })
+          .eq('material_id', materialId)
+          .eq('location_id', fromLocationId);
+
+        if (updateError) throw updateError;
+      }
+
+      // Update destination location
+      const { data: destData, error: destError } = await supabase
+        .from('material_locations')
+        .select('quantity')
+        .eq('material_id', materialId)
+        .eq('location_id', toLocationId)
+        .single();
+
+      if (destError && destError.code !== 'PGRST116') throw destError; // PGRST116 means no rows found
+
+      const currentDestQty = destData?.quantity || 0;
+      const newDestQty = currentDestQty + quantity;
+
+      if (destData) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('material_locations')
+          .update({ quantity: newDestQty })
+          .eq('material_id', materialId)
+          .eq('location_id', toLocationId);
+
+        if (updateError) throw updateError;
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('material_locations')
+          .insert({
+            material_id: materialId,
+            location_id: toLocationId,
+            quantity: newDestQty
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      showSuccess("Transferência realizada com sucesso!");
+      fetchMaterials(); // Refresh the list
+    } catch (error) {
+      console.error("Error transferring material:", error);
+      showError("Erro ao realizar transferência.");
+    }
   };
 
   const pageMaterials: PageMaterial[] = materials.map(m => ({
@@ -66,7 +203,9 @@ export const useMaterials = () => {
   return {
     materials: pageMaterials,
     rawMaterials: materials,
+    loading,
     saveMaterial,
-    transferMaterial
+    transferMaterial,
+    refreshMaterials: fetchMaterials
   };
 };

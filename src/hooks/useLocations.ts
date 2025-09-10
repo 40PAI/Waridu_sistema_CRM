@@ -1,40 +1,102 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Location } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { showError, showSuccess } from "@/utils/toast";
 
 export const useLocations = () => {
-  const initialLocations: Location[] = [
-    { id: 'loc-1', name: 'Armazém' },
-    { id: 'loc-2', name: 'Estúdio A' },
-  ];
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [locations, setLocations] = useState<Location[]>(initialLocations);
+  useEffect(() => {
+    fetchLocations();
+  }, []);
 
-  const addLocation = (name: string) => {
-    const id = `loc-${Date.now()}`;
-    setLocations(prev => [...prev, { id, name }]);
+  const fetchLocations = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+
+      const formattedLocations: Location[] = (data || []).map((loc: any) => ({
+        id: loc.id,
+        name: loc.name
+      }));
+
+      setLocations(formattedLocations);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      showError("Erro ao carregar localizações.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateLocation = (id: string, name: string) => {
-    setLocations(prev => prev.map(l => l.id === id ? { ...l, name } : l));
+  const addLocation = async (name: string) => {
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .insert({ name });
+
+      if (error) throw error;
+
+      showSuccess("Localização adicionada com sucesso!");
+      fetchLocations(); // Refresh the list
+    } catch (error) {
+      console.error("Error adding location:", error);
+      showError("Erro ao adicionar localização.");
+    }
   };
 
-  const deleteLocation = (id: string) => {
-    setLocations(prev => {
-      if (prev.length <= 1) {
-        console.warn("Não é possível remover a única localização existente.");
-        return prev;
+  const updateLocation = async (id: string, name: string) => {
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .update({ name })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      showSuccess("Localização atualizada com sucesso!");
+      fetchLocations(); // Refresh the list
+    } catch (error) {
+      console.error("Error updating location:", error);
+      showError("Erro ao atualizar localização.");
+    }
+  };
+
+  const deleteLocation = async (id: string) => {
+    try {
+      // Check if this is the last location
+      if (locations.length <= 1) {
+        showError("Não é possível remover a única localização existente.");
+        return;
       }
-      const remaining = prev.filter(l => l.id !== id);
-      const fallback = remaining[0];
-      // In a real app, we would update materials to move items to the fallback location
-      return remaining;
-    });
+
+      const { error } = await supabase
+        .from('locations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      showSuccess("Localização removida com sucesso!");
+      fetchLocations(); // Refresh the list
+    } catch (error) {
+      console.error("Error deleting location:", error);
+      showError("Erro ao remover localização.");
+    }
   };
 
   return {
     locations,
+    loading,
     addLocation,
     updateLocation,
-    deleteLocation
+    deleteLocation,
+    refreshLocations: fetchLocations
   };
 };
