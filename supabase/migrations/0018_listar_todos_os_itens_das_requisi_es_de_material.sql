@@ -1,0 +1,1 @@
+SELECT * FROM material_request_items;
