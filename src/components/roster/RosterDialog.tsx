@@ -20,9 +20,10 @@ interface RosterDialogProps {
   onSaveDetails: (eventId: number, details: { roster: Roster; expenses: Expense[] }) => void;
   onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => void;
   materials: InventoryMaterial[]; // Adicionado
+  onRequestsChange?: () => void; // Novo: Callback para notificar mudança nas requisições
 }
 
-export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterialRequest, materials }: RosterDialogProps) {
+export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterialRequest, materials, onRequestsChange }: RosterDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [teamLead, setTeamLead] = React.useState("");
   const [selectedEmployees, setSelectedEmployees] = React.useState<Employee[]>([]);
@@ -142,11 +143,17 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
           role: user.profile.role,
         });
         showSuccess("Requisição de materiais enviada para aprovação.");
+        // Notificar a página pai sobre a mudança
+        if (onRequestsChange) {
+          onRequestsChange();
+        }
       }
     }
 
     onSaveDetails(event.id, details);
-    showSuccess("Detalhes do evento salvos com sucesso!");
+    if (canAllocateMaterials || Object.values(selectedMaterials).some(qty => qty > 0)) {
+      showSuccess("Detalhes do evento salvos com sucesso!");
+    }
     setOpen(false);
     setIsSaving(false);
   };

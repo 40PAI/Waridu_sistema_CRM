@@ -34,6 +34,14 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
   const { user, session } = useAuth();
+  
+  // Estado local para requisições pendentes, para atualização imediata
+  const [localPendingRequests, setLocalPendingRequests] = React.useState<MaterialRequest[]>(pendingRequests);
+
+  // Atualiza o estado local quando as props mudarem
+  React.useEffect(() => {
+    setLocalPendingRequests(pendingRequests);
+  }, [pendingRequests]);
 
   const canViewRequestsPage = React.useMemo(() => {
     if (!session || !user?.profile) return false;
@@ -43,6 +51,15 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
   const handleEditClick = (event: Event) => {
     setEditingEvent(event);
     setIsEditDialogOpen(true);
+  };
+
+  // Função para notificar que uma requisição foi criada
+  const handleRequestsChange = () => {
+    // Aqui você pode adicionar lógica para buscar novamente as requisições do servidor
+    // ou apenas atualizar o estado local se souber que uma nova foi adicionada
+    // Por enquanto, vamos apenas recarregar a página para garantir que tudo esteja sincronizado
+    // Em uma aplicação real, você faria uma chamada à API aqui
+    window.location.reload();
   };
 
   const filteredEvents = React.useMemo(() => {
@@ -82,11 +99,11 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
 
   const pendingByEvent = React.useMemo(() => {
     const map: Record<number, number> = {};
-    pendingRequests.forEach((r) => {
+    localPendingRequests.forEach((r) => {
       map[r.eventId] = (map[r.eventId] || 0) + 1;
     });
     return map;
-  }, [pendingRequests]);
+  }, [localPendingRequests]);
 
   const getStatusVariant = (status: EventStatus) => {
     switch (status) {
@@ -203,7 +220,7 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center gap-2">
-                          {event.roster && <RosterViewerPopover event={event} pendingRequests={pendingRequests} />}
+                          {event.roster && <RosterViewerPopover event={event} pendingRequests={localPendingRequests} />}
                           {canViewRequestsPage && pend > 0 && (
                             <Link to="/material-requests">
                               <Button variant="outline" size="sm">Ver Requisições</Button>
@@ -219,6 +236,7 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
                             onSaveDetails={onUpdateEventDetails}
                             onCreateMaterialRequest={onCreateMaterialRequest}
                             materials={materials}
+                            onRequestsChange={handleRequestsChange}
                           />
                         </div>
                       </TableCell>
