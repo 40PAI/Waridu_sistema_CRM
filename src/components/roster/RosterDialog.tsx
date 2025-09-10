@@ -44,6 +44,7 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
   const [selectedMaterials, setSelectedMaterials] = React.useState<Record<string, number>>({});
   
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
+  const [isSaving, setIsSaving] = React.useState(false);
 
   const { user } = useAuth();
   const canAllocateMaterials = !!user && hasActionPermission(user.role, 'materials:write');
@@ -67,6 +68,7 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
       setNameFilter("");
       setRoleFilter("all");
       setMaterialFilter("");
+      setIsSaving(false);
     }
   }, [open, event, activeEmployees]);
 
@@ -122,6 +124,9 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
   };
 
   const handleSave = () => {
+    if (isSaving) return;
+    setIsSaving(true);
+
     const rosterData: Roster = {
       teamLead,
       teamMembers: selectedEmployees.map(e => ({ id: e.id, name: e.name, role: e.role })),
@@ -133,11 +138,11 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
     };
 
     if (!canAllocateMaterials) {
-      // Coordenadores/ Técnicos: criam requisição em vez de alocar
       const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
       if (hasRequestedItems) {
         if (!user) {
           showError("Sessão inválida. Faça login novamente.");
+          setIsSaving(false);
           return;
         }
         onCreateMaterialRequest(event.id, selectedMaterials, {
@@ -150,13 +155,14 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
       onSaveDetails(event.id, details);
       showSuccess("Detalhes da equipe/ despesas salvos.");
       setOpen(false);
+      setIsSaving(false);
       return;
     }
 
-    // Gestor de Material / Admin: grava diretamente
     onSaveDetails(event.id, details);
     showSuccess("Detalhes do evento salvos com sucesso!");
     setOpen(false);
+    setIsSaving(false);
   };
 
   return (
@@ -288,7 +294,9 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
           </TabsContent>
         </Tabs>
         <DialogFooter>
-          <Button type="button" onClick={handleSave}>Salvar Detalhes</Button>
+          <Button type="button" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Salvando..." : "Salvar Detalhes"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -418,6 +418,7 @@ const App = () => {
   }, {} as Record<string, string>);
 
   const historyForPage = allocationHistory;
+  const pendingRequests = materialRequests.filter((r) => r.status === "Pendente");
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -432,11 +433,11 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/calendar" element={<CalendarPage events={events} />} />
                 <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
-                <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} onCreateMaterialRequest={createMaterialRequest} />} />
+                <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} onCreateMaterialRequest={createMaterialRequest} pendingRequests={pendingRequests} />} />
                 <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
                 <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
                 <Route path="/roles/:roleId" element={<RoleDetailPage roles={roles} employees={employees} events={events} />} />
-                <Route path="/materials" element={<MaterialsPage materials={pageMaterials} locations={locations} onSaveMaterial={saveMaterial} onTransferMaterial={transferMaterial} history={historyForPage} />} />
+                <Route path="/materials" element={<MaterialsPage materials={pageMaterials} locations={locations} onSaveMaterial={saveMaterial} onTransferMaterial={transferMaterial} history={historyForPage} pendingRequests={pendingRequests} />} />
                 <Route path="/material-requests" element={<MaterialRequestsPage requests={materialRequests} events={events} materialNameMap={materialNameMap} onApproveRequest={approveMaterialRequest} onRejectRequest={rejectMaterialRequest} />} />
                 <Route path="/finance-dashboard" element={<FinanceDashboard />} />
                 <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />

@@ -10,6 +10,7 @@ import { MaterialDialog } from "@/components/materials/MaterialDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { TransferDialog } from "@/components/materials/TransferDialog";
+import type { MaterialRequest } from "@/App";
 
 export type MaterialStatus = 'Disponível' | 'Em uso' | 'Manutenção';
 
@@ -41,9 +42,10 @@ interface MaterialsPageProps {
   onSaveMaterial: (materialData: Omit<Material, 'id' | 'locations'> & { id?: string }) => void;
   onTransferMaterial: (materialId: string, fromLocationId: string, toLocationId: string, quantity: number) => void;
   history: AllocationHistoryEntry[];
+  pendingRequests: MaterialRequest[];
 }
 
-const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMaterial, history }: MaterialsPageProps) => {
+const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMaterial, history, pendingRequests }: MaterialsPageProps) => {
   const { user } = useAuth();
   const canWrite = user ? hasActionPermission(user.role, 'materials:write') : false;
 
@@ -80,6 +82,16 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
         return statusMatch && categoryMatch;
     });
   }, [statusFilter, categoryFilter, withTotals]);
+
+  const pendingByMaterial = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    pendingRequests.forEach((req) => {
+      req.items.forEach((it) => {
+        map[it.materialId] = (map[it.materialId] || 0) + it.quantity;
+      });
+    });
+    return map;
+  }, [pendingRequests]);
 
   return (
     <>
@@ -150,6 +162,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Localizações</TableHead>
+                    <TableHead>Pendentes</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -176,6 +189,9 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
                             );
                           })}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{pendingByMaterial[material.id] || 0}</span>
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         {canWrite && (

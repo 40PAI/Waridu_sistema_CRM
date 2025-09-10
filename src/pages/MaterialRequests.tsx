@@ -48,6 +48,7 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
   const [rejectOpen, setRejectOpen] = React.useState(false);
   const [rejectId, setRejectId] = React.useState<string | null>(null);
   const [rejectReason, setRejectReason] = React.useState("");
+  const [processingId, setProcessingId] = React.useState<string | null>(null);
 
   const eventsMap = React.useMemo(() => {
     const map: Record<number, string> = {};
@@ -71,6 +72,8 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
   }, [requests, statusFilter, eventFilter, search, eventsMap, materialNameMap]);
 
   const handleApprove = (id: string) => {
+    if (processingId) return;
+    setProcessingId(id);
     const res = onApproveRequest(id);
     if (res.ok) {
       showSuccess("Requisição aprovada e estoque atualizado.");
@@ -80,9 +83,11 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
         .join("; ");
       showError(`Estoque insuficiente: ${names}`);
     }
+    setProcessingId(null);
   };
 
   const openReject = (id: string) => {
+    if (processingId) return;
     setRejectId(id);
     setRejectReason("");
     setRejectOpen(true);
@@ -94,10 +99,12 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
       showError("Informe o motivo da rejeição.");
       return;
     }
+    setProcessingId(rejectId);
     onRejectRequest(rejectId, rejectReason.trim());
     showSuccess("Requisição rejeitada.");
     setRejectOpen(false);
     setRejectId(null);
+    setProcessingId(null);
   };
 
   return (
@@ -192,11 +199,11 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
                     <TableCell className="text-right">
                       {r.status === "Pendente" && canManage ? (
                         <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" onClick={() => openReject(r.id)}>
+                          <Button size="sm" variant="outline" onClick={() => openReject(r.id)} disabled={!!processingId}>
                             Rejeitar
                           </Button>
-                          <Button size="sm" onClick={() => handleApprove(r.id)}>
-                            Aprovar
+                          <Button size="sm" onClick={() => handleApprove(r.id)} disabled={processingId === r.id}>
+                            {processingId === r.id ? "Aprovando..." : "Aprovar"}
                           </Button>
                         </div>
                       ) : (
@@ -231,10 +238,12 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectOpen(false)}>
+            <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={!!processingId}>
               Cancelar
             </Button>
-            <Button onClick={confirmReject}>Confirmar Rejeição</Button>
+            <Button onClick={confirmReject} disabled={!rejectReason.trim() || !!processingId}>
+              Confirmar Rejeição
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
