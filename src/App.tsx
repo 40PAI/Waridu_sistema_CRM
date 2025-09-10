@@ -4,27 +4,27 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import RosterManagement from "./pages/RosterManagement";
-import FinanceDashboard from "./pages/FinanceDashboard";
-import AdminSettings from "./pages/AdminSettings";
-import InviteMember from "./pages/InviteMember";
-import CalendarPage from "./pages/Calendar";
-import CreateEventPage from "./pages/CreateEvent";
-import MaterialsPage, { Material as PageMaterial } from "./pages/Materials";
-import EmployeesPage from "./pages/Employees";
-import RolesPage from "./pages/Roles";
-import RoleDetailPage from "./pages/RoleDetail";
-import LoginPage from "./pages/Login";
-import MaterialRequestsPage from "./pages/MaterialRequests";
-import { Employee } from "./components/employees/EmployeeDialog";
-import { AuthProvider } from "./contexts/AuthContext";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
+import Index from "@/pages/Index";
+import NotFound from "@/pages/NotFound";
+import RosterManagement from "@/pages/RosterManagement";
+import FinanceDashboard from "@/pages/FinanceDashboard";
+import AdminSettings from "@/pages/AdminSettings";
+import InviteMember from "@/pages/InviteMember";
+import CalendarPage from "@/pages/Calendar";
+import CreateEventPage from "@/pages/CreateEvent";
+import MaterialsPage, { Material as PageMaterial } from "@/pages/Materials";
+import EmployeesPage from "@/pages/Employees";
+import RolesPage from "@/pages/Roles";
+import RoleDetailPage from "@/pages/RoleDetail";
+import LoginPage from "@/pages/Login";
+import MaterialRequestsPage from "@/pages/MaterialRequests";
+import { Employee } from "@/components/employees/EmployeeDialog";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
-import DebugPage from "./pages/Debug";
-import HealthCheck from "./pages/HealthCheck";
+import DebugPage from "@/pages/Debug";
+import HealthCheck from "@/pages/HealthCheck";
 
 const queryClient = new QueryClient();
 
@@ -234,7 +234,7 @@ const App = () => {
           date: new Date().toLocaleString('pt-AO'),
           eventId: updatedEvent.id,
           eventName: updatedEvent.name,
-          materials: { ...updatedEvent.roster.materials },
+          materials: { ...updatedUpdatedEvent.roster.materials },
         };
         setAllocationHistory(h => [historyEntry, ...h]);
       }
