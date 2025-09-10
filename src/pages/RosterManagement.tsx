@@ -55,11 +55,9 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
 
   // Função para notificar que uma requisição foi criada
   const handleRequestsChange = () => {
-    // Aqui você pode adicionar lógica para buscar novamente as requisições do servidor
-    // ou apenas atualizar o estado local se souber que uma nova foi adicionada
-    // Por enquanto, vamos apenas recarregar a página para garantir que tudo esteja sincronizado
-    // Em uma aplicação real, você faria uma chamada à API aqui
-    window.location.reload();
+    // Não faz nada aqui. O useEffect cuidará de atualizar localPendingRequests
+    // quando pendingRequests (da props) mudar.
+    // Isso evita o reload da página e permite atualização imediata.
   };
 
   const filteredEvents = React.useMemo(() => {
