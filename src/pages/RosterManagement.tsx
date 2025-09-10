@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { RosterDialog } from "@/components/roster/RosterDialog";
 import { RosterViewerPopover } from "@/components/roster/RosterViewerPopover";
 import { EventEditDialog } from "@/components/events/EventEditDialog";
-import { Event, Roster, Expense, MaterialRequest } from "@/App";
+import { Event, Roster, Expense, MaterialRequest, InventoryMaterial } from "@/App";
 import { Employee } from "@/components/employees/EmployeeDialog";
 import { Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +21,10 @@ interface RosterManagementProps {
   onUpdateEvent: (updatedEvent: Event) => void;
   onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => void;
   pendingRequests: MaterialRequest[];
+  materials: InventoryMaterial[]; // Adicionado
 }
 
-const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEvent, onCreateMaterialRequest, pendingRequests }: RosterManagementProps) => {
+const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEvent, onCreateMaterialRequest, pendingRequests, materials }: RosterManagementProps) => {
   const [nameFilter, setNameFilter] = React.useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
@@ -115,6 +116,7 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
                             employees={employees}
                             onSaveDetails={onUpdateEventDetails}
                             onCreateMaterialRequest={onCreateMaterialRequest}
+                            materials={materials} {/* Passando materials */}
                           />
                         </div>
                       </TableCell>

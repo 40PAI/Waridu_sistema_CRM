@@ -67,7 +67,7 @@ interface Location {
 
 type MaterialStatus = 'Disponível' | 'Em uso' | 'Manutenção';
 
-interface InventoryMaterial {
+export interface InventoryMaterial {
   id: string;
   name: string;
   status: MaterialStatus;
@@ -433,7 +433,7 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/calendar" element={<CalendarPage events={events} />} />
                 <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
-                <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} onCreateMaterialRequest={createMaterialRequest} pendingRequests={pendingRequests} />} />
+                <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} onCreateMaterialRequest={createMaterialRequest} pendingRequests={pendingRequests} materials={materials} />} />
                 <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
                 <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
                 <Route path="/roles/:roleId" element={<RoleDetailPage roles={roles} employees={employees} events={events} />} />

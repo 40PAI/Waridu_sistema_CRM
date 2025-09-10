@@ -8,32 +8,21 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Combobox } from "@/components/ui/combobox";
 import { PlusCircle, XCircle, Trash2 } from "lucide-react";
-import { Event, Roster, Expense } from "@/App";
+import { Event, Roster, Expense, InventoryMaterial } from "@/App"; // Importar InventoryMaterial
 import { showSuccess, showError } from "@/utils/toast";
 import { Employee } from "../employees/EmployeeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
-
-// Mock data
-const materials = [
-    { id: 'MAT001', name: 'Câmera Sony A7S III', totalQuantity: 5 },
-    { id: 'MAT002', name: 'Lente Canon 24-70mm', totalQuantity: 8 },
-    { id: 'MAT003', name: 'Kit de Luz Aputure 300D', totalQuantity: 3 },
-    { id: 'MAT004', name: 'Microfone Rode NTG5', totalQuantity: 10 },
-    { id: 'MAT005', name: 'Tripé Manfrotto', totalQuantity: 12 },
-    { id: 'MAT006', name: 'Cabo HDMI 10m', totalQuantity: 30 },
-    { id: 'MAT007', name: 'Gravador Zoom H6', totalQuantity: 4 },
-    { id: 'MAT008', name: 'Monitor de Referência', totalQuantity: 2 },
-];
 
 interface RosterDialogProps {
   event: Event;
   employees: Employee[];
   onSaveDetails: (eventId: number, details: { roster: Roster; expenses: Expense[] }) => void;
   onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => void;
+  materials: InventoryMaterial[]; // Adicionado
 }
 
-export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterialRequest }: RosterDialogProps) {
+export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterialRequest, materials }: RosterDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [teamLead, setTeamLead] = React.useState("");
   const [selectedEmployees, setSelectedEmployees] = React.useState<Employee[]>([]);
@@ -87,9 +76,10 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
       });
   }, [selectedEmployees, nameFilter, roleFilter, activeEmployees, teamLead]);
 
+  // Usar os materiais passados via props
   const filteredMaterials = React.useMemo(() => {
     return materials.filter(material => material.name.toLowerCase().includes(materialFilter.toLowerCase()));
-  }, [materialFilter]);
+  }, [materialFilter, materials]);
 
   const handleSelectEmployee = (employee: Employee) => setSelectedEmployees(prev => [...prev, employee]);
   const handleDeselectEmployee = (employee: Employee) => setSelectedEmployees(prev => prev.filter(e => e.id !== employee.id));
@@ -240,10 +230,18 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
                   <div key={material.id} className="flex items-center justify-between gap-2">
                     <div className="flex items-center space-x-2 flex-shrink min-w-0">
                       <Label htmlFor={`mat-${material.id}`} className="truncate" title={material.name}>
-                        {material.name} <span className="text-xs text-muted-foreground">({material.totalQuantity})</span>
+                        {material.name} <span className="text-xs text-muted-foreground">({Object.values(material.locations).reduce((a, b) => a + b, 0)})</span>
                       </Label>
                     </div>
-                    <Input type="number" className="h-8 w-20" value={selectedMaterials[material.id] || ''} placeholder="0" onChange={(e) => handleQuantityChange(material.id, parseInt(e.target.value) || 0, material.totalQuantity)} min={0} max={material.totalQuantity} />
+                    <Input 
+                      type="number" 
+                      className="h-8 w-20" 
+                      value={selectedMaterials[material.id] || ''} 
+                      placeholder="0" 
+                      onChange={(e) => handleQuantityChange(material.id, parseInt(e.target.value) || 0, Object.values(material.locations).reduce((a, b) => a + b, 0))} 
+                      min={0} 
+                      max={Object.values(material.locations).reduce((a, b) => a + b, 0)} 
+                    />
                   </div>
                 ))}
               </div>
