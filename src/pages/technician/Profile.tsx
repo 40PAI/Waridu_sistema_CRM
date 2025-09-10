@@ -6,17 +6,102 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { showSuccess, showError } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useDropzone } from "react-dropzone";
 
 const TechnicianProfile = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [name, setName] = React.useState(user?.profile?.first_name || "");
   const [email, setEmail] = React.useState(user?.email || "");
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(user?.profile?.avatar_url || null);
   const [isEditing, setIsEditing] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
 
-  const handleSave = () => {
-    // In a real app, this would call an API to update the user's profile
-    showSuccess("Perfil atualizado com sucesso!");
-    setIsEditing(false);
+  const onDrop = React.useCallback(async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    setUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user?.id}.${fileExt}`;
+    const filePath = `avatars/${fileName}`;
+
+    try {
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: data.publicUrl })
+        .eq('id', user?.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setAvatarUrl(data.publicUrl);
+      if (user?.profile) {
+        setUser({
+          ...user,
+          profile: {
+            ...user.profile,
+            avatar_url: data.publicUrl
+          }
+        });
+      }
+
+      showSuccess("Foto de perfil atualizada com sucesso!");
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      showError("Erro ao atualizar a foto de perfil.");
+    } finally {
+      setUploading(false);
+    }
+  }, [user, setUser]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif']
+    },
+    maxFiles: 1,
+    maxSize: 1048576 // 1MB
+  });
+
+  const handleSave = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ first_name: name })
+        .eq('id', user?.id);
+
+      if (error) throw error;
+
+      if (user?.profile) {
+        setUser({
+          ...user,
+          profile: {
+            ...user.profile,
+            first_name: name
+          }
+        });
+      }
+
+      showSuccess("Perfil atualizado com sucesso!");
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      showError("Erro ao atualizar o perfil.");
+    }
   };
 
   return (
@@ -36,19 +121,29 @@ const TechnicianProfile = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={user?.profile?.avatar_url || undefined} />
-              <AvatarFallback>
-                {user?.profile?.first_name?.charAt(0) || user?.email?.charAt(0) || "T"}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <Button variant="outline" disabled>Alterar Foto</Button>
-              <p className="text-xs text-muted-foreground mt-2">
-                JPG, GIF ou PNG. Tamanho máximo 1MB.
-              </p>
+          <div className="flex flex-col items-center space-y-4">
+            <div {...getRootProps()} className="relative cursor-pointer">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={avatarUrl || undefined} />
+                <AvatarFallback>
+                  {user?.profile?.first_name?.charAt(0) || user?.email?.charAt(0) || "T"}
+                </AvatarFallback>
+              </Avatar>
+              {isEditing && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs text-center">Alterar Foto</span>
+                </div>
+              )}
+              <input {...getInputProps()} />
             </div>
+            {isDragActive ? (
+              <p className="text-sm text-muted-foreground">Solte a imagem aqui...</p>
+            ) : isEditing ? (
+              <p className="text-xs text-muted-foreground">
+                Arraste e solte uma imagem ou clique para selecionar
+              </p>
+            ) : null}
+            {uploading && <p className="text-sm">Enviando...</p>}
           </div>
           
           <div className="grid gap-4 md:grid-cols-2">
@@ -61,21 +156,12 @@ const TechnicianProfile = () => {
                   onChange={(e) => setName(e.target.value)} 
                 />
               ) : (
-                <p className="text-sm">{name || "Não informado"}</p>
+                <p className="text-sm">{user?.profile?.first_name || "Não informado"}</p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              {isEditing ? (
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                />
-              ) : (
-                <p className="text-sm">{email}</p>
-              )}
+              <p className="text-sm">{email}</p>
             </div>
           </div>
           
@@ -95,7 +181,7 @@ const TechnicianProfile = () => {
                 <Button variant="outline" onClick={() => setIsEditing(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleSave}>Salvar</Button>
+                <Button onClick={handleSave} disabled={uploading}>Salvar</Button>
               </>
             ) : (
               <Button onClick={() => setIsEditing(true)}>Editar Perfil</Button>

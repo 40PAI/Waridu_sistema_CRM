@@ -48,6 +48,7 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/technician/events',
     '/technician/tasks',
     '/technician/profile',
+    '/technician/notifications'
   ],
 };
 

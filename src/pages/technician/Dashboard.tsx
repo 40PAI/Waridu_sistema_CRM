@@ -1,11 +1,12 @@
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, CheckCircle, DollarSign, Users, Archive, CalendarDays } from "lucide-react";
+import { Calendar, CheckCircle, DollarSign, Users, Archive, CalendarDays, Bell } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Event } from "@/types";
+import { Badge } from "@/components/ui/badge";
 
 // Mock data - will be replaced with real data from props
 const mockEvents: Event[] = [
@@ -21,6 +22,12 @@ const mockEarningsData = [
   { name: 'Evento D', Ganho: 3000 },
 ];
 
+// Mock notifications data
+const mockNotifications = [
+  { id: 1, title: "Nova tarefa atribuída", description: "Você tem uma nova tarefa para o evento Lançamento do Produto X", read: false },
+  { id: 2, title: "Evento atualizado", description: "Os horários do evento Imersão de Vendas Q3 foram alterados", read: true },
+];
+
 const TechnicianDashboard = () => {
   const { user } = useAuth();
   const technicianName = user?.profile?.first_name || user?.email || "Técnico";
@@ -32,12 +39,27 @@ const TechnicianDashboard = () => {
   const totalUpcoming = upcomingEvents.length;
   const totalPast = pastEvents.length;
   const totalEarnings = mockEarningsData.reduce((sum, item) => sum + item.Ganho, 0);
+  
+  // Count unread notifications
+  const unreadNotifications = mockNotifications.filter(n => !n.read).length;
 
   return (
     <div className="flex-1 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Bem-vindo, {technicianName}!</h1>
-        <p className="text-muted-foreground">Aqui está um resumo das suas atividades.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Bem-vindo, {technicianName}!</h1>
+          <p className="text-muted-foreground">Aqui está um resumo das suas atividades.</p>
+        </div>
+        <Button variant="outline" size="icon" asChild>
+          <Link to="/technician/notifications">
+            <Bell className="h-5 w-5" />
+            {unreadNotifications > 0 && (
+              <Badge variant="destructive" className="absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs">
+                {unreadNotifications}
+              </Badge>
+            )}
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -108,7 +130,7 @@ const TechnicianDashboard = () => {
             <CardDescription>Navegue rapidamente para as áreas mais importantes.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <Link to="/calendar">
+            <Link to="/technician/calendar">
               <Button variant="outline" className="w-full justify-start">
                 <CalendarDays className="mr-2 h-4 w-4" />
                 Meu Calendário

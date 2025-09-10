@@ -30,6 +30,7 @@ import TechnicianEvents from "@/pages/technician/Events";
 import TechnicianTasks from "@/pages/technician/Tasks";
 import TechnicianProfile from "@/pages/technician/Profile";
 import TechnicianCalendar from "@/pages/technician/Calendar";
+import TechnicianNotifications from "@/pages/technician/Notifications";
 import type {
   Expense,
   Roster,
@@ -515,6 +516,7 @@ const App = () => {
                 <Route path="/technician/events" element={<TechnicianEvents />} />
                 <Route path="/technician/tasks" element={<TechnicianTasks />} />
                 <Route path="/technician/profile" element={<TechnicianProfile />} />
+                <Route path="/technician/notifications" element={<TechnicianNotifications />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
