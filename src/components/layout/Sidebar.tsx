@@ -1,10 +1,28 @@
 import { NavLink } from "react-router-dom";
 import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSIONS } from "@/config/roles";
 
 const Sidebar = () => {
+  const { user } = useAuth();
   const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${isActive ? "bg-muted text-primary" : ""}`;
+
+  const navItems = [
+    { to: "/", icon: Home, label: "Dashboard" },
+    { to: "/calendar", icon: CalendarDays, label: "Calendário" },
+    { to: "/create-event", icon: CalendarPlus, label: "Criar Evento" },
+    { to: "/roster-management", icon: Users, label: "Gestão de Escalações" },
+    { to: "/employees", icon: Users2, label: "Funcionários" },
+    { to: "/roles", icon: Briefcase, label: "Funções" },
+    { to: "/materials", icon: Archive, label: "Materiais" },
+    { to: "/finance-dashboard", icon: LineChart, label: "Finance Dashboard" },
+    { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
+  ];
+
+  const allowedRoutes = user ? PERMISSIONS[user.role] : [];
+  const visibleNavItems = navItems.filter(item => allowedRoutes.includes(item.to));
 
   return (
     <div className="hidden border-r bg-muted/40 md:block">
@@ -21,42 +39,12 @@ const Sidebar = () => {
         </div>
         <div className="flex-1">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            <NavLink to="/" className={navLinkClasses} end>
-              <Home className="h-4 w-4" />
-              Dashboard
-            </NavLink>
-            <NavLink to="/calendar" className={navLinkClasses}>
-              <CalendarDays className="h-4 w-4" />
-              Calendário
-            </NavLink>
-            <NavLink to="/create-event" className={navLinkClasses}>
-              <CalendarPlus className="h-4 w-4" />
-              Criar Evento
-            </NavLink>
-            <NavLink to="/roster-management" className={navLinkClasses}>
-              <Users className="h-4 w-4" />
-              Gestão de Escalações
-            </NavLink>
-            <NavLink to="/employees" className={navLinkClasses}>
-              <Users2 className="h-4 w-4" />
-              Funcionários
-            </NavLink>
-            <NavLink to="/roles" className={navLinkClasses}>
-              <Briefcase className="h-4 w-4" />
-              Funções
-            </NavLink>
-            <NavLink to="/materials" className={navLinkClasses}>
-              <Archive className="h-4 w-4" />
-              Materiais
-            </NavLink>
-            <NavLink to="/finance-dashboard" className={navLinkClasses}>
-              <LineChart className="h-4 w-4" />
-              Finance Dashboard
-            </NavLink>
-            <NavLink to="/admin-settings" className={navLinkClasses}>
-              <Settings className="h-4 w-4" />
-              Configurações do Admin
-            </NavLink>
+            {visibleNavItems.map(item => (
+              <NavLink to={item.to} className={navLinkClasses} key={item.to} end={item.to === "/"}>
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
         </div>
       </div>

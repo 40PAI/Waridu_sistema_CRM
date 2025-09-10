@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSIONS } from "@/config/roles";
 
 const Header = () => {
   const { user, logout, switchRole } = useAuth();
@@ -16,6 +17,21 @@ const Header = () => {
 
   const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${isActive ? "bg-muted text-primary" : ""}`;
+
+  const navItems = [
+    { to: "/", icon: Home, label: "Dashboard" },
+    { to: "/calendar", icon: CalendarDays, label: "Calendário" },
+    { to: "/create-event", icon: CalendarPlus, label: "Criar Evento" },
+    { to: "/roster-management", icon: Users, label: "Gestão de Escalações" },
+    { to: "/employees", icon: Users2, label: "Funcionários" },
+    { to: "/roles", icon: Briefcase, label: "Funções" },
+    { to: "/materials", icon: Archive, label: "Materiais" },
+    { to: "/finance-dashboard", icon: LineChart, label: "Finance Dashboard" },
+    { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
+  ];
+
+  const allowedRoutes = user ? PERMISSIONS[user.role] : [];
+  const visibleNavItems = navItems.filter(item => allowedRoutes.includes(item.to));
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
@@ -32,49 +48,21 @@ const Header = () => {
               <Package2 className="h-6 w-6" />
               <span className="sr-only">Sua Empresa</span>
             </Link>
-            <NavLink to="/" className={navLinkClasses} end>
-              <Home className="h-5 w-5" />
-              Dashboard
-            </NavLink>
-            <NavLink to="/calendar" className={navLinkClasses}>
-              <CalendarDays className="h-5 w-5" />
-              Calendário
-            </NavLink>
-            <NavLink to="/create-event" className={navLinkClasses}>
-              <CalendarPlus className="h-5 w-5" />
-              Criar Evento
-            </NavLink>
-            <NavLink to="/roster-management" className={navLinkClasses}>
-              <Users className="h-5 w-5" />
-              Gestão de Escalações
-            </NavLink>
-            <NavLink to="/employees" className={navLinkClasses}>
-              <Users2 className="h-5 w-5" />
-              Funcionários
-            </NavLink>
-            <NavLink to="/roles" className={navLinkClasses}>
-              <Briefcase className="h-5 w-5" />
-              Funções
-            </NavLink>
-            <NavLink to="/materials" className={navLinkClasses}>
-              <Archive className="h-5 w-5" />
-              Materiais
-            </NavLink>
-            <NavLink to="/finance-dashboard" className={navLinkClasses}>
-              <LineChart className="h-5 w-5" />
-              Finance Dashboard
-            </NavLink>
-            <NavLink to="/admin-settings" className={navLinkClasses}>
-              <Settings className="h-5 w-5" />
-              Configurações do Admin
-            </NavLink>
+            {visibleNavItems.map(item => (
+              <NavLink to={item.to} className={navLinkClasses} key={item.to} end={item.to === "/"}>
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
         </SheetContent>
       </Sheet>
       <div className="w-full flex-1"></div>
-      <Link to="/invite-member">
-        <Button>Convidar Novo Membro</Button>
-      </Link>
+      {user && PERMISSIONS[user.role].includes('/invite-member') && (
+        <Link to="/invite-member">
+          <Button>Convidar Novo Membro</Button>
+        </Link>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="icon" className="rounded-full">
