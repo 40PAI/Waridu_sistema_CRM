@@ -4,9 +4,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Eye, DollarSign, Wallet } from "lucide-react";
-import { Event } from "@/App";
+import { Eye, DollarSign, Wallet, AlertTriangle } from "lucide-react";
+import { Event, MaterialRequest } from "@/App";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 // Mock data para buscar nomes - em uma aplicação real, isso viria de uma fonte de dados compartilhada.
 const materialsData = [
@@ -36,11 +37,15 @@ const formatCurrency = (value: number) => value.toLocaleString('pt-AO', { style:
 
 interface RosterViewerPopoverProps {
   event: Event;
+  pendingRequests?: MaterialRequest[];
 }
 
-export const RosterViewerPopover = ({ event }: RosterViewerPopoverProps) => {
+export const RosterViewerPopover = ({ event, pendingRequests = [] }: RosterViewerPopoverProps) => {
   const teamLeadName = event.roster ? getEmployeeNameById(event.roster.teamLead) : 'Não definido';
   const totalExpenses = event.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+  
+  // Filtrar requisições pendentes para este evento
+  const eventPendingRequests = pendingRequests.filter(req => req.eventId === event.id);
 
   return (
     <Popover>
@@ -68,7 +73,7 @@ export const RosterViewerPopover = ({ event }: RosterViewerPopoverProps) => {
               <h5 className="font-semibold text-sm">Equipe</h5>
               <ul className="list-disc list-inside text-sm text-muted-foreground pl-2">
                 {event.roster && event.roster.teamMembers.length > 0 ? event.roster.teamMembers.map(member => (
-                  <li key={member.id}>{member.name}</li>
+                  <li key={member.id}>{member.name} ({member.role})</li>
                 )) : <li>Nenhum membro na equipe.</li>}
               </ul>
             </div>
@@ -83,6 +88,25 @@ export const RosterViewerPopover = ({ event }: RosterViewerPopoverProps) => {
                 </ul>
               ) : (
                 <p className="text-sm text-muted-foreground">Nenhum material alocado.</p>
+              )}
+              
+              {eventPendingRequests.length > 0 && (
+                <>
+                  <Separator className="my-2" />
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h5 className="font-semibold text-sm text-yellow-600">Requisições Pendentes</h5>
+                      <ul className="list-disc list-inside text-xs text-muted-foreground pl-2 mt-1">
+                        {eventPendingRequests.map(req => (
+                          <li key={req.id}>
+                            {req.items.length} item(s) solicitado(s) por {req.requestedBy.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
             
