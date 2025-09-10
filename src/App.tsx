@@ -24,7 +24,6 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import DebugPage from "@/pages/Debug";
-import HealthCheck from "@/pages/HealthCheck";
 
 const queryClient = new QueryClient();
 
@@ -234,7 +233,7 @@ const App = () => {
           date: new Date().toLocaleString('pt-AO'),
           eventId: updatedEvent.id,
           eventName: updatedEvent.name,
-          materials: { ...updatedUpdatedEvent.roster.materials },
+          materials: { ...updatedEvent.roster.materials },
         };
         setAllocationHistory(h => [historyEntry, ...h]);
       }
@@ -551,7 +550,6 @@ const App = () => {
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              <Route path="/health" element={<HealthCheck />} />
               <Route path="/login" element={<LoginPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Index />} />
