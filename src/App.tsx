@@ -17,8 +17,10 @@ import MaterialsPage from "./pages/Materials";
 import EmployeesPage from "./pages/Employees";
 import RolesPage from "./pages/Roles";
 import RoleDetailPage from "./pages/RoleDetail";
+import LoginPage from "./pages/Login";
 import { Employee } from "./components/employees/EmployeeDialog";
-import { showError } from "./utils/toast"; // Import showError for potential use
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -167,22 +169,25 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route element={<DashboardLayout />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/calendar" element={<CalendarPage events={events} />} />
-              <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
-              <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} />} />
-              <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
-              <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
-              <Route path="/roles/:roleId" element={<RoleDetailPage roles={roles} employees={employees} events={events} />} />
-              <Route path="/materials" element={<MaterialsPage />} />
-              <Route path="/finance-dashboard" element={<FinanceDashboard />} />
-              <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} />} />
-              <Route path="/invite-member" element={<InviteMember roles={roles} onInviteMember={inviteMember} />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route element={<DashboardLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/calendar" element={<CalendarPage events={events} />} />
+                <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
+                <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} />} />
+                <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
+                <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
+                <Route path="/roles/:roleId" element={<RoleDetailPage roles={roles} employees={employees} events={events} />} />
+                <Route path="/materials" element={<MaterialsPage />} />
+                <Route path="/finance-dashboard" element={<FinanceDashboard />} />
+                <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} />} />
+                <Route path="/invite-member" element={<InviteMember roles={roles} onInviteMember={inviteMember} />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
