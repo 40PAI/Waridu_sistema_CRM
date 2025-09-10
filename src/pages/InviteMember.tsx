@@ -7,25 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
-import { Role as AppRole } from "@/App"; // Renomeado para evitar conflito
-import { PAGE_PERMISSIONS, Role as ConfigRole } from "@/config/roles"; // Importar PAGE_PERMISSIONS e Role do config
+import { Role } from "@/App"; // Importar Role do App
+import { PAGE_PERMISSIONS } from "@/config/roles"; // Importar PAGE_PERMISSIONS
 
 interface InviteMemberProps {
-  roles: AppRole[];
+  roles: Role[];
   onInviteMember: (email: string, roleId: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const InviteMember = ({ roles, onInviteMember }: InviteMemberProps) => {
   const [email, setEmail] = React.useState("");
   const [selectedRoleId, setSelectedRoleId] = React.useState("");
-  const [selectedRoleName, setSelectedRoleName] = React.useState<ConfigRole | null>(null);
+  const [selectedRoleName, setSelectedRoleName] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
   const handleRoleChange = (roleId: string) => {
     setSelectedRoleId(roleId);
     const role = roles.find(r => r.id === roleId);
     if (role) {
-      setSelectedRoleName(role.name as ConfigRole);
+      setSelectedRoleName(role.name);
     } else {
       setSelectedRoleName(null);
     }
@@ -89,11 +89,11 @@ const InviteMember = ({ roles, onInviteMember }: InviteMemberProps) => {
                   </SelectContent>
                 </Select>
               </div>
-              {selectedRoleName && PAGE_PERMISSIONS[selectedRoleName] && (
+              {selectedRoleName && PAGE_PERMISSIONS[selectedRoleName as keyof typeof PAGE_PERMISSIONS] && (
                 <div className="space-y-2 p-4 border rounded-md bg-muted/50">
                   <h3 className="font-semibold text-sm">Páginas acessíveis para "{selectedRoleName}":</h3>
                   <ul className="list-disc list-inside text-xs text-muted-foreground max-h-40 overflow-y-auto">
-                    {PAGE_PERMISSIONS[selectedRoleName].map((path, index) => (
+                    {PAGE_PERMISSIONS[selectedRoleName as keyof typeof PAGE_PERMISSIONS].map((path, index) => (
                       <li key={index}>{path}</li>
                     ))}
                   </ul>

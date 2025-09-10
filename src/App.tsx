@@ -24,6 +24,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import DebugPage from "@/pages/Debug";
+import { Role as ConfigRole } from "@/config/roles"; // Importar o tipo Role de config
 
 const queryClient = new QueryClient();
 
@@ -59,7 +60,7 @@ export interface Event {
 
 export interface Role {
   id: string;
-  name: string;
+  name: ConfigRole; // Usar o tipo de função do config
 }
 
 // Inventário
@@ -116,10 +117,10 @@ const App = () => {
   ];
 
   const initialEmployees: Employee[] = [
-    { id: 'EMP001', name: 'Ana Silva', role: 'Gerente de Eventos', email: 'ana.silva@email.com', avatar: '/avatars/01.png', status: 'Ativo', costPerDay: 500 },
-    { id: 'EMP002', name: 'Carlos Souza', role: 'Técnico de Som', email: 'carlos.souza@email.com', avatar: '/avatars/02.png', status: 'Ativo', costPerDay: 350 },
-    { id: 'EMP003', name: 'Beatriz Costa', role: 'Coordenadora', email: 'beatriz.costa@email.com', avatar: '/avatars/03.png', status: 'Inativo', costPerDay: 400 },
-    { id: 'EMP004', name: 'Daniel Martins', role: 'Assistente', email: 'daniel.martins@email.com', avatar: '/avatars/04.png', status: 'Ativo', costPerDay: 200 },
+    { id: 'EMP001', name: 'Ana Silva', role: 'Admin', email: 'ana.silva@email.com', avatar: '/avatars/01.png', status: 'Ativo', costPerDay: 500 },
+    { id: 'EMP002', name: 'Carlos Souza', role: 'Técnico', email: 'carlos.souza@email.com', avatar: '/avatars/02.png', status: 'Ativo', costPerDay: 350 },
+    { id: 'EMP003', name: 'Beatriz Costa', role: 'Coordenador', email: 'beatriz.costa@email.com', avatar: '/avatars/03.png', status: 'Inativo', costPerDay: 400 },
+    { id: 'EMP004', name: 'Daniel Martins', role: 'Gestor de Material', email: 'daniel.martins@email.com', avatar: '/avatars/04.png', status: 'Ativo', costPerDay: 200 },
   ];
 
   const initialLocations: Location[] = [
@@ -150,12 +151,11 @@ const App = () => {
 
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [roles, setRoles] = useState<Role[]>([
-    { id: 'role-1', name: 'Gerente de Eventos' },
-    { id: 'role-2', name: 'Técnico de Som' },
-    { id: 'role-3', name: 'Coordenadora' },
-    { id: 'role-4', name: 'Assistente' },
-    { id: 'role-5', name: 'Técnico de Luz' },
-    { id: 'role-6', name: 'VJ' },
+    { id: 'role-1', name: 'Admin' },
+    { id: 'role-2', name: 'Técnico' },
+    { id: 'role-3', name: 'Coordenador' },
+    { id: 'role-4', name: 'Gestor de Material' },
+    { id: 'role-5', name: 'Financeiro' },
   ]);
 
   const [locations, setLocations] = useState<Location[]>(initialLocations);
@@ -269,7 +269,7 @@ const App = () => {
   };
 
   // Funções
-  const addRole = (roleName: string) => {
+  const addRole = (roleName: ConfigRole) => { // Usar o tipo de função do config
     const newRole: Role = {
       id: `role-${Date.now()}`,
       name: roleName,
@@ -277,7 +277,7 @@ const App = () => {
     setRoles(prev => [...prev, newRole]);
   };
 
-  const updateRole = (roleId: string, newName: string) => {
+  const updateRole = (roleId: string, newName: ConfigRole) => { // Usar o tipo de função do config
     setRoles(prev => prev.map(r => r.id === roleId ? { ...r, name: newName } : r));
   };
 
