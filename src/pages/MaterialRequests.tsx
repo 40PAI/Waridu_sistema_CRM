@@ -73,10 +73,11 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     if (res.ok) {
       showSuccess("Requisição aprovada e estoque atualizado.");
     } else {
-      const names = res.shortages
+      const shortages = "shortages" in res ? res.shortages : [];
+      const names = shortages
         .map((s) => `${materialNameMap[s.materialId] || s.materialId} (precisa ${s.needed}, tem ${s.available})`)
         .join("; ");
-      showError(`Estoque insuficiente: ${names}`);
+      showError(names ? `Estoque insuficiente: ${names}` : "Estoque insuficiente para alguns itens.");
     }
     setProcessingId(null);
   };

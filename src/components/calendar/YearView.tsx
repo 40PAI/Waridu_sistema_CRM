@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface YearViewProps {
   currentDate: Date;
   events: Event[];
-  setView: (view: 'month' | 'week' | 'year') => void;
+  setView: (view: 'month' | 'year' | 'day') => void;
   setCurrentDate: (date: Date) => void;
 }
 

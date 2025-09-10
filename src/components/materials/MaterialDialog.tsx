@@ -18,7 +18,7 @@ import { showError } from "@/utils/toast";
 interface MaterialDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (materialData: Omit<Material, 'id'> & { id?: string }) => void;
+  onSave: (materialData: Omit<Material, 'id' | 'locations'> & { id?: string }) => void;
   material?: Material | null;
 }
 
