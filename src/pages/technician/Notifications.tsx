@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Bell, CheckCircle, AlertCircle, Calendar, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { showError, showSuccess } from "@/utils/toast";
 
 type Notification = {
   id: string;
@@ -11,44 +14,8 @@ type Notification = {
   description: string;
   type: 'task' | 'event' | 'system' | 'issue';
   read: boolean;
-  createdAt: Date;
+  created_at: string;
 };
-
-// Mock data - will be replaced with real data from Supabase
-const mockNotifications: Notification[] = [
-  { 
-    id: "1", 
-    title: "Nova tarefa atribuída", 
-    description: "Você tem uma nova tarefa para o evento Lançamento do Produto X", 
-    type: 'task',
-    read: false, 
-    createdAt: new Date(Date.now() - 1000 * 60 * 5) // 5 minutes ago
-  },
-  { 
-    id: "2", 
-    title: "Evento atualizado", 
-    description: "Os horários do evento Imersão de Vendas Q3 foram alterados", 
-    type: 'event',
-    read: true, 
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2) // 2 hours ago
-  },
-  { 
-    id: "3", 
-    title: "Problema reportado", 
-    description: "Carlos Souza reportou um problema com a configuração de áudio", 
-    type: 'issue',
-    read: false, 
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24) // 1 day ago
-  },
-  { 
-    id: "4", 
-    title: "Tarefa concluída", 
-    description: "Sua tarefa 'Verificar equipamentos de áudio' foi marcada como concluída", 
-    type: 'task',
-    read: true, 
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2) // 2 days ago
-  },
-];
 
 const getIcon = (type: Notification['type']) => {
   switch (type) {
@@ -69,18 +36,98 @@ const getVariant = (type: Notification['type']) => {
 };
 
 const TechnicianNotifications = () => {
-  const [notifications, setNotifications] = React.useState<Notification[]>(mockNotifications);
+  const { user } = useAuth();
+  const [notifications, setNotifications] = React.useState<Notification[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  // Carregar notificações do Supabase
+  React.useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        // Formatar notificações
+        const formattedNotifications: Notification[] = (data || []).map((notification: any) => ({
+          id: notification.id,
+          title: notification.title,
+          description: notification.description,
+          type: notification.type,
+          read: notification.read,
+          created_at: notification.created_at
+        }));
+        
+        setNotifications(formattedNotifications);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+        showError("Erro ao carregar as notificações.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [user]);
+
+  const markAsRead = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setNotifications(notifications.map(n => 
+        n.id === id ? { ...n, read: true } : n
+      ));
+      
+      showSuccess("Notificação marcada como lida.");
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      showError("Erro ao marcar notificação como lida.");
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      showSuccess("Todas as notificações marcadas como lidas.");
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      showError("Erro ao marcar todas as notificações como lidas.");
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const markAsRead = (id: string) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Carregando notificações...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -122,7 +169,7 @@ const TechnicianNotifications = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium">{notification.title}</h3>
                   <span className="text-xs text-muted-foreground">
-                    {format(notification.createdAt, "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                    {format(new Date(notification.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">

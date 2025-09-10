@@ -7,41 +7,100 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Event } from "@/types";
 import { Badge } from "@/components/ui/badge";
-
-// Mock data - will be replaced with real data from props
-const mockEvents: Event[] = [
-  { id: 1, name: "Conferência Anual de Tecnologia", startDate: "2024-08-15", endDate: "2024-08-17", location: "Centro de Convenções", startTime: "09:00", endTime: "18:00", revenue: 50000, status: 'Concluído', description: 'Evento anual para discutir as novas tendências em tecnologia.' },
-  { id: 2, name: "Lançamento do Produto X", startDate: "2024-09-01", endDate: "2024-09-01", location: "Sede da Empresa", startTime: "19:00", endTime: "22:00", revenue: 25000, status: 'Planejado' },
-  { id: 5, name: "Imersão de Vendas Q3", startDate: "2024-09-09", endDate: "2024-09-13", location: "Hotel Fazenda", status: "Em Andamento", description: "Treinamento intensivo para a equipe de vendas." },
-];
-
-const mockEarningsData = [
-  { name: 'Evento A', Ganho: 1500 },
-  { name: 'Evento B', Ganho: 2300 },
-  { name: 'Evento C', Ganho: 1890 },
-  { name: 'Evento D', Ganho: 3000 },
-];
-
-// Mock notifications data
-const mockNotifications = [
-  { id: 1, title: "Nova tarefa atribuída", description: "Você tem uma nova tarefa para o evento Lançamento do Produto X", read: false },
-  { id: 2, title: "Evento atualizado", description: "Os horários do evento Imersão de Vendas Q3 foram alterados", read: true },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const TechnicianDashboard = () => {
   const { user } = useAuth();
   const technicianName = user?.profile?.first_name || user?.email || "Técnico";
   
-  // Filter events for this technician (mock implementation)
-  const upcomingEvents = mockEvents.filter(e => e.status === 'Planejado' || e.status === 'Em Andamento');
-  const pastEvents = mockEvents.filter(e => e.status === 'Concluído');
+  const [events, setEvents] = React.useState<Event[]>([]);
+  const [notifications, setNotifications] = React.useState<any[]>([]);
+  const [earnings, setEarnings] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+
+  // Carregar dados do Supabase
+  React.useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        // Buscar eventos onde o técnico está escalado
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('events')
+          .select('*')
+          .eq('technician_id', user.id)
+          .order('start_date', { ascending: true });
+
+        if (eventsError) throw eventsError;
+        
+        // Formatar eventos
+        const formattedEvents: Event[] = (eventsData || []).map((event: any) => ({
+          id: event.id,
+          name: event.name,
+          startDate: event.start_date,
+          endDate: event.end_date,
+          location: event.location,
+          startTime: event.start_time,
+          endTime: event.end_time,
+          revenue: event.revenue,
+          status: event.status,
+          description: event.description
+        }));
+        
+        setEvents(formattedEvents);
+        
+        // Buscar notificações do técnico
+        const { data: notificationsData, error: notificationsError } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (notificationsError) throw notificationsError;
+        
+        setNotifications(notificationsData || []);
+        setUnreadCount((notificationsData || []).filter((n: any) => !n.read).length);
+        
+        // Dados de ganhos fictícios para demonstração
+        const mockEarnings = [
+          { name: 'Evento A', Ganho: 1500 },
+          { name: 'Evento B', Ganho: 2300 },
+          { name: 'Evento C', Ganho: 1890 },
+          { name: 'Evento D', Ganho: 3000 },
+        ];
+        setEarnings(mockEarnings);
+        
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user]);
+
+  // Filter events for this technician
+  const upcomingEvents = events.filter(e => e.status === 'Planejado' || e.status === 'Em Andamento');
+  const pastEvents = events.filter(e => e.status === 'Concluído');
   
   const totalUpcoming = upcomingEvents.length;
   const totalPast = pastEvents.length;
-  const totalEarnings = mockEarningsData.reduce((sum, item) => sum + item.Ganho, 0);
-  
-  // Count unread notifications
-  const unreadNotifications = mockNotifications.filter(n => !n.read).length;
+  const totalEarnings = earnings.reduce((sum, item) => sum + item.Ganho, 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Carregando dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6">
@@ -53,9 +112,9 @@ const TechnicianDashboard = () => {
         <Button variant="outline" size="icon" asChild>
           <Link to="/technician/notifications">
             <Bell className="h-5 w-5" />
-            {unreadNotifications > 0 && (
+            {unreadCount > 0 && (
               <Badge variant="destructive" className="absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs">
-                {unreadNotifications}
+                {unreadCount}
               </Badge>
             )}
           </Link>
@@ -113,7 +172,7 @@ const TechnicianDashboard = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockEarningsData}>
+              <BarChart data={earnings}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
                 <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `AOA ${value/1000}k`}/>

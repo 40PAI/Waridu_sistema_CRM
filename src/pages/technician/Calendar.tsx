@@ -8,19 +8,58 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { Event } from "@/types";
 import DayView from "@/components/calendar/DayView";
 import MonthView from "@/components/calendar/MonthView";
-
-// Mock data - will be replaced with real data from props
-const mockEvents: Event[] = [
-  { id: 1, name: "Conferência Anual de Tecnologia", startDate: "2024-08-15", endDate: "2024-08-17", location: "Centro de Convenções", startTime: "09:00", endTime: "18:00", revenue: 50000, status: 'Concluído', description: 'Evento anual para discutir as novas tendências em tecnologia.' },
-  { id: 2, name: "Lançamento do Produto X", startDate: "2024-09-01", endDate: "2024-09-01", location: "Sede da Empresa", startTime: "19:00", endTime: "22:00", revenue: 25000, status: 'Planejado' },
-  { id: 5, name: "Imersão de Vendas Q3", startDate: "2024-09-09", endDate: "2024-09-13", location: "Hotel Fazenda", status: "Em Andamento", description: "Treinamento intensivo para a equipe de vendas." },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 type CalendarView = "day" | "month";
 
 const TechnicianCalendar = () => {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
   const [view, setView] = React.useState<CalendarView>("month");
+  const [events, setEvents] = React.useState<Event[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  // Carregar eventos do Supabase
+  React.useEffect(() => {
+    const fetchEvents = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        // Buscar eventos onde o técnico está escalado
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('technician_id', user.id);
+
+        if (error) throw error;
+        
+        // Formatar eventos
+        const formattedEvents: Event[] = (data || []).map((event: any) => ({
+          id: event.id,
+          name: event.name,
+          startDate: event.start_date,
+          endDate: event.end_date,
+          location: event.location,
+          startTime: event.start_time,
+          endTime: event.end_time,
+          revenue: event.revenue,
+          status: event.status,
+          description: event.description
+        }));
+        
+        setEvents(formattedEvents);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [user]);
 
   const handlePrev = () => {
     if (view === "day") {
@@ -43,6 +82,14 @@ const TechnicianCalendar = () => {
     if (view === "month") return format(currentDate, "MMMM yyyy", { locale: ptBR });
     return "";
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Carregando calendário...</p>
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -72,8 +119,8 @@ const TechnicianCalendar = () => {
         </ToggleGroup>
       </CardHeader>
       <CardContent>
-        {view === "day" && <DayView currentDate={currentDate} events={mockEvents} />}
-        {view === "month" && <MonthView currentDate={currentDate} events={mockEvents} />}
+        {view === "day" && <DayView currentDate={currentDate} events={events} />}
+        {view === "month" && <MonthView currentDate={currentDate} events={events} />}
       </CardContent>
     </Card>
   );

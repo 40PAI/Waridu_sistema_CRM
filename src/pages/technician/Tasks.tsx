@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { showSuccess, showError } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Task = {
   id: string;
@@ -15,29 +17,94 @@ type Task = {
   done: boolean;
   hasIssues?: boolean;
   issueDescription?: string;
+  created_at: string;
 };
 
-// Mock data - will be replaced with real data from state
-const mockTasks: Task[] = [
-  { id: "1", title: "Verificar equipamentos de áudio", description: "Testar microfones e mixers antes do evento", done: true },
-  { id: "2", title: "Preparar cabos e conectores", description: "Organizar e verificar todos os cabos necessários", done: false },
-  { id: "3", title: "Configurar iluminação", description: "Montar e testar o setup de iluminação", done: false },
-  { id: "4", title: "Revisar roteiro do evento", description: "Familiarizar-se com a ordem do dia", done: true },
-];
-
 const TechnicianTasks = () => {
-  const [tasks, setTasks] = React.useState<Task[]>(mockTasks);
+  const { user } = useAuth();
+  const [tasks, setTasks] = React.useState<Task[]>([]);
   const [issueTaskId, setIssueTaskId] = React.useState<string | null>(null);
   const [issueDescription, setIssueDescription] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
 
-  const toggleTask = (id: string) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, done: !task.done, hasIssues: false, issueDescription: "" } : task
-    ));
+  // Carregar tarefas do Supabase
+  React.useEffect(() => {
+    const fetchTasks = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('assigned_to', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        setTasks(data || []);
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+        showError("Erro ao carregar as tarefas.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [user]);
+
+  const toggleTask = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      
+      const { error } = await supabase
+        .from('tasks')
+        .update({ 
+          done: !task.done,
+          has_issues: false,
+          issue_description: null
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTasks(tasks.map(task => 
+        task.id === id ? { 
+          ...task, 
+          done: !task.done, 
+          hasIssues: false, 
+          issueDescription: "" 
+        } : task
+      ));
+    } catch (error) {
+      console.error("Error updating task:", error);
+      showError("Erro ao atualizar a tarefa.");
+    }
   };
 
-  const markAll = (done: boolean) => {
-    setTasks(tasks.map(task => ({ ...task, done })));
+  const markAll = async (done: boolean) => {
+    if (!user) return;
+    
+    try {
+      // Atualizar todas as tarefas no Supabase
+      const taskIds = tasks.map(t => t.id);
+      
+      const { error } = await supabase
+        .from('tasks')
+        .update({ done: done })
+        .in('id', taskIds);
+
+      if (error) throw error;
+
+      setTasks(tasks.map(task => ({ ...task, done })));
+    } catch (error) {
+      console.error("Error updating tasks:", error);
+      showError("Erro ao atualizar as tarefas.");
+    }
   };
 
   const openIssueDialog = (id: string) => {
@@ -46,23 +113,46 @@ const TechnicianTasks = () => {
     setIssueDescription(task?.issueDescription || "");
   };
 
-  const reportIssue = () => {
-    if (!issueTaskId) return;
+  const reportIssue = async () => {
+    if (!issueTaskId || !user) return;
     
-    setTasks(tasks.map(task => 
-      task.id === issueTaskId 
-        ? { ...task, hasIssues: true, issueDescription, done: false } 
-        : task
-    ));
-    
-    // In a real app, this would send a notification to coordinators/admins
-    showSuccess("Problema reportado com sucesso!");
-    setIssueTaskId(null);
-    setIssueDescription("");
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ 
+          has_issues: true, 
+          issue_description: issueDescription,
+          done: false
+        })
+        .eq('id', issueTaskId);
+
+      if (error) throw error;
+      
+      setTasks(tasks.map(task => 
+        task.id === issueTaskId 
+          ? { ...task, hasIssues: true, issueDescription, done: false } 
+          : task
+      ));
+      
+      showSuccess("Problema reportado com sucesso!");
+      setIssueTaskId(null);
+      setIssueDescription("");
+    } catch (error) {
+      console.error("Error reporting issue:", error);
+      showError("Erro ao reportar o problema.");
+    }
   };
 
   const completedTasks = tasks.filter(task => task.done).length;
   const totalTasks = tasks.length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Carregando tarefas...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

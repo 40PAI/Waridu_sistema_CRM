@@ -11,11 +11,41 @@ import { useDropzone } from "react-dropzone";
 
 const TechnicianProfile = () => {
   const { user, setUser } = useAuth();
-  const [name, setName] = React.useState(user?.profile?.first_name || "");
-  const [email, setEmail] = React.useState(user?.email || "");
-  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(user?.profile?.avatar_url || null);
+  const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+
+  // Carregar dados do perfil do Supabase
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('first_name, avatar_url, role')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        setName(data.first_name || "");
+        setAvatarUrl(data.avatar_url);
+        setEmail(user.email || "");
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        showError("Erro ao carregar o perfil.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   const onDrop = React.useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -49,16 +79,7 @@ const TechnicianProfile = () => {
 
       // Update local state
       setAvatarUrl(data.publicUrl);
-      if (user.profile) {
-        setUser({
-          ...user,
-          profile: {
-            ...user.profile,
-            avatar_url: data.publicUrl
-          }
-        });
-      }
-
+      
       showSuccess("Foto de perfil atualizada com sucesso!");
     } catch (error) {
       console.error("Error uploading avatar:", error);
@@ -66,7 +87,7 @@ const TechnicianProfile = () => {
     } finally {
       setUploading(false);
     }
-  }, [user, setUser]);
+  }, [user]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -88,16 +109,6 @@ const TechnicianProfile = () => {
 
       if (error) throw error;
 
-      if (user.profile) {
-        setUser({
-          ...user,
-          profile: {
-            ...user.profile,
-            first_name: name
-          }
-        });
-      }
-
       showSuccess("Perfil atualizado com sucesso!");
       setIsEditing(false);
     } catch (error) {
@@ -105,6 +116,14 @@ const TechnicianProfile = () => {
       showError("Erro ao atualizar o perfil.");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Carregando perfil...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -128,7 +147,7 @@ const TechnicianProfile = () => {
               <Avatar className="h-24 w-24">
                 <AvatarImage src={avatarUrl || undefined} />
                 <AvatarFallback>
-                  {user?.profile?.first_name?.charAt(0) || user?.email?.charAt(0) || "T"}
+                  {name?.charAt(0) || email?.charAt(0) || "T"}
                 </AvatarFallback>
               </Avatar>
               {isEditing && (
@@ -158,7 +177,7 @@ const TechnicianProfile = () => {
                   onChange={(e) => setName(e.target.value)} 
                 />
               ) : (
-                <p className="text-sm">{user?.profile?.first_name || "Não informado"}</p>
+                <p className="text-sm">{name || "Não informado"}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -170,11 +189,6 @@ const TechnicianProfile = () => {
           <div className="space-y-2">
             <Label>Função</Label>
             <p className="text-sm">{user?.profile?.role || "Técnico"}</p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Custo por Dia</Label>
-            <p className="text-sm">AOA {(user?.profile?.costPerDay || 0).toLocaleString('pt-AO')}</p>
           </div>
           
           <div className="flex justify-end space-x-2 pt-4">
