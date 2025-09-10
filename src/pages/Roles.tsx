@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Role, Event } from "@/App";
+import type { Role, Event } from "@/types";
 import { Employee } from "@/components/employees/EmployeeDialog";
 import { Link } from "react-router-dom";
 

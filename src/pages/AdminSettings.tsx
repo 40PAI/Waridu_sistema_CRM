@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RoleManager } from "@/components/settings/RoleManager";
-import { Role } from "@/App";
+import type { Role } from "@/types";
 import { Button } from "@/components/ui/button";
 import * as React from "react";
 import { Edit, Trash2 } from "lucide-react";

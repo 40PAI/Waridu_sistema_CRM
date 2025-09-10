@@ -4,7 +4,7 @@ import {
   format, isSameMonth, isToday, isWithinInterval, parseISO,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Event } from "@/App";
+import type { Event } from "@/types";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 

@@ -3,7 +3,7 @@ import { parseISO, isWithinInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Event, EventStatus } from "@/App";
+import type { Event, EventStatus } from "@/types";
 
 interface DayViewProps {
   currentDate: Date;

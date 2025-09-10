@@ -6,7 +6,7 @@ import {
 } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Event, EventStatus } from "@/App";
+import type { Event, EventStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface MonthViewProps {
@@ -60,7 +60,7 @@ const MonthView = ({ currentDate, events }: MonthViewProps) => {
           {day}
         </div>
       ))}
-      {calendarDays.map((day, dayIdx) => {
+      {calendarDays.map((day) => {
         const dayEvents = getEventsForDay(day);
         return (
           <div

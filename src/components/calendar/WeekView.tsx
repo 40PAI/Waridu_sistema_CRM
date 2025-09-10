@@ -5,7 +5,7 @@ import {
 } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Event, EventStatus } from "@/App";
+import type { Event, EventStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface WeekViewProps {

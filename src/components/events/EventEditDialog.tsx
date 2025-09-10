@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Event } from "@/App";
+import type { Event } from "@/types";
 import { showSuccess, showError } from "@/utils/toast";
 
 interface EventEditDialogProps {

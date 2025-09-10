@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Event } from "@/App";
+import type { Event } from "@/types";
 import DayView from "@/components/calendar/DayView";
 import MonthView from "@/components/calendar/MonthView";
 import YearView from "@/components/calendar/YearView";

@@ -13,7 +13,8 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/finance-dashboard',
     '/admin-settings',
     '/invite-member',
-    '/roles/:roleId'
+    '/roles/:roleId',
+    '/debug'
   ],
   Coordenador: [
     '/',

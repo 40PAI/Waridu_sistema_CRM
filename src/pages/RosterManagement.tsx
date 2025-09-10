@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { RosterDialog } from "@/components/roster/RosterDialog";
 import { RosterViewerPopover } from "@/components/roster/RosterViewerPopover";
 import { EventEditDialog } from "@/components/events/EventEditDialog";
-import { Event, Roster, Expense, MaterialRequest, InventoryMaterial, EventStatus } from "@/App";
+import type { Event, Roster, Expense, MaterialRequest, InventoryMaterial, EventStatus } from "@/types";
 import { Employee } from "@/components/employees/EmployeeDialog";
 import { Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -35,10 +35,8 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
   const { user, session } = useAuth();
   
-  // Estado local para requisições pendentes, para atualização imediata
   const [localPendingRequests, setLocalPendingRequests] = React.useState<MaterialRequest[]>(pendingRequests);
 
-  // Atualiza o estado local quando as props mudarem
   React.useEffect(() => {
     setLocalPendingRequests(pendingRequests);
   }, [pendingRequests]);
@@ -53,12 +51,7 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
     setIsEditDialogOpen(true);
   };
 
-  // Função para notificar que uma requisição foi criada
-  const handleRequestsChange = () => {
-    // Não faz nada aqui. O useEffect cuidará de atualizar localPendingRequests
-    // quando pendingRequests (da props) mudar.
-    // Isso evita o reload da página e permite atualização imediata.
-  };
+  const handleRequestsChange = () => {};
 
   const filteredEvents = React.useMemo(() => {
     const now = new Date();

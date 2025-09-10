@@ -24,88 +24,24 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import DebugPage from "@/pages/Debug";
-import { Role as ConfigRole } from "@/config/roles"; // Importar o tipo Role de config
+import HealthCheck from "@/pages/HealthCheck";
+import type {
+  Expense,
+  Roster,
+  EventStatus,
+  Event,
+  Role,
+  Location,
+  MaterialStatus,
+  InventoryMaterial,
+  AllocationHistoryEntry,
+  MaterialRequestStatus,
+  MaterialRequestItem,
+  MaterialRequest,
+} from "@/types";
+import { Role as ConfigRole } from "@/config/roles";
 
 const queryClient = new QueryClient();
-
-// Definindo as interfaces
-export interface Expense {
-  id: string;
-  description: string;
-  amount: number;
-}
-
-export interface Roster {
-  teamLead: string;
-  teamMembers: { id: string; name: string; role: string }[];
-  materials: Record<string, number>;
-}
-
-export type EventStatus = 'Planejado' | 'Em Andamento' | 'Concluído' | 'Cancelado';
-
-export interface Event {
-  id: number;
-  name: string;
-  startDate: string;
-  endDate: string;
-  location: string;
-  startTime?: string;
-  endTime?: string;
-  revenue?: number;
-  roster?: Roster;
-  expenses?: Expense[];
-  status: EventStatus;
-  description?: string;
-}
-
-export interface Role {
-  id: string;
-  name: ConfigRole; // Usar o tipo de função do config
-}
-
-// Inventário
-interface Location {
-  id: string;
-  name: string;
-}
-
-type MaterialStatus = 'Disponível' | 'Em uso' | 'Manutenção';
-
-export interface InventoryMaterial {
-  id: string;
-  name: string;
-  status: MaterialStatus;
-  category: string;
-  description: string;
-  locations: Record<string, number>; // distribuição por localização
-}
-
-interface AllocationHistoryEntry {
-  id: string;
-  date: string;
-  eventId: number;
-  eventName: string;
-  materials: Record<string, number>;
-}
-
-// Requisições de Materiais (novo)
-export type MaterialRequestStatus = 'Pendente' | 'Aprovada' | 'Rejeitada';
-
-export interface MaterialRequestItem {
-  materialId: string;
-  quantity: number;
-}
-
-export interface MaterialRequest {
-  id: string;
-  eventId: number;
-  items: MaterialRequestItem[];
-  requestedBy: { name: string; email: string; role: string };
-  status: MaterialRequestStatus;
-  reason?: string; // motivo da rejeição (quando houver)
-  createdAt: string;
-  decidedAt?: string;
-}
 
 const App = () => {
   const initialEvents: Event[] = [
@@ -113,7 +49,7 @@ const App = () => {
     { id: 2, name: "Lançamento do Produto X", startDate: "2024-09-01", endDate: "2024-09-01", location: "Sede da Empresa", startTime: "19:00", endTime: "22:00", revenue: 25000, status: 'Planejado' },
     { id: 3, name: "Workshop de Marketing Digital", startDate: "2024-09-10", endDate: "2024-09-12", location: "Online", startTime: "14:00", endTime: "17:00", revenue: 10000, status: 'Planejado' },
     { id: 4, name: "Festa de Fim de Ano", startDate: "2024-12-20", endDate: "2024-12-20", location: "Salão de Festas", startTime: "20:00", revenue: 75000, status: 'Cancelado' },
-    { id: 5, name: "Imersão de Vendas Q3", startDate: "2024-09-09", endDate: "2024-09-13", location: "Hotel Fazenda", status: 'Em Andamento', description: 'Treinamento intensivo para a equipe de vendas.' },
+    { id: 5, name: "Imersão de Vendas Q3", startDate: "2024-09-09", endDate: "2024-09-13", location: "Hotel Fazenda", status: "Em Andamento", description: "Treinamento intensivo para a equipe de vendas." },
   ];
 
   const initialEmployees: Employee[] = [
@@ -171,7 +107,6 @@ const App = () => {
     }
   }, [events]);
 
-  // Carregar requisições do Supabase
   useEffect(() => {
     const fetchRequests = async () => {
       const { data, error } = await supabase
@@ -214,7 +149,6 @@ const App = () => {
     fetchRequests();
   }, []);
 
-  // Eventos
   const addEvent = (newEventData: Omit<Event, 'id' | 'roster' | 'expenses' | 'status'>) => {
     setEvents(prevEvents => [
       ...prevEvents,
@@ -250,7 +184,6 @@ const App = () => {
     );
   };
 
-  // Funcionários
   const saveEmployee = (employeeData: Omit<Employee, 'id' | 'avatar'> & { id?: string }) => {
     if (employeeData.id) {
       setEmployees(prev => 
@@ -268,8 +201,7 @@ const App = () => {
     }
   };
 
-  // Funções
-  const addRole = (roleName: ConfigRole) => { // Usar o tipo de função do config
+  const addRole = (roleName: ConfigRole) => {
     const newRole: Role = {
       id: `role-${Date.now()}`,
       name: roleName,
@@ -277,7 +209,7 @@ const App = () => {
     setRoles(prev => [...prev, newRole]);
   };
 
-  const updateRole = (roleId: string, newName: ConfigRole) => { // Usar o tipo de função do config
+  const updateRole = (roleId: string, newName: ConfigRole) => {
     setRoles(prev => prev.map(r => r.id === roleId ? { ...r, name: newName } : r));
   };
 
@@ -285,13 +217,12 @@ const App = () => {
     setRoles(prev => prev.filter(r => r.id !== roleId));
   };
 
-  // Convidar membro via Edge Function (não é mais usado diretamente pela página; mantido para compatibilidade)
   const inviteMember = async (email: string, roleId: string) => {
     const roleName = roles.find(r => r.id === roleId)?.name || "Técnico";
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token;
 
-    const { data, error } = await supabase.functions.invoke(
+    const { error } = await supabase.functions.invoke(
       "invite-member",
       {
         body: { email, roleId, roleName },
@@ -306,7 +237,6 @@ const App = () => {
     return { ok: true as const };
   };
 
-  // Localizações
   const addLocation = (name: string) => {
     const id = `loc-${Date.now()}`;
     setLocations(prev => [...prev, { id, name }]);
@@ -336,7 +266,6 @@ const App = () => {
     });
   };
 
-  // Materiais
   const saveMaterial = (materialData: Omit<PageMaterial, 'id' | 'locations'> & { id?: string }) => {
     if (materialData.id) {
       setMaterials(prev =>
@@ -365,7 +294,7 @@ const App = () => {
   const transferMaterial = (materialId: string, fromLocationId: string, toLocationId: string, quantity: number) => {
     setMaterials(prev => prev.map(m => {
       if (m.id !== materialId) return m;
-      const available = m.locations[fromLocationId] || 0;
+      const available = (m.locations[fromLocationId] || 0);
       if (quantity <= 0 || quantity > available) return m;
       const newLocs = { ...m.locations };
       newLocs[fromLocationId] = available - quantity;
@@ -374,7 +303,6 @@ const App = () => {
     }));
   };
 
-  // Requisições de materiais
   const createMaterialRequest = async (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => {
     const normalizedItems = Object.entries(items)
       .filter(([_, qty]) => qty > 0)
@@ -553,6 +481,10 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          {/* Rota pública para health check */}
+          <Routes>
+            <Route path="/health" element={<HealthCheck />} />
+          </Routes>
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<LoginPage />} />

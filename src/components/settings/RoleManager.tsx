@@ -2,7 +2,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Role } from "@/App";
+import type { Role } from "@/types";
 import { Edit, Trash2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import {
@@ -136,7 +136,6 @@ export const RoleManager = ({ roles, onAddRole, onUpdateRole, onDeleteRole }: Ro
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>

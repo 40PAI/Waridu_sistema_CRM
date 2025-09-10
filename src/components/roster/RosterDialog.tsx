@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Combobox } from "@/components/ui/combobox";
 import { PlusCircle, XCircle, Trash2 } from "lucide-react";
-import { Event, Roster, Expense, InventoryMaterial } from "@/App";
+import type { Event, Roster, Expense, InventoryMaterial } from "@/types";
 import { showSuccess, showError } from "@/utils/toast";
 import { Employee } from "../employees/EmployeeDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -77,7 +77,6 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
       });
   }, [selectedEmployees, nameFilter, roleFilter, activeEmployees, teamLead]);
 
-  // Usar os materiais passados via props
   const filteredMaterials = React.useMemo(() => {
     return materials.filter(material => material.name.toLowerCase().includes(materialFilter.toLowerCase()));
   }, [materialFilter, materials]);
@@ -143,7 +142,6 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
           role: user.profile.role,
         });
         showSuccess("Requisição de materiais enviada para aprovação.");
-        // Notificar a página pai sobre a mudança
         if (onRequestsChange) {
           onRequestsChange();
         }

@@ -5,11 +5,10 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Eye, DollarSign, Wallet, AlertTriangle } from "lucide-react";
-import { Event, MaterialRequest } from "@/App";
+import type { Event, MaterialRequest } from "@/types";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
-// Mock data para buscar nomes - em uma aplicação real, isso viria de uma fonte de dados compartilhada.
 const materialsData = [
     { id: 'MAT001', name: 'Câmera Sony A7S III' },
     { id: 'MAT002', name: 'Lente Canon 24-70mm' },
@@ -44,7 +43,6 @@ export const RosterViewerPopover = ({ event, pendingRequests = [] }: RosterViewe
   const teamLeadName = event.roster ? getEmployeeNameById(event.roster.teamLead) : 'Não definido';
   const totalExpenses = event.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
   
-  // Filtrar requisições pendentes para este evento
   const eventPendingRequests = pendingRequests.filter(req => req.eventId === event.id);
 
   return (
