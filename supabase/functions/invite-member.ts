@@ -13,7 +13,7 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 type InviteBody = {
   email: string;
   roleId?: string;
-  roleName?: string;
+  roleName?: string; // Este campo é importante
 };
 
 serve(async (req) => {
@@ -41,7 +41,8 @@ serve(async (req) => {
 
   const email = body?.email?.trim();
   const roleId = body?.roleId?.trim();
-  const roleName = (body?.roleName ?? "Técnico").trim();
+  // Prioriza roleName do body, mas tem um fallback
+  const roleName = (body?.roleName ?? "Técnico").trim(); 
 
   if (!email) {
     return new Response(JSON.stringify({ error: "Email é obrigatório" }), {
@@ -80,8 +81,12 @@ serve(async (req) => {
   // Cliente com service role para chamar o endpoint admin
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+  // Passa os user_metadata com roleName
   const { data: inviteRes, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
-    data: { role: roleName, role_id: roleId ?? null },
+    data: { 
+      role: roleName, // Isso é importante para o trigger handle_new_user
+      role_id: roleId ?? null 
+    },
   });
 
   if (inviteErr) {
@@ -94,8 +99,14 @@ serve(async (req) => {
   // Ajustar/garantir o perfil com role desejada (id já deve existir via trigger)
   const newUserId = inviteRes?.user?.id;
   if (newUserId) {
+    // Upsert para garantir que o perfil exista com a role correta
+    // Mesmo que o trigger falhe ou não tenha rodado
     await adminClient.from("profiles").upsert(
-      { id: newUserId, role: roleName, updated_at: new Date().toISOString() },
+      { 
+        id: newUserId, 
+        role: roleName, // Define explicitamente a role
+        updated_at: new Date().toISOString() 
+      },
       { onConflict: "id" },
     );
   }
