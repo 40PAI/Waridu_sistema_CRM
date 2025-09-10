@@ -42,7 +42,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       avatar_url: typeof raw.avatar_url === "string" ? raw.avatar_url : null,
       role: raw.role as Role,
     };
-    // Nota: Caso precise, podemos adicionar um fallback de role padrão.
   };
 
   useEffect(() => {

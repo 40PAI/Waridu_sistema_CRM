@@ -26,6 +26,7 @@ const TechnicianTasks = () => {
   const [issueTaskId, setIssueTaskId] = React.useState<string | null>(null);
   const [issueDescription, setIssueDescription] = React.useState("");
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   // Carregar tarefas do Supabase
   React.useEffect(() => {
@@ -34,17 +35,20 @@ const TechnicianTasks = () => {
       
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        setError(null);
+        
+        const { data, error: fetchError } = await supabase
           .from('tasks')
           .select('*')
           .eq('assigned_to', user.id)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (fetchError) throw new Error(`Erro ao carregar tarefas: ${fetchError.message}`);
         
         setTasks(data || []);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching tasks:", error);
+        setError(error.message || "Erro desconhecido ao carregar tarefas");
         showError("Erro ao carregar as tarefas.");
       } finally {
         setLoading(false);
@@ -150,6 +154,22 @@ const TechnicianTasks = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <p>Carregando tarefas...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Erro ao carregar</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

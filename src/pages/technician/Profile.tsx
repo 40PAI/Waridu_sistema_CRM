@@ -10,13 +10,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDropzone } from "react-dropzone";
 
 const TechnicianProfile = () => {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   // Carregar dados do perfil do Supabase
   React.useEffect(() => {
@@ -25,19 +26,22 @@ const TechnicianProfile = () => {
       
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        setError(null);
+        
+        const { data, error: fetchError } = await supabase
           .from('profiles')
           .select('first_name, avatar_url, role')
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
+        if (fetchError) throw new Error(`Erro ao carregar perfil: ${fetchError.message}`);
 
         setName(data.first_name || "");
         setAvatarUrl(data.avatar_url);
         setEmail(user.email || "");
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching profile:", error);
+        setError(error.message || "Erro desconhecido ao carregar perfil");
         showError("Erro ao carregar o perfil.");
       } finally {
         setLoading(false);
@@ -81,9 +85,9 @@ const TechnicianProfile = () => {
       setAvatarUrl(data.publicUrl);
       
       showSuccess("Foto de perfil atualizada com sucesso!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading avatar:", error);
-      showError("Erro ao atualizar a foto de perfil.");
+      showError(error.message || "Erro ao atualizar a foto de perfil.");
     } finally {
       setUploading(false);
     }
@@ -111,9 +115,9 @@ const TechnicianProfile = () => {
 
       showSuccess("Perfil atualizado com sucesso!");
       setIsEditing(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating profile:", error);
-      showError("Erro ao atualizar o perfil.");
+      showError(error.message || "Erro ao atualizar o perfil.");
     }
   };
 
@@ -121,6 +125,22 @@ const TechnicianProfile = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <p>Carregando perfil...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Erro ao carregar</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
