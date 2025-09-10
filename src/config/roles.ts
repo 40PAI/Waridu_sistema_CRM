@@ -49,6 +49,7 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
 export const ACTION_PERMISSIONS: Record<string, Role[]> = {
   'materials:write': ['Admin', 'Gestor de Material'],
   'members:invite': ['Admin', 'Coordenador'],
+  'employees:write': ['Admin', 'Coordenador'],
 };
 
 export const hasPermission = (role: Role, path: string): boolean => {

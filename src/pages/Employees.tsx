@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmployeeDialog, Employee } from "@/components/employees/EmployeeDialog";
-import { showSuccess } from "@/utils/toast";
 import { Role } from "@/App";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasActionPermission } from "@/config/roles";
 
 interface EmployeesPageProps {
   roles: Role[];
@@ -17,6 +18,9 @@ interface EmployeesPageProps {
 }
 
 const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps) => {
+  const { user } = useAuth();
+  const canWrite = user ? hasActionPermission(user.role, 'employees:write') : false;
+
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);
   
@@ -53,7 +57,7 @@ const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps)
               Gerencie a equipe de funcionários da empresa.
               </CardDescription>
           </div>
-          <Button onClick={handleAddNew}>Adicionar Funcionário</Button>
+          {canWrite && <Button onClick={handleAddNew}>Adicionar Funcionário</Button>}
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4 mb-6">
@@ -89,7 +93,7 @@ const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps)
                       <TableHead>Funcionário</TableHead>
                       <TableHead>Função</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      {canWrite && <TableHead className="text-right">Ações</TableHead>}
                   </TableRow>
               </TableHeader>
               <TableBody>
@@ -113,9 +117,11 @@ const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps)
                               {employee.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                              <Button variant="outline" size="sm" onClick={() => handleEdit(employee)}>Editar</Button>
-                          </TableCell>
+                          {canWrite && (
+                            <TableCell className="text-right">
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(employee)}>Editar</Button>
+                            </TableCell>
+                          )}
                       </TableRow>
                   ))}
               </TableBody>
