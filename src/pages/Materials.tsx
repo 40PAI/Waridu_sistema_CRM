@@ -31,6 +31,7 @@ interface MaterialsPageProps {
   materials: Material[];
   locations: Location[];
   onSaveMaterial: (materialData: Omit<Material, 'id' | 'locations'> & { id?: string }) => void;
+  onAddInitialStock: (materialId: string, locationId: string, quantity: number) => void;
   onTransferMaterial: (materialId: string, fromLocationId: string, toLocationId: string, quantity: number) => void;
   history: AllocationHistoryEntry[];
   pendingRequests: MaterialRequest[];
@@ -38,7 +39,7 @@ interface MaterialsPageProps {
 
 type ViewMode = 'table' | 'cards';
 
-const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMaterial, history, pendingRequests }: MaterialsPageProps) => {
+const MaterialsPage = ({ materials, locations, onSaveMaterial, onAddInitialStock, onTransferMaterial, history, pendingRequests }: MaterialsPageProps) => {
   const { user } = useAuth();
   const userRole = user?.profile?.role;
   const canWrite = userRole ? hasActionPermission(userRole, 'materials:write') : false;
@@ -338,7 +339,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
         onOpenChange={setIsDialogOpen}
         onSave={onSaveMaterial}
         material={editingMaterial}
-        onAddInitialStock={onTransferMaterial} // Note: Using onTransferMaterial as placeholder; adjust if needed
+        onAddInitialStock={onAddInitialStock}
       />
     </>
   );
