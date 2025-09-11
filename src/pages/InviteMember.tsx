@@ -89,19 +89,18 @@ const InviteMember = () => {
     }
   };
 
-  const handlePromote = async () => {
-    if (!canPromote || !newRole) return;
+  const handlePromote = async (targetUserId: string, newRole: string) => {
+    if (!canPromote) return;
     try {
       const { error } = await supabase.functions.invoke("promote-user", {
-        body: { targetUserId: promoteDialog.userId, newRole, reason: "Promoção via admin" },
+        body: { targetUserId, newRole, reason: "Alteração de função via dropdown" },
         headers: { Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
       });
       if (error) throw error;
-      showSuccess("Usuário promovido!");
-      setPromoteDialog({ open: false, userId: '', currentRole: '' });
+      showSuccess("Função atualizada com sucesso!");
       refreshUsers();
     } catch (err: any) {
-      showError(err.message || "Erro ao promover.");
+      showError(err.message || "Erro ao atualizar função.");
     }
   };
 
@@ -234,7 +233,7 @@ const InviteMember = () => {
           <Card>
             <CardHeader>
               <CardTitle>Lista de Membros</CardTitle>
-              <CardDescription>Gerencie usuários existentes.</CardDescription>
+              <CardDescription>Gerencie usuários existentes. Use a dropdown na coluna "Função" para alterar diretamente.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -266,7 +265,28 @@ const InviteMember = () => {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{u.role}</TableCell>
+                      <TableCell>
+                        {canPromote ? (
+                          <Select
+                            value={u.role}
+                            onValueChange={(newRole) => handlePromote(u.id, newRole)}
+                            disabled={!canPromote}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roles.filter(r => r.name !== u.role).map(r => (
+                                <SelectItem key={r.id} value={r.name}>
+                                  {r.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="outline">{u.role}</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={u.status === 'active' ? 'default' : u.status === 'banned' ? 'destructive' : 'secondary'}>
                           {u.status}
@@ -281,18 +301,13 @@ const InviteMember = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
-                            {canPromote && (
-                              <DropdownMenuItem onClick={() => setPromoteDialog({ open: true, userId: u.id, currentRole: u.role })}>
-                                <Crown className="h-4 w-4 mr-2" /> Promover
-                              </DropdownMenuItem>
-                            )}
                             {canBan && u.status !== 'banned' && (
                               <DropdownMenuItem onClick={() => setBanDialog({ open: true, userId: u.id })}>
                                 <Ban className="h-4 w-4 mr-2" /> Banir
                               </DropdownMenuItem>
                             )}
                             {canDelete && (
-                              <DropdownMenuItem onClick={() => setDeleteDialog({ open: true, userId: u.id })}>
+                              <DropdownMenuItem onClick={() => setDeleteDialog({ open: false, userId: u.id })}>
                                 <Trash2 className="h-4 w-4 mr-2" /> Eliminar
                               </DropdownMenuItem>
                             )}
@@ -346,28 +361,6 @@ const InviteMember = () => {
       </Tabs>
 
       {/* Dialogs */}
-      <Dialog open={promoteDialog.open} onOpenChange={(open) => setPromoteDialog({ ...promoteDialog, open })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Promover Usuário</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Label>Nova Função</Label>
-            <Select value={newRole} onValueChange={setNewRole}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione nova função" />
-              </SelectTrigger>
-              <SelectContent>
-                {roleOptions.filter(r => r.label !== promoteDialog.currentRole).map(r => <SelectItem key={r.value} value={r.label}>{r.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button onClick={handlePromote}>Confirmar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={banDialog.open} onOpenChange={(open) => setBanDialog({ ...banDialog, open })}>
         <DialogContent>
           <DialogHeader>
