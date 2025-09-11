@@ -75,13 +75,13 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     if (processingId) return;
     setProcessingId(id);
     const res = await onApproveRequest(id);
-    if (res.ok) {
-      showSuccess("Requisição aprovada e estoque atualizado.");
-    } else {
+    if (!res.ok) {
       const names = res.shortages
         .map((s) => `${materialNameMap[s.materialId] || s.materialId} (precisa ${s.needed}, tem ${s.available})`)
         .join("; ");
       showError(`Estoque insuficiente: ${names}`);
+    } else {
+      showSuccess("Requisição aprovada e estoque atualizado.");
     }
     setProcessingId(null);
   };
