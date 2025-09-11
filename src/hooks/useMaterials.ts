@@ -110,25 +110,29 @@ export const useMaterials = () => {
 
   const transferMaterial = async (materialId: string, fromLocationId: string, toLocationId: string, quantity: number) => {
     try {
-      // Get current quantity at source location
+      if (quantity <= 0) {
+        showError("Quantidade inválida para transferência.");
+        return;
+      }
+
+      // Read source quantity using maybeSingle to avoid depending on internal error codes
       const { data: sourceData, error: sourceError } = await supabase
         .from('material_locations')
         .select('quantity')
         .eq('material_id', materialId)
         .eq('location_id', fromLocationId)
-        .single();
+        .maybeSingle();
 
-      if (sourceError && sourceError.code !== 'PGRST116') throw sourceError; // PGRST116 means no rows found
+      if (sourceError) throw sourceError;
 
       const currentSourceQty = sourceData?.quantity || 0;
-      if (quantity <= 0 || quantity > currentSourceQty) {
+      if (quantity > currentSourceQty) {
         showError("Quantidade inválida para transferência.");
         return;
       }
 
-      // Update source location
+      // Update source location: if resulting quantity is 0 delete row, otherwise update
       if (currentSourceQty === quantity) {
-        // Remove the record if quantity becomes 0
         const { error: deleteError } = await supabase
           .from('material_locations')
           .delete()
@@ -137,7 +141,6 @@ export const useMaterials = () => {
 
         if (deleteError) throw deleteError;
       } else {
-        // Update the quantity
         const { error: updateError } = await supabase
           .from('material_locations')
           .update({ quantity: currentSourceQty - quantity })
@@ -147,21 +150,20 @@ export const useMaterials = () => {
         if (updateError) throw updateError;
       }
 
-      // Update destination location
+      // Destination: try to read an existing row
       const { data: destData, error: destError } = await supabase
         .from('material_locations')
         .select('quantity')
         .eq('material_id', materialId)
         .eq('location_id', toLocationId)
-        .single();
+        .maybeSingle();
 
-      if (destError && destError.code !== 'PGRST116') throw destError; // PGRST116 means no rows found
+      if (destError) throw destError;
 
       const currentDestQty = destData?.quantity || 0;
       const newDestQty = currentDestQty + quantity;
 
       if (destData) {
-        // Update existing record
         const { error: updateError } = await supabase
           .from('material_locations')
           .update({ quantity: newDestQty })
@@ -170,7 +172,6 @@ export const useMaterials = () => {
 
         if (updateError) throw updateError;
       } else {
-        // Insert new record
         const { error: insertError } = await supabase
           .from('material_locations')
           .insert({
