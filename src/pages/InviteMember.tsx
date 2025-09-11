@@ -370,10 +370,24 @@ const InviteMember = () => {
             <DialogTitle>Banir Usuário</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Label>Data de Fim do Ban</Label>
-            <Input type="datetime-local" value={banUntil} onChange={(e) => setBanUntil(e.target.value)} />
-            <Label>Motivo</Label>
-            <Textarea value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Motivo obrigatório" />
+            <Label htmlFor="ban-until">Data de Fim do Ban</Label>
+            <Input 
+              id="ban-until" 
+              name="ban-until"
+              autoComplete="off"
+              type="datetime-local" 
+              value={banUntil} 
+              onChange={(e) => setBanUntil(e.target.value)} 
+            />
+            <Label htmlFor="ban-reason">Motivo</Label>
+            <Textarea 
+              id="ban-reason"
+              name="ban-reason"
+              autoComplete="off"
+              value={banReason} 
+              onChange={(e) => setBanReason(e.target.value)} 
+              placeholder="Motivo obrigatório" 
+            />
           </div>
           <DialogFooter>
             <Button onClick={handleBan}>Confirmar Ban</Button>
@@ -387,7 +401,14 @@ const InviteMember = () => {
             <AlertDialogTitle>Eliminar Usuário</AlertDialogTitle>
             <AlertDialogDescription>Isso é irreversível. Motivo obrigatório.</AlertDialogDescription>
           </AlertDialogHeader>
-          <Textarea value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} placeholder="Motivo obrigatório" />
+          <Textarea 
+            id="delete-reason"
+            name="delete-reason"
+            autoComplete="off"
+            value={deleteReason} 
+            onChange={(e) => setDeleteReason(e.target.value)} 
+            placeholder="Motivo obrigatório" 
+          />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>

@@ -106,23 +106,38 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, ca
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
+            <Label htmlFor="employee-name" className="text-right">
               Nome
             </Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
+            <Input 
+              id="employee-name" 
+              name="employee-name"
+              autoComplete="name"
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              className="col-span-3" 
+            />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
+            <Label htmlFor="employee-email" className="text-right">
               Email
             </Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-3" />
+            <Input 
+              id="employee-email" 
+              name="employee-email"
+              autoComplete="email"
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              className="col-span-3" 
+            />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="role" className="text-right">
+            <Label htmlFor="employee-role" className="text-right">
               Função
             </Label>
             <Select value={role} onValueChange={setRole}>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger id="employee-role" className="col-span-3">
                 <SelectValue placeholder="Selecione uma função" />
               </SelectTrigger>
               <SelectContent>
@@ -136,11 +151,11 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, ca
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="status" className="text-right">
+            <Label htmlFor="employee-status" className="text-right">
               Status
             </Label>
             <Select value={status} onValueChange={(value) => setStatus(value as EmployeeStatus)}>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger id="employee-status" className="col-span-3">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -151,13 +166,13 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, ca
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">Categoria</Label>
+            <Label htmlFor="employee-category" className="text-right">Categoria</Label>
             <Select
               value={technicianCategoryId}
               onValueChange={setTechnicianCategoryId}
               disabled={!canAssignCategory}
             >
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger id="employee-category" className="col-span-3">
                 <SelectValue placeholder={canAssignCategory ? "Selecione a categoria" : "Sem permissão para alterar"} />
               </SelectTrigger>
               <SelectContent>

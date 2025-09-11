@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,53 +61,118 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
       <CardContent>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="eventName">Nome do Evento</Label>
-            <Input id="eventName" placeholder="Ex: Conferência Anual de Tecnologia" value={eventName} onChange={(e) => setEventName(e.target.value)} />
+            <Label htmlFor="event-name">Nome do Evento</Label>
+            <Input 
+              id="event-name" 
+              name="event-name"
+              autoComplete="off"
+              placeholder="Ex: Conferência Anual de Tecnologia" 
+              value={eventName} 
+              onChange={(e) => setEventName(e.target.value)} 
+            />
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="startDate">Data de Início</Label>
-              <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Label htmlFor="event-start-date">Data de Início</Label>
+              <Input 
+                id="event-start-date" 
+                name="event-start-date"
+                autoComplete="off"
+                type="date" 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)} 
+              />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="startTime">Hora de Início</Label>
-              <Input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+              <Label htmlFor="event-start-time">Hora de Início</Label>
+              <Input 
+                id="event-start-time" 
+                name="event-start-time"
+                autoComplete="off"
+                type="time" 
+                value={startTime} 
+                onChange={(e) => setStartTime(e.target.value)} 
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endDate">Data de Fim</Label>
-              <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <Label htmlFor="event-end-date">Data de Fim</Label>
+              <Input 
+                id="event-end-date" 
+                name="event-end-date"
+                autoComplete="off"
+                type="date" 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)} 
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endTime">Hora de Fim</Label>
-              <Input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+              <Label htmlFor="event-end-time">Hora de Fim</Label>
+              <Input 
+                id="event-end-time" 
+                name="event-end-time"
+                autoComplete="off"
+                type="time" 
+                value={endTime} 
+                onChange={(e) => setEndTime(e.target.value)} 
+              />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="eventLocation">Local do Evento</Label>
-            <Input id="eventLocation" placeholder="Ex: Centro de Convenções Morumbi" value={eventLocation} onChange={(e) => setEventLocation(e.target.value)} />
+            <Label htmlFor="event-location">Local do Evento</Label>
+            <Input 
+              id="event-location" 
+              name="event-location"
+              autoComplete="address-level2"
+              placeholder="Ex: Centro de Convenções Morumbi" 
+              value={eventLocation} 
+              onChange={(e) => setEventLocation(e.target.value)} 
+            />
           </div>
           
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="clientName">Nome do Cliente</Label>
-              <Input id="clientName" placeholder="Ex: Empresa Acme" />
+              <Label htmlFor="client-name">Nome do Cliente</Label>
+              <Input 
+                id="client-name" 
+                name="client-name"
+                autoComplete="organization"
+                placeholder="Ex: Empresa Acme" 
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contactPerson">Pessoa de Contato</Label>
-              <Input id="contactPerson" placeholder="Ex: João da Silva" />
+              <Label htmlFor="contact-person">Pessoa de Contato</Label>
+              <Input 
+                id="contact-person" 
+                name="contact-person"
+                autoComplete="name"
+                placeholder="Ex: João da Silva" 
+              />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="revenue">Receita Bruta do Evento (AOA)</Label>
-            <Input id="revenue" type="number" placeholder="Ex: 50000" value={revenue || ''} onChange={(e) => setRevenue(e.target.value ? Number(e.target.value) : undefined)} />
+            <Label htmlFor="event-revenue">Receita Bruta do Evento (AOA)</Label>
+            <Input 
+              id="event-revenue" 
+              name="event-revenue"
+              autoComplete="off"
+              type="number" 
+              placeholder="Ex: 50000" 
+              value={revenue || ''} 
+              onChange={(e) => setRevenue(e.target.value ? Number(e.target.value) : undefined)} 
+            />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="observations">Observações Adicionais</Label>
-            <Textarea id="observations" placeholder="Qualquer detalhe importante, como horários de montagem, restrições do local, etc." />
+            <Label htmlFor="event-observations">Observações Adicionais</Label>
+            <Textarea 
+              id="event-observations"
+              name="event-observations"
+              autoComplete="off"
+              placeholder="Qualquer detalhe importante, como horários de montagem, restrições do local, etc." 
+            />
           </div>
 
           <Button className="w-full" size="lg" type="submit">Criar Evento</Button>

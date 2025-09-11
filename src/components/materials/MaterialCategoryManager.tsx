@@ -145,7 +145,11 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
         <div className="space-y-4 py-4">
           {/* Search */}
           <div className="flex gap-2">
+            <Label htmlFor="category-search" className="sr-only">Buscar categorias</Label>
             <Input
+              id="category-search"
+              name="category-search"
+              autoComplete="off"
               placeholder="Buscar categorias..."
               value={categorySearch}
               onChange={(e) => setCategorySearch(e.target.value)}
@@ -163,27 +167,39 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
 
           {/* Add New Category */}
           <div className="flex gap-2 p-2 border rounded">
-            <Input
-              placeholder="Nome da nova categoria"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              className="flex-1"
-            />
-            <Input
-              placeholder="Descrição (opcional)"
-              value={newCategoryDesc}
-              onChange={(e) => setNewCategoryDesc(e.target.value)}
-              className="flex-1"
-            />
-            <Button 
-              size="sm" 
-              onClick={handleAddCategory} 
-              disabled={!newCategoryName.trim()}
-              className="min-w-[100px]"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Adicionar
-            </Button>
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="new-category-name">Nome da nova categoria</Label>
+              <Input
+                id="new-category-name"
+                name="new-category-name"
+                autoComplete="off"
+                placeholder="Nome da categoria"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="new-category-desc">Descrição (opcional)</Label>
+              <Input
+                id="new-category-desc"
+                name="new-category-desc"
+                autoComplete="off"
+                placeholder="Descrição da categoria"
+                value={newCategoryDesc}
+                onChange={(e) => setNewCategoryDesc(e.target.value)}
+              />
+            </div>
+            <div className="flex items-end">
+              <Button 
+                size="sm" 
+                onClick={handleAddCategory} 
+                disabled={!newCategoryName.trim()}
+                className="min-w-[100px]"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar
+              </Button>
+            </div>
             {addCategoryError && (
               <div className="text-xs text-destructive mt-1 w-full">
                 {addCategoryError}
@@ -199,18 +215,28 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                   <div className="flex-1 min-w-0">
                     {editingCategory?.id === cat.id ? (
                       <div className="flex flex-wrap gap-2 items-end">
-                        <Input
-                          value={editingCategory.name}
-                          onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
-                          placeholder="Nome"
-                          className="flex-1 min-w-[120px]"
-                        />
-                        <Input
-                          value={editingCategory.description || ""}
-                          onChange={(e) => setEditingCategory(prev => prev ? { ...prev, description: e.target.value } : null)}
-                          placeholder="Descrição"
-                          className="flex-1 min-w-[120px]"
-                        />
+                        <div className="flex-1 space-y-1">
+                          <Label htmlFor={`edit-category-name-${cat.id}`}>Nome</Label>
+                          <Input
+                            id={`edit-category-name-${cat.id}`}
+                            name={`edit-category-name-${cat.id}`}
+                            autoComplete="off"
+                            value={editingCategory.name}
+                            onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
+                            placeholder="Nome"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <Label htmlFor={`edit-category-desc-${cat.id}`}>Descrição</Label>
+                          <Input
+                            id={`edit-category-desc-${cat.id}`}
+                            name={`edit-category-desc-${cat.id}`}
+                            autoComplete="off"
+                            value={editingCategory.description || ""}
+                            onChange={(e) => setEditingCategory(prev => prev ? { ...prev, description: e.target.value } : null)}
+                            placeholder="Descrição"
+                          />
+                        </div>
                         <Button 
                           size="sm" 
                           onClick={handleSaveCategoryEdit} 
@@ -266,17 +292,17 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Remover Categoria?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Materiais existentes não serão afetados, mas esta categoria será removida da lista. 
-                                    Esta ação não pode ser desfeita.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)}>
-                                    Remover
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
+                                  Materiais existentes não serão afetados, mas esta categoria será removida da lista. 
+                                  Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)}>
+                                  Remover
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
                             </AlertDialog>
                           </TooltipTrigger>
                           <TooltipContent>Remover</TooltipContent>

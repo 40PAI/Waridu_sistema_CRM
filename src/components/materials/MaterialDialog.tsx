@@ -284,9 +284,11 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             {/* Name Field */}
             <div className="space-y-2">
-              <Label htmlFor="name">Nome *</Label>
+              <Label htmlFor="material-name">Nome *</Label>
               <Input 
-                id="name" 
+                id="material-name" 
+                name="material-name"
+                autoComplete="off"
                 value={state.name} 
                 onChange={(e) => updateField('name', e.target.value)} 
                 placeholder="Ex: Câmera Sony A7S III"
@@ -302,10 +304,10 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
 
             {/* Category Field */}
             <div className="space-y-2">
-              <Label htmlFor="category">Categoria *</Label>
+              <Label htmlFor="material-category">Categoria *</Label>
               <div className="flex gap-2">
                 <Select value={state.category} onValueChange={(value) => updateField('category', value)}>
-                  <SelectTrigger className="flex-1" aria-describedby={state.errors.category ? "category-error" : undefined}>
+                  <SelectTrigger id="material-category" className="flex-1" aria-describedby={state.errors.category ? "category-error" : undefined}>
                     <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
                   <SelectContent>
@@ -344,9 +346,9 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
 
             {/* Status Field */}
             <div className="space-y-2">
-              <Label htmlFor="status">Status *</Label>
+              <Label htmlFor="material-status">Status *</Label>
               <Select value={state.status} onValueChange={(value) => updateField('status', value)}>
-                <SelectTrigger aria-describedby={state.errors.status ? "status-error" : undefined}>
+                <SelectTrigger id="material-status" aria-describedby={state.errors.status ? "status-error" : undefined}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -368,9 +370,9 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             {!isEditing && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="initialLocation">Localização Inicial *</Label>
+                  <Label htmlFor="material-initial-location">Localização Inicial *</Label>
                   <Select value={state.initialLocation} onValueChange={(value) => updateField('initialLocation', value)}>
-                    <SelectTrigger aria-describedby={state.errors.initialLocation ? "location-error" : undefined}>
+                    <SelectTrigger id="material-initial-location" aria-describedby={state.errors.initialLocation ? "location-error" : undefined}>
                       <SelectValue placeholder="Selecione a localização" />
                     </SelectTrigger>
                     <SelectContent>
@@ -389,9 +391,11 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="initialQuantity">Quantidade Inicial *</Label>
+                  <Label htmlFor="material-initial-quantity">Quantidade Inicial *</Label>
                   <Input
-                    id="initialQuantity"
+                    id="material-initial-quantity"
+                    name="material-initial-quantity"
+                    autoComplete="off"
                     type="number"
                     value={state.initialQuantity}
                     onChange={(e) => updateField('initialQuantity', e.target.value ? Number(e.target.value) : "")}
@@ -411,9 +415,11 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
 
             {/* Description Field */}
             <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
+              <Label htmlFor="material-description">Descrição</Label>
               <Textarea 
-                id="description" 
+                id="material-description"
+                name="material-description"
+                autoComplete="off"
                 value={state.description} 
                 onChange={(e) => updateField('description', e.target.value)} 
                 placeholder="Detalhes sobre o material..."
