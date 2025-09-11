@@ -9,6 +9,9 @@ const Sidebar = () => {
   const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${isActive ? "bg-muted text-primary" : ""}`;
 
+  const userRole = user?.profile?.role;
+  const allowed = userRole ? PAGE_PERMISSIONS[userRole] : [];
+
   const common = [
     { to: "/calendar", icon: CalendarDays, label: "Calendário" },
     { to: "/create-event", icon: CalendarPlus, label: "Criar Evento" },
@@ -32,8 +35,6 @@ const Sidebar = () => {
   ];
 
   const navItems = [...common, ...finance, ...admin].filter(i => allowed.includes(i.to));
-  const userRole = user?.profile?.role;
-  const allowed = userRole ? PAGE_PERMISSIONS[userRole] : [];
 
   const items = [...common, ...finance, ...admin].filter(i => allowed.includes(i.to));
 
