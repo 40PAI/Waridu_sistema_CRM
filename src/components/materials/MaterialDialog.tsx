@@ -147,7 +147,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
           <div className="space-y-2">
             <Label htmlFor="material-category">Categoria *</Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger id="material-category">
+              <SelectTrigger id="material-category" name="material-category">
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -163,7 +163,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
           <div className="space-y-2">
             <Label htmlFor="material-status">Status *</Label>
             <Select value={status} onValueChange={(value) => setStatus(value as Material['status'])}>
-              <SelectTrigger id="material-status">
+              <SelectTrigger id="material-status" name="material-status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -181,7 +181,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               <div className="space-y-2">
                 <Label htmlFor="material-initial-location">Localização Inicial *</Label>
                 <Select value={initialLocation} onValueChange={setInitialLocation}>
-                  <SelectTrigger id="material-initial-location">
+                  <SelectTrigger id="material-initial-location" name="material-initial-location">
                     <SelectValue placeholder="Selecione a localização" />
                   </SelectTrigger>
                   <SelectContent>
