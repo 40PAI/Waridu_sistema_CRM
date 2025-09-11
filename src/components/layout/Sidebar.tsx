@@ -25,6 +25,7 @@ const Sidebar = () => {
     { to: "/finance-profitability", icon: TrendingUp, label: "Rentabilidade" },
     { to: "/finance-calendar", icon: CalendarDays, label: "Calendário Financeiro" },
     { to: "/finance-costs", icon: Wallet, label: "Gestão de Custos" },
+    { to: "/finance/profile", icon: User, label: "Meu Perfil" }, // Adiciona o link
   ];
 
   const admin = [

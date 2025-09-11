@@ -15,7 +15,8 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/', '/calendar', '/roster-management', '/materials', '/material-requests'
   ],
   Financeiro: [
-    '/finance-dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs'
+    '/finance-dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs',
+    '/finance/profile' // Adiciona a nova página de perfil
   ],
   Técnico: [
     '/technician/dashboard', '/technician/calendar', '/technician/events',

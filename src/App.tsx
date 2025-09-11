@@ -20,6 +20,7 @@ import FinanceDashboard from "@/pages/finance/Dashboard";
 import Profitability from "@/pages/finance/Profitability";
 import FinanceCalendar from "@/pages/finance/Calendar";
 import CostManagement from "@/pages/finance/CostManagement";
+import FinanceProfile from "@/pages/finance/Profile"; // Importa a nova página
 import TechnicianDashboard from "@/pages/technician/Dashboard";
 import TechnicianCalendar from "@/pages/technician/Calendar";
 import TechnicianEvents from "@/pages/technician/Events";
@@ -74,6 +75,7 @@ function App() {
             <Route path="/finance-profitability" element={<Profitability events={events} employees={employees} categories={categories} />} />
             <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
             <Route path="/finance-costs" element={<CostManagement />} />
+            <Route path="/finance/profile" element={<FinanceProfile />} /> {/* Nova rota */}
 
             {/* Technician Routes */}
             <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
