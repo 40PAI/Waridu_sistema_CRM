@@ -18,25 +18,7 @@ import type { PageMaterial as Material } from "@/types";
 import { showError, showSuccess } from "@/utils/toast";
 import { useLocations } from "@/hooks/useLocations";
 import { useMaterialCategories } from "@/hooks/useMaterialCategories";
-import { MaterialCategoryManager } from "./MaterialCategoryManager";
-import { Edit } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { z } from "zod";
 
-// Validation schemas
-const materialSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
-  category: z.string().min(1, "Categoria é obrigatória"),
-  status: z.enum(["Disponível", "Em uso", "Manutenção"]),
-  description: z.string().optional(),
-});
-
-const newMaterialSchema = materialSchema.extend({
-  initialLocation: z.string().min(1, "Localização inicial é obrigatória"),
-  initialQuantity: z.number().min(1, "Quantidade deve ser maior que 0"),
-});
-
-// Types
 interface MaterialDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,213 +27,82 @@ interface MaterialDialogProps {
   onAddInitialStock?: (materialId: string, locationId: string, quantity: number) => void;
 }
 
-interface FormState {
-  name: string;
-  category: string;
-  status: Material['status'];
-  description: string;
-  initialLocation: string;
-  initialQuantity: number | "";
-  errors: Record<string, string>;
-  isSubmitting: boolean;
-}
-
-type FormAction =
-  | { type: 'RESET'; payload: { material?: Material | null } }
-  | { type: 'UPDATE_FIELD'; payload: { field: keyof FormState; value: any } }
-  | { type: 'SET_ERRORS'; payload: { errors: Record<string, string> } }
-  | { type: 'SET_SUBMITTING'; payload: { isSubmitting: boolean } };
-
-// Form reducer
-const formReducer = (state: FormState, action: FormAction): FormState => {
-  switch (action.type) {
-    case 'RESET':
-      const material = action.payload.material;
-      return {
-        name: material?.name || "",
-        category: material?.category || "",
-        status: material?.status || "Disponível",
-        description: material?.description || "",
-        initialLocation: "",
-        initialQuantity: "",
-        errors: {},
-        isSubmitting: false,
-      };
-    case 'UPDATE_FIELD':
-      return {
-        ...state,
-        [action.payload.field]: action.payload.value,
-        errors: {
-          ...state.errors,
-          [action.payload.field]: "", // Clear error when field changes
-        },
-      };
-    case 'SET_ERRORS':
-      return {
-        ...state,
-        errors: action.payload.errors,
-      };
-    case 'SET_SUBMITTING':
-      return {
-        ...state,
-        isSubmitting: action.payload.isSubmitting,
-      };
-    default:
-      return state;
-  }
-};
-
-// Custom hook for form management
-const useMaterialForm = (material?: Material | null) => {
-  const [state, dispatch] = React.useReducer(formReducer, {
-    name: "",
-    category: "",
-    status: "Disponível",
-    description: "",
-    initialLocation: "",
-    initialQuantity: "",
-    errors: {},
-    isSubmitting: false,
-  });
-
-  // Reset form when material changes
-  React.useEffect(() => {
-    dispatch({ type: 'RESET', payload: { material } });
-  }, [material]);
-
-  const updateField = React.useCallback((field: keyof FormState, value: any) => {
-    dispatch({ type: 'UPDATE_FIELD', payload: { field, value } });
-  }, []);
-
-  const setErrors = React.useCallback((errors: Record<string, string>) => {
-    dispatch({ type: 'SET_ERRORS', payload: { errors } });
-  }, []);
-
-  const setSubmitting = React.useCallback((isSubmitting: boolean) => {
-    dispatch({ type: 'SET_SUBMITTING', payload: { isSubmitting } });
-  }, []);
-
-  return {
-    state,
-    updateField,
-    setErrors,
-    setSubmitting,
-  };
-};
-
-// Validation function
-const validateForm = (data: Partial<FormState>, isEditing: boolean): Record<string, string> => {
-  const errors: Record<string, string> = {};
-
-  try {
-    if (isEditing) {
-      materialSchema.parse(data);
-    } else {
-      newMaterialSchema.parse(data);
-    }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      error.errors.forEach((err) => {
-        const path = err.path[0] as string;
-        errors[path] = err.message;
-      });
-    }
-  }
-
-  return errors;
-};
-
-// Main component
 export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInitialStock }: MaterialDialogProps) {
-  const { locations, refreshLocations } = useLocations();
-  const { categories: materialCategories, refreshCategories } = useMaterialCategories();
+  const { locations } = useLocations();
+  const { categories } = useMaterialCategories();
   
-  const { state, updateField, setErrors, setSubmitting } = useMaterialForm(material);
-  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = React.useState(false);
+  const [name, setName] = React.useState("");
+  const [category, setCategory] = React.useState("");
+  const [status, setStatus] = React.useState<Material['status']>("Disponível");
+  const [description, setDescription] = React.useState("");
+  const [initialLocation, setInitialLocation] = React.useState("");
+  const [initialQuantity, setInitialQuantity] = React.useState<number | "">("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const isEditing = !!material;
 
-  // Refresh data when dialog opens
   React.useEffect(() => {
     if (open) {
-      refreshCategories();
-      refreshLocations();
+      if (material) {
+        setName(material.name);
+        setCategory(material.category);
+        setStatus(material.status);
+        setDescription(material.description || "");
+      } else {
+        setName("");
+        setCategory("");
+        setStatus("Disponível");
+        setDescription("");
+        setInitialLocation("");
+        setInitialQuantity("");
+      }
     }
-  }, [open, refreshCategories, refreshLocations]);
+  }, [material, open]);
 
-  // Handle form submission (Save Button Logic)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (state.isSubmitting) return; // Prevent double submission
+    if (isSubmitting) return;
 
-    // Prepare form data
-    const formData = {
-      name: state.name,
-      category: state.category,
-      status: state.status,
-      description: state.description,
-      initialLocation: state.initialLocation,
-      initialQuantity: state.initialQuantity,
-    };
-
-    // Validate form data
-    const validationErrors = validateForm(formData, isEditing);
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      showError("Por favor, corrija os erros no formulário.");
+    if (!name.trim() || !category.trim()) {
+      showError("Nome e categoria são obrigatórios.");
       return;
     }
 
-    // Set submitting state
-    setSubmitting(true);
+    setIsSubmitting(true);
 
     try {
-      // Prepare material data for saving
       const materialData: Omit<Material, 'id' | 'locations'> & { id?: string } = {
         id: material?.id,
-        name: state.name.trim(),
-        category: state.category.trim(),
-        status: state.status,
-        description: state.description.trim() || undefined,
+        name: name.trim(),
+        category: category.trim(),
+        status,
+        description: description.trim() || undefined,
         quantity: material?.quantity || 0,
       };
 
-      // Save material to database via onSave prop (which calls useMaterials hook)
       await onSave(materialData);
       
-      // If adding new material, add initial stock if provided
-      if (!isEditing && state.initialLocation && state.initialQuantity && Number(state.initialQuantity) > 0) {
-        onAddInitialStock?.(materialData.id || '', state.initialLocation, Number(state.initialQuantity));
+      if (!isEditing && initialLocation && Number(initialQuantity) > 0) {
+        onAddInitialStock?.(materialData.id || '', initialLocation, Number(initialQuantity));
       }
       
-      // Success feedback
       showSuccess(isEditing ? "Material atualizado com sucesso!" : "Material adicionado com sucesso!");
-      
-      // Close dialog
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving material:", error);
       showError("Erro ao salvar material. Verifique a conexão e tente novamente.");
     } finally {
-      // Reset submitting state
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  // Handle category selection from manager
-  const handleCategoryChange = React.useCallback((newCategoryName: string) => {
-    updateField('category', newCategoryName);
-    refreshCategories();
-  }, [updateField, refreshCategories]);
-
-  // Memoized options
   const categoryOptions = React.useMemo(() => 
-    materialCategories.map((cat) => ({
+    categories.map((cat) => ({
       value: cat.name,
       label: cat.name,
     })), 
-    [materialCategories]
+    [categories]
   );
 
   const locationOptions = React.useMemo(() => 
@@ -269,197 +120,127 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
   ], []);
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? "Editar Material" : "Adicionar Novo Material"}</DialogTitle>
-            <DialogDescription>
-              {isEditing 
-                ? "Atualize as informações do material."
-                : "Preencha as informações para registrar um novo item no inventário. Para novos materiais, defina o estoque inicial."}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            {/* Name Field */}
-            <div className="space-y-2">
-              <Label htmlFor="material-name">Nome *</Label>
-              <Input 
-                id="material-name" 
-                name="material-name"
-                autoComplete="off"
-                value={state.name} 
-                onChange={(e) => updateField('name', e.target.value)} 
-                placeholder="Ex: Câmera Sony A7S III"
-                aria-describedby={state.errors.name ? "name-error" : undefined}
-                aria-invalid={!!state.errors.name}
-              />
-              {state.errors.name && (
-                <p id="name-error" className="text-sm text-destructive" role="alert">
-                  {state.errors.name}
-                </p>
-              )}
-            </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? "Editar Material" : "Adicionar Novo Material"}</DialogTitle>
+          <DialogDescription>
+            {isEditing 
+              ? "Atualize as informações do material."
+              : "Preencha as informações para registrar um novo item no inventário."}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="material-name">Nome *</Label>
+            <Input 
+              id="material-name" 
+              name="material-name"
+              autoComplete="off"
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Ex: Câmera Sony A7S III"
+            />
+          </div>
 
-            {/* Category Field */}
-            <div className="space-y-2">
-              <Label htmlFor="material-category">Categoria *</Label>
-              <div className="flex gap-2">
-                <Select value={state.category} onValueChange={(value) => updateField('category', value)}>
-                  <SelectTrigger id="material-category" className="flex-1" aria-describedby={state.errors.category ? "category-error" : undefined}>
-                    <SelectValue placeholder="Selecione a categoria" />
+          <div className="space-y-2">
+            <Label htmlFor="material-category">Categoria *</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="material-category">
+                <SelectValue placeholder="Selecione a categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="material-status">Status *</Label>
+            <Select value={status} onValueChange={(value) => setStatus(value as Material['status'])}>
+              <SelectTrigger id="material-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {!isEditing && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="material-initial-location">Localização Inicial *</Label>
+                <Select value={initialLocation} onValueChange={setInitialLocation}>
+                  <SelectTrigger id="material-initial-location">
+                    <SelectValue placeholder="Selecione a localização" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categoryOptions.map((option) => (
+                    {locationOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        type="button"
-                        variant="outline" 
-                        size="icon" 
-                        onClick={() => setIsCategoryDialogOpen(true)}
-                        aria-label="Gerenciar categorias"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Gerenciar categorias</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
-              {state.errors.category && (
-                <p id="category-error" className="text-sm text-destructive" role="alert">
-                  {state.errors.category}
-                </p>
-              )}
-            </div>
 
-            {/* Status Field */}
-            <div className="space-y-2">
-              <Label htmlFor="material-status">Status *</Label>
-              <Select value={state.status} onValueChange={(value) => updateField('status', value)}>
-                <SelectTrigger id="material-status" aria-describedby={state.errors.status ? "status-error" : undefined}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {state.errors.status && (
-                <p id="status-error" className="text-sm text-destructive" role="alert">
-                  {state.errors.status}
-                </p>
-              )}
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="material-initial-quantity">Quantidade Inicial *</Label>
+                <Input
+                  id="material-initial-quantity"
+                  name="material-initial-quantity"
+                  autoComplete="off"
+                  type="number"
+                  value={initialQuantity}
+                  onChange={(e) => setInitialQuantity(e.target.value ? Number(e.target.value) : "")}
+                  placeholder="Ex: 5"
+                  min={1}
+                />
+              </div>
+            </>
+          )}
 
-            {/* Initial Location and Quantity (only for new materials) */}
-            {!isEditing && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="material-initial-location">Localização Inicial *</Label>
-                  <Select value={state.initialLocation} onValueChange={(value) => updateField('initialLocation', value)}>
-                    <SelectTrigger id="material-initial-location" aria-describedby={state.errors.initialLocation ? "location-error" : undefined}>
-                      <SelectValue placeholder="Selecione a localização" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locationOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {state.errors.initialLocation && (
-                    <p id="location-error" className="text-sm text-destructive" role="alert">
-                      {state.errors.initialLocation}
-                    </p>
-                  )}
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="material-description">Descrição</Label>
+            <Textarea 
+              id="material-description"
+              name="material-description"
+              autoComplete="off"
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="Detalhes sobre o material..."
+              rows={3}
+            />
+          </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="material-initial-quantity">Quantidade Inicial *</Label>
-                  <Input
-                    id="material-initial-quantity"
-                    name="material-initial-quantity"
-                    autoComplete="off"
-                    type="number"
-                    value={state.initialQuantity}
-                    onChange={(e) => updateField('initialQuantity', e.target.value ? Number(e.target.value) : "")}
-                    placeholder="Ex: 5"
-                    min={1}
-                    aria-describedby={state.errors.initialQuantity ? "quantity-error" : undefined}
-                    aria-invalid={!!state.errors.initialQuantity}
-                  />
-                  {state.errors.initialQuantity && (
-                    <p id="quantity-error" className="text-sm text-destructive" role="alert">
-                      {state.errors.initialQuantity}
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Description Field */}
-            <div className="space-y-2">
-              <Label htmlFor="material-description">Descrição</Label>
-              <Textarea 
-                id="material-description"
-                name="material-description"
-                autoComplete="off"
-                value={state.description} 
-                onChange={(e) => updateField('description', e.target.value)} 
-                placeholder="Detalhes sobre o material..."
-                rows={3}
-                className="min-h-[80px] resize-y"
-                aria-describedby={state.errors.description ? "description-error" : undefined}
-              />
-              {state.errors.description && (
-                <p id="description-error" className="text-sm text-destructive" role="alert">
-                  {state.errors.description}
-                </p>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={state.isSubmitting}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={state.isSubmitting || !state.name.trim() || !state.category.trim()}
-              >
-                {state.isSubmitting ? "Salvando..." : (isEditing ? "Atualizar" : "Adicionar")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Category Manager */}
-      <MaterialCategoryManager 
-        open={isCategoryDialogOpen} 
-        onOpenChange={setIsCategoryDialogOpen} 
-        onCategorySelected={handleCategoryChange}
-      />
-    </>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || !name.trim() || !category.trim()}
+            >
+              {isSubmitting ? "Salvando..." : (isEditing ? "Atualizar" : "Adicionar")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
