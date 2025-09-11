@@ -1,4 +1,4 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { Bell, CircleUser, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList, CheckCircle, User, TrendingUp, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -9,6 +9,7 @@ import { PAGE_PERMISSIONS, hasActionPermission } from "@/config/roles";
 const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -18,6 +19,8 @@ const Header = () => {
       console.error("Logout error:", error);
     }
   };
+
+  const isFinancePage = location.pathname.startsWith('/finance');
 
   const common = [
     { to: "/", icon: Home, label: "Dashboard" },
@@ -52,24 +55,26 @@ const Header = () => {
 
   return (
     <header className="flex h-14 items-center border-b bg-muted/40 px-4">
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button variant="outline" size="icon" aria-label="Abrir menu de navegação">
-            <span className="sr-only">Abrir menu</span>
-            {/* Add hamburger icon here if needed */}
-          </Button>
-        </SheetTrigger>
-        <SheetContent>
-          <nav className="flex flex-col" aria-label="Navegação principal">
-            {navItems.filter(i => allowed.includes(i.to)).map(item => (
-              <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/"}>
-                <item.icon className="h-5 w-5" aria-hidden="true" />
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </SheetContent>
-      </Sheet>
+      {!isFinancePage && (
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" aria-label="Abrir menu de navegação">
+              <span className="sr-only">Abrir menu</span>
+              {/* Add hamburger icon here if needed */}
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <nav className="flex flex-col" aria-label="Navegação principal">
+              {navItems.filter(i => allowed.includes(i.to)).map(item => (
+                <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/"}>
+                  <item.icon className="h-5 w-5" aria-hidden="true" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
+      )}
       <div className="flex-1" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
