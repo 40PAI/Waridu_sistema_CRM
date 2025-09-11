@@ -25,7 +25,6 @@ const Sidebar = () => {
   const admin = [
     { to: "/admin-settings", icon: Settings, label: "Configurações" },
     { to: "/invite-member", icon: UserPlus, label: "Convidar" },
-    { to: "/admin/members", icon: UserPlus, label: "Gerenciar Membros" },
   ];
 
   const finance = [

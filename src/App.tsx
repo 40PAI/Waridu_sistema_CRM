@@ -15,7 +15,6 @@ import MaterialsPage from "@/pages/Materials";
 import MaterialRequestsPage from "@/pages/MaterialRequests";
 import AdminSettings from "@/pages/AdminSettings";
 import InviteMember from "@/pages/InviteMember";
-import GerenciarMembros from "@/pages/admin/GerenciarMembros";
 import Profitability from "@/pages/finance/Profitability";
 import FinanceCalendar from "@/pages/finance/Calendar";
 import CostManagement from "@/pages/finance/CostManagement";
@@ -69,7 +68,6 @@ function App() {
               <Route path="/material-requests" element={<MaterialRequestsPage requests={materialRequests} events={events} materialNameMap={materialNameMap} onApproveRequest={approveMaterialRequest} onRejectRequest={rejectMaterialRequest} />} />
               <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />
               <Route path="/invite-member" element={<InviteMember />} />
-              <Route path="/admin/members" element={<GerenciarMembros />} />
               <Route path="/finance-profitability" element={<Profitability events={events} employees={employees} categories={categories} />} />
               <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
               <Route path="/finance-costs" element={<CostManagement />} />
