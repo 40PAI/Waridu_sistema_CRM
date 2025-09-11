@@ -10,7 +10,6 @@ const Sidebar = () => {
     `flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${isActive ? "bg-muted text-primary" : ""}`;
 
   const common = [
-    { to: "/", icon: Home, label: "Dashboard" },
     { to: "/calendar", icon: CalendarDays, label: "Calendário" },
     { to: "/create-event", icon: CalendarPlus, label: "Criar Evento" },
     { to: "/roster-management", icon: Users, label: "Gestão de Escalações" },
@@ -28,11 +27,11 @@ const Sidebar = () => {
   ];
 
   const admin = [
-    { to: "/admin-settings", icon: Settings, label: "Configurações do Admin" },
-    { to: "/invite-member", icon: Package2, label: "Convidar Membro" },
-    { to: "/debug", icon: Bell, label: "Debug" },
+    { to: "/admin-settings", icon: Settings, label: "Configurações" },
+    { to: "/invite-member", icon: Package2, label: "Convidar" },
   ];
 
+  const navItems = [...common, ...finance, ...admin].filter(i => allowed.includes(i.to));
   const userRole = user?.profile?.role;
   const allowed = userRole ? PAGE_PERMISSIONS[userRole] : [];
 
