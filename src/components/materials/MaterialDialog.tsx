@@ -13,10 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { PageMaterial as Material } from "@/types";
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 import { useLocations } from "@/hooks/useLocations";
 import { useMaterialCategories } from "@/hooks/useMaterialCategories";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2, Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MaterialDialogProps {
   open: boolean;
@@ -39,7 +40,7 @@ interface MaterialDialogProps {
 
 export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInitialStock }: MaterialDialogProps) {
   const { locations } = useLocations();
-  const { categories: materialCategories, addCategory, updateCategory, deleteCategory, loading: catLoading } = useMaterialCategories();
+  const { categories: materialCategories, addCategory, updateCategory, deleteCategory, loading: catLoading, refreshCategories } = useMaterialCategories();
   const [name, setName] = React.useState("");
   const [category, setCategory] = React.useState("");
   const [status, setStatus] = React.useState<Material['status']>("Disponível");
@@ -52,8 +53,16 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
   const [editingCategory, setEditingCategory] = React.useState<{ id: string; name: string; description?: string } | null>(null);
   const [newCategoryName, setNewCategoryName] = React.useState("");
   const [newCategoryDesc, setNewCategoryDesc] = React.useState("");
+  const [categorySearch, setCategorySearch] = React.useState(""); // Busca nas categorias
 
   const isEditing = !!material;
+
+  // Recarregar categorias após adicionar/editar/remover para atualizar o Select imediatamente
+  React.useEffect(() => {
+    if (open) {
+      refreshCategories(); // Garante que o Select sempre tenha dados frescos
+    }
+  }, [open, refreshCategories]);
 
   React.useEffect(() => {
     if (open) {
@@ -91,40 +100,82 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
       category,
       status,
       description,
-      quantity: material?.quantity || 0, // Added missing 'quantity' property
+      quantity: material?.quantity || 0,
     };
 
     try {
-      const savedMaterial = await onSave(materialData); // Assume onSave returns the saved material or id
-      if (!isEditing && onAddInitialStock && initialLocation && initialQuantity) {
-        onAddInitialStock(savedMaterial.id, initialLocation, Number(initialQuantity));
-      }
+      await onSave(materialData);
+      showSuccess(isEditing ? "Material atualizado!" : "Material adicionado com sucesso!");
       onOpenChange(false);
     } catch (error) {
       showError("Erro ao salvar material.");
     }
   };
 
-  const handleAddCategory = () => {
-    if (!newCategoryName.trim()) return;
-    addCategory(newCategoryName.trim(), newCategoryDesc || undefined);
-    setNewCategoryName("");
-    setNewCategoryDesc("");
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) {
+      showError("Nome da categoria é obrigatório.");
+      return;
+    }
+    if (materialCategories.some(c => c.name.toLowerCase() === newCategoryName.trim().toLowerCase())) {
+      showError("Categoria já existe.");
+      return;
+    }
+    try {
+      await addCategory(newCategoryName.trim(), newCategoryDesc.trim() || undefined);
+      showSuccess("Categoria adicionada!");
+      setNewCategoryName("");
+      setNewCategoryDesc("");
+      // Não fecha o diálogo, mas atualiza o Select via useEffect
+    } catch (err) {
+      showError("Erro ao adicionar categoria.");
+    }
   };
 
   const openEditCategory = (cat: { id: string; name: string; description?: string }) => {
     setEditingCategory({ ...cat });
   };
 
-  const handleSaveCatEdit = () => {
-    if (!editingCategory || !editingCategory.name.trim()) return;
-    updateCategory(editingCategory.id, editingCategory.name.trim(), editingCategory.description);
-    setEditingCategory(null);
+  const handleSaveCatEdit = async () => {
+    if (!editingCategory || !editingCategory.name.trim()) {
+      showError("Nome da categoria é obrigatório.");
+      return;
+    }
+    if (materialCategories.some(c => c.name.toLowerCase() === editingCategory.name.trim().toLowerCase() && c.id !== editingCategory.id)) {
+      showError("Categoria já existe.");
+      return;
+    }
+    try {
+      await updateCategory(editingCategory.id, editingCategory.name.trim(), editingCategory.description?.trim() || undefined);
+      showSuccess("Categoria atualizada!");
+      setEditingCategory(null);
+    } catch (err) {
+      showError("Erro ao atualizar categoria.");
+    }
   };
 
-  const handleDeleteCategory = (id: string) => {
-    deleteCategory(id);
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      await deleteCategory(id);
+      showSuccess("Categoria removida!");
+      // Se a categoria selecionada no material for removida, resetar para vazio
+      if (category === materialCategories.find(c => c.id === id)?.name) {
+        setCategory("");
+      }
+    } catch (err) {
+      showError("Erro ao remover categoria.");
+    }
   };
+
+  // Filtrar categorias para busca
+  const filteredCategories = React.useMemo(() => {
+    if (!categorySearch.trim()) return materialCategories;
+    const searchLower = categorySearch.toLowerCase();
+    return materialCategories.filter(cat => 
+      cat.name.toLowerCase().includes(searchLower) || 
+      (cat.description && cat.description.toLowerCase().includes(searchLower))
+    );
+  }, [materialCategories, categorySearch]);
 
   return (
     <>
@@ -145,23 +196,32 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="category" className="text-right">Categoria</Label>
-              <div className="col-span-3 flex gap-2">
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {materialCategories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.name}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="icon" onClick={() => setIsCategoryDialogOpen(true)} title="Gerenciar Categorias">
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="col-span-3 flex gap-2">
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Selecione a categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {materialCategories.map(cat => (
+                            <SelectItem key={cat.id} value={cat.name}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button variant="outline" size="icon" onClick={() => setIsCategoryDialogOpen(true)} disabled={catLoading}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Clique no ícone para adicionar/editar categorias diretamente.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">Status</Label>
@@ -209,19 +269,30 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             )}
           </div>
           <DialogFooter>
-            <Button type="button" onClick={handleSubmit}>Salvar</Button>
+            <Button type="button" onClick={handleSubmit} disabled={catLoading}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Mini-Diálogo para Gerenciar Categorias (aberto do botão no Select) */}
+      {/* Mini-Diálogo para Gerenciar Categorias */}
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Gerenciar Categorias de Materiais</DialogTitle>
-            <DialogDescription>Adicione, edite ou remova categorias. Mudanças aparecem imediatamente no Select acima.</DialogDescription>
+            <DialogDescription>Adicione, edite ou remova categorias. Mudanças são salvas no banco e aparecem imediatamente no Select.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Busca */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Buscar categorias..."
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                className="flex-1"
+                leftIcon={<Search className="h-4 w-4" />}
+              />
+            </div>
+
             {/* Adicionar Nova Categoria */}
             <div className="flex gap-2 p-2 border rounded">
               <Input
@@ -241,24 +312,24 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               </Button>
             </div>
 
-            {/* Lista de Categorias Existentes */}
+            {/* Lista de Categorias (filtradas) */}
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {materialCategories.map((cat) => (
+              {filteredCategories.map((cat) => (
                 <div key={cat.id} className="flex items-center justify-between p-3 border rounded-md">
                   <div className="flex-1">
                     {editingCategory?.id === cat.id ? (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Input
                           value={editingCategory.name}
                           onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
                           placeholder="Nome"
-                          className="flex-1"
+                          className="flex-1 min-w-[150px]"
                         />
                         <Input
                           value={editingCategory.description || ""}
                           onChange={(e) => setEditingCategory(prev => prev ? { ...prev, description: e.target.value } : null)}
                           placeholder="Descrição"
-                          className="flex-1"
+                          className="flex-1 min-w-[150px]"
                         />
                         <Button size="sm" onClick={handleSaveCatEdit} disabled={!editingCategory.name.trim() || catLoading}>
                           Salvar
@@ -276,46 +347,62 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                   </div>
                   {editingCategory?.id !== cat.id && (
                     <div className="flex gap-1 ml-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => openEditCategory({ id: cat.id, name: cat.name, description: cat.description })}
-                        disabled={catLoading}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remover Categoria?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Materiais existentes não serão afetados, mas esta categoria será removida do Select.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)} disabled={catLoading}>
-                              Remover
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => openEditCategory({ id: cat.id, name: cat.name, description: cat.description })}
+                              disabled={catLoading}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar categoria</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={catLoading}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remover Categoria?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Materiais existentes não serão afetados, mas esta categoria será removida do Select. Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)} disabled={catLoading}>
+                                    Remover
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TooltipTrigger>
+                          <TooltipContent>Remover categoria</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   )}
                 </div>
               ))}
-              {materialCategories.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma categoria. Adicione a primeira!</p>
+              {filteredCategories.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {categorySearch ? "Nenhuma categoria encontrada." : "Nenhuma categoria. Adicione a primeira!"}
+                </p>
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => setIsCategoryDialogOpen(false)} disabled={catLoading}>Fechar</Button>
+            <Button onClick={() => { setIsCategoryDialogOpen(false); setCategorySearch(""); }} disabled={catLoading}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
