@@ -10,6 +10,7 @@ interface UserProfile {
   last_name: string | null;
   avatar_url: string | null;
   role: Role;
+  technician_category_id: string | null;
 }
 
 interface User extends SupabaseUser {
@@ -43,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       last_name: typeof raw.last_name === "string" ? raw.last_name : null,
       avatar_url: typeof raw.avatar_url === "string" ? raw.avatar_url : null,
       role: raw.role as Role,
+      technician_category_id: raw.technician_category_id || null,
     };
     // Nota: Caso precise, podemos adicionar um fallback de role padrão.
   };
@@ -76,7 +78,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (profileError) {
               console.error("Load profile error:", profileError);
             }
-            const normalized = normalizeProfile(profileData, currentSession.user.id);
+
+            let technician_category_id: string | null = null;
+            if (profileData?.role === 'Técnico') {
+              const { data: empData, error: empError } = await supabase
+                .from('employees')
+                .select('technician_category')
+                .eq('id', currentSession.user.id)
+                .single();
+              if (empError) {
+                console.error("Load employee error:", empError);
+              } else {
+                technician_category_id = empData?.technician_category || null;
+              }
+            }
+
+            const normalized = normalizeProfile({ ...profileData, technician_category_id }, currentSession.user.id);
             setUser({ ...currentSession.user, profile: normalized });
           } catch (innerErr) {
             console.error("Unexpected error loading profile:", innerErr);
@@ -113,7 +130,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Auth state profile error:", profileError);
           }
 
-          const normalized = normalizeProfile(profileData, nextSession.user.id);
+          let technician_category_id: string | null = null;
+          if (profileData?.role === 'Técnico') {
+            const { data: empData, error: empError } = await supabase
+              .from('employees')
+              .select('technician_category')
+              .eq('id', nextSession.user.id)
+              .single();
+            if (empError) {
+              console.error("Auth state employee error:", empError);
+            } else {
+              technician_category_id = empData?.technician_category || null;
+            }
+          }
+
+          const normalized = normalizeProfile({ ...profileData, technician_category_id }, nextSession.user.id);
           setUser({ ...nextSession.user, profile: normalized });
         } else {
           setUser(null);
