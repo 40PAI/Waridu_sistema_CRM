@@ -31,14 +31,18 @@ const TechnicianProfile = () => {
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching profile:", error);
+          showError("Erro ao carregar o perfil.");
+          return;
+        }
 
         setName(data.first_name || "");
         setAvatarUrl(data.avatar_url);
         setEmail(user.email || "");
       } catch (error) {
-        console.error("Error fetching profile:", error);
-        showError("Erro ao carregar o perfil.");
+        console.error("Unexpected error fetching profile:", error);
+        showError("Erro inesperado ao carregar o perfil.");
       } finally {
         setLoading(false);
       }
@@ -51,6 +55,8 @@ const TechnicianProfile = () => {
     const file = acceptedFiles[0];
     if (!file || !user) return;
 
+    console.log("Starting avatar upload for file:", file.name, "size:", file.size, "type:", file.type);
+
     setUploading(true);
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}.${fileExt}`;
@@ -58,27 +64,38 @@ const TechnicianProfile = () => {
 
     try {
       // Upload file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      console.log("Uploading to path:", filePath);
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw uploadError;
+      }
+
+      console.log("Upload successful:", uploadData);
 
       // Get public URL
-      const { data } = supabase.storage
+      const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
+
+      console.log("Public URL:", urlData.publicUrl);
 
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: data.publicUrl })
+        .update({ avatar_url: urlData.publicUrl })
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Profile update error:", updateError);
+        throw updateError;
+      }
 
       // Update local state
-      setAvatarUrl(data.publicUrl);
+      setAvatarUrl(urlData.publicUrl);
       
       // Update user in AuthContext
       if (user && user.profile) {
@@ -88,16 +105,17 @@ const TechnicianProfile = () => {
             ...prevUser,
             profile: {
               ...prevUser.profile,
-              avatar_url: data.publicUrl,
+              avatar_url: urlData.publicUrl,
             },
           };
         });
       }
       
       showSuccess("Foto de perfil atualizada com sucesso!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading avatar:", error);
-      showError("Erro ao atualizar a foto de perfil.");
+      const errorMessage = error?.message || "Erro desconhecido ao atualizar a foto de perfil.";
+      showError(`Erro ao atualizar a foto de perfil: ${errorMessage}`);
     } finally {
       setUploading(false);
     }
@@ -121,13 +139,16 @@ const TechnicianProfile = () => {
         .update({ first_name: name })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating profile:", error);
+        throw error;
+      }
 
       showSuccess("Perfil atualizado com sucesso!");
       setIsEditing(false);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      showError("Erro ao atualizar o perfil.");
+    } catch (error: any) {
+      console.error("Unexpected error updating profile:", error);
+      showError(`Erro ao atualizar o perfil: ${error?.message || "Erro desconhecido"}`);
     }
   };
 
