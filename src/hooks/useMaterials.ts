@@ -74,7 +74,7 @@ export const useMaterials = () => {
     }
   };
 
-  const saveMaterial = async (materialData: Omit<PageMaterial, 'id' | 'locations'> & { id?: string }) => {
+  const saveMaterial = async (materialData: Omit<PageMaterial, 'id' | 'locations'> & { id?: string }): Promise<PageMaterial> => {
     try {
       if (materialData.id) {
         // Update existing material
@@ -90,6 +90,7 @@ export const useMaterials = () => {
 
         if (error) throw error;
         showSuccess("Material atualizado com sucesso!");
+        return { id: materialData.id, ...materialData };
       } else {
         // Create new material
         const { data, error } = await supabase
@@ -105,14 +106,13 @@ export const useMaterials = () => {
 
         if (error) throw error;
         showSuccess("Material adicionado com sucesso!");
-        return data; // Return the saved material for addInitialStock
+        return data as PageMaterial;
       }
-
-      fetchMaterials(); // Refresh the list
     } catch (error) {
       console.error("Error saving material:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao salvar material.";
       showError(errorMessage);
+      throw error;
     }
   };
 
@@ -133,11 +133,14 @@ export const useMaterials = () => {
 
       if (checkError) throw checkError;
 
+      const currentQuantity = existing?.quantity || 0;
+      const newQuantity = currentQuantity + quantity;
+
       if (existing) {
         // Update existing
         const { error } = await supabase
           .from('material_locations')
-          .update({ quantity: existing.quantity + quantity })
+          .update({ quantity: newQuantity })
           .eq('material_id', materialId)
           .eq('location_id', locationId);
 
@@ -149,7 +152,7 @@ export const useMaterials = () => {
           .insert({
             material_id: materialId,
             location_id: locationId,
-            quantity
+            quantity: newQuantity
           });
 
         if (error) throw error;

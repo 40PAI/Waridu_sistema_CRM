@@ -30,7 +30,7 @@ interface AllocationHistoryEntry {
 interface MaterialsPageProps {
   materials: Material[];
   locations: Location[];
-  onSaveMaterial: (materialData: Omit<Material, 'id' | 'locations'> & { id?: string }) => void;
+  onSaveMaterial: (materialData: Omit<Material, 'id' | 'locations'> & { id?: string }) => Promise<Material>;
   onAddInitialStock: (materialId: string, locationId: string, quantity: number) => void;
   onTransferMaterial: (materialId: string, fromLocationId: string, toLocationId: string, quantity: number) => void;
   history: AllocationHistoryEntry[];

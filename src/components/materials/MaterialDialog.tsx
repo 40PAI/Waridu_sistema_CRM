@@ -22,7 +22,7 @@ import { useMaterialCategories } from "@/hooks/useMaterialCategories";
 interface MaterialDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (materialData: Omit<Material, 'id' | 'locations'> & { id?: string }) => void;
+  onSave: (materialData: Omit<Material, 'id' | 'locations'> & { id?: string }) => Promise<Material>;
   material?: Material | null;
   onAddInitialStock?: (materialId: string, locationId: string, quantity: number) => void;
 }
@@ -81,10 +81,10 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
         quantity: material?.quantity || 0,
       };
 
-      await onSave(materialData);
+      const savedMaterial = await onSave(materialData);
       
       if (!isEditing && initialLocation && Number(initialQuantity) > 0) {
-        onAddInitialStock?.(materialData.id || '', initialLocation, Number(initialQuantity));
+        onAddInitialStock?.(savedMaterial.id, initialLocation, Number(initialQuantity));
       }
       
       showSuccess(isEditing ? "Material atualizado com sucesso!" : "Material adicionado com sucesso!");
