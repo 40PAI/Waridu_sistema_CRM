@@ -42,7 +42,7 @@ function App() {
   const { categories } = useTechnicianCategories();
   const { roles, addRole, updateRole, deleteRole } = useRoles();
   const { locations, addLocation, updateLocation, deleteLocation } = useLocations();
-  const { materials: pageMaterials, rawMaterials, saveMaterial, transferMaterial } = useMaterials();
+  const { materials: pageMaterials, rawMaterials, saveMaterial, transferMaterial, addInitialStock } = useMaterials();
   const { materialRequests, pendingRequests, createMaterialRequest, approveMaterialRequest, rejectMaterialRequest } = useMaterialRequests();
 
   const materialNameMap = React.useMemo(() =>
@@ -64,7 +64,7 @@ function App() {
               <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
               <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
               <Route path="/roles/:roleId" element={<RoleDetail roles={roles} employees={employees} events={events} />} />
-              <Route path="/materials" element={<MaterialsPage materials={pageMaterials} locations={locations} onSaveMaterial={saveMaterial} onTransferMaterial={transferMaterial} history={[]} pendingRequests={pendingRequests} />} />
+              <Route path="/materials" element={<MaterialsPage materials={pageMaterials} locations={locations} onSaveMaterial={saveMaterial} onTransferMaterial={transferMaterial} onAddInitialStock={addInitialStock} history={[]} pendingRequests={pendingRequests} />} />
               <Route path="/material-requests" element={<MaterialRequestsPage requests={materialRequests} events={events} materialNameMap={materialNameMap} onApproveRequest={approveMaterialRequest} onRejectRequest={rejectMaterialRequest} />} />
               <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />
               <Route path="/invite-member" element={<InviteMember />} />
