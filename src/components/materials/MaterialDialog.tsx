@@ -112,7 +112,6 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
       if (!isEditing && initialLocation && initialQuantity && Number(initialQuantity) > 0) {
         // Adicionar estoque inicial após salvar o material (assumindo que onAddInitialStock é chamado com o novo ID)
         // Nota: Você precisará ajustar o hook useMaterials para retornar o ID do novo material e passá-lo aqui
-        // Por enquanto, assumimos que onSave retorna o ID ou é gerenciado no parent
         onAddInitialStock?.(materialData.id || '', initialLocation, Number(initialQuantity));
       }
       showSuccess(isEditing ? "Material atualizado!" : "Material adicionado com sucesso!");
@@ -243,12 +242,12 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">Status</Label>
               <Select value={status} onValueChange={(value) => setStatus(value as Material['status'])}>
-                  <SelectTrigger id="status" className="col-span-3"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="Disponível">Disponível</SelectItem>
-                      <SelectItem value="Em uso">Em uso</SelectItem>
-                      <SelectItem value="Manutenção">Manutenção</SelectItem>
-                  </SelectContent>
+                <SelectTrigger id="status" className="col-span-3"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Disponível">Disponível</SelectItem>
+                  <SelectItem value="Em uso">Em uso</SelectItem>
+                  <SelectItem value="Manutenção">Manutenção</SelectItem>
+                </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
