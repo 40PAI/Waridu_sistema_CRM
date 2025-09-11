@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import { createContext, useState, useContext, ReactNode, useEffect, useMemo } from "react";
 import { Role } from "@/config/roles";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User as SupabaseUser } from "@supabase/supabase-js";
@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Valida e normaliza dados do perfil para evitar estados inválidos
   const normalizeProfile = (raw: any, userId: string): UserProfile | null => {
@@ -55,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error) {
           console.error("Auth getSession error:", error);
           if (!mounted) return;
+          setError(error.message);
           setSession(null);
           setUser(null);
           return;
@@ -86,6 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (err) {
         console.error("Unexpected error in getInitialSession:", err);
         if (!mounted) return;
+        setError(err instanceof Error ? err.message : "Erro inesperado.");
         setSession(null);
         setUser(null);
       } finally {
@@ -138,13 +141,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const value = {
+  const value = useMemo(() => ({
     session,
     user,
     logout,
     loading,
     setUser,
-  };
+  }), [session, user, loading]);
 
   return (
     <AuthContext.Provider value={value}>

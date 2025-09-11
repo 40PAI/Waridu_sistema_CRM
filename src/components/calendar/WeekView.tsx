@@ -36,7 +36,7 @@ const WeekView = ({ currentDate, events }: WeekViewProps) => {
     return eachDayOfInterval({ start: startDate, end: endDate });
   }, [currentDate]);
 
-  const getEventsForDay = (day: Date) => {
+  const getEventsForDay = React.useCallback((day: Date) => {
     return events.filter(event => {
       if (typeof event.startDate !== 'string' || typeof event.endDate !== 'string' || !event.startDate || !event.endDate) {
         return false;
@@ -48,7 +48,7 @@ const WeekView = ({ currentDate, events }: WeekViewProps) => {
         return false;
       }
     });
-  };
+  }, [events]);
 
   return (
     <div className="grid grid-cols-7 border-t border-l">

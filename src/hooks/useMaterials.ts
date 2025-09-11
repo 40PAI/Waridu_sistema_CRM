@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageMaterial, InventoryMaterial, MaterialStatus } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -6,6 +6,7 @@ import { showError, showSuccess } from "@/utils/toast";
 export const useMaterials = () => {
   const [materials, setMaterials] = useState<InventoryMaterial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMaterials();
@@ -14,6 +15,7 @@ export const useMaterials = () => {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       // Fetch materials with their locations
       const { data: materialsData, error: materialsError } = await supabase
@@ -64,7 +66,9 @@ export const useMaterials = () => {
       setMaterials(formattedMaterials);
     } catch (error) {
       console.error("Error fetching materials:", error);
-      showError("Erro ao carregar materiais.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao carregar materiais.";
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -104,7 +108,8 @@ export const useMaterials = () => {
       fetchMaterials(); // Refresh the list
     } catch (error) {
       console.error("Error saving material:", error);
-      showError("Erro ao salvar material.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao salvar material.";
+      showError(errorMessage);
     }
   };
 
@@ -187,11 +192,12 @@ export const useMaterials = () => {
       fetchMaterials(); // Refresh the list
     } catch (error) {
       console.error("Error transferring material:", error);
-      showError("Erro ao realizar transferência.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao realizar transferência.";
+      showError(errorMessage);
     }
   };
 
-  const pageMaterials: PageMaterial[] = materials.map(m => ({
+  const pageMaterials: PageMaterial[] = useMemo(() => materials.map(m => ({
     id: m.id,
     name: m.name,
     category: m.category,
@@ -199,12 +205,13 @@ export const useMaterials = () => {
     description: m.description,
     locations: m.locations,
     quantity: Object.values(m.locations).reduce((a, b) => a + b, 0),
-  }));
+  })), [materials]);
 
   return {
     materials: pageMaterials,
     rawMaterials: materials,
     loading,
+    error,
     saveMaterial,
     transferMaterial,
     refreshMaterials: fetchMaterials

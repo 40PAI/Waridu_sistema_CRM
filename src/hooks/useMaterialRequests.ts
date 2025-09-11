@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MaterialRequest, MaterialRequestItem, MaterialRequestStatus, ApproveResult } from "@/types"; // Import ApproveResult
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -6,6 +6,7 @@ import { showError, showSuccess } from "@/utils/toast";
 export const useMaterialRequests = () => {
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRequests();
@@ -14,6 +15,7 @@ export const useMaterialRequests = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('material_requests')
         .select(`
@@ -48,7 +50,9 @@ export const useMaterialRequests = () => {
       setMaterialRequests(formattedRequests);
     } catch (error) {
       console.error("Error fetching requests:", error);
-      showError("Erro ao carregar requisições.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao carregar requisições.";
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -105,7 +109,8 @@ export const useMaterialRequests = () => {
       showSuccess("Requisição de materiais enviada com sucesso!");
     } catch (error) {
       console.error("Error creating material request:", error);
-      showError("Falha ao enviar requisição. Tente novamente.");
+      const errorMessage = error instanceof Error ? error.message : "Falha ao enviar requisição. Tente novamente.";
+      showError(errorMessage);
     }
   };
 
@@ -129,7 +134,8 @@ export const useMaterialRequests = () => {
       return { ok: true };
     } catch (error) {
       console.error("Error approving request:", error);
-      showError("Falha ao aprovar requisição.");
+      const errorMessage = error instanceof Error ? error.message : "Falha ao aprovar requisição.";
+      showError(errorMessage);
       return { ok: false, shortages: [] }; // Explicitly returning an empty array that matches the type
     }
   };
@@ -155,16 +161,22 @@ export const useMaterialRequests = () => {
       showSuccess("Requisição rejeitada.");
     } catch (error) {
       console.error("Error rejecting request:", error);
-      showError("Falha ao rejeitar requisição.");
+      const errorMessage = error instanceof Error ? error.message : "Falha ao rejeitar requisição.";
+      showError(errorMessage);
     }
   };
 
-  const pendingRequests = materialRequests.filter((r) => r.status === "Pendente");
+  const pendingRequests = useMemo(() => materialRequests.filter((r) => r.status === "Pendente"), [materialRequests]);
+  const approvedRequests = useMemo(() => materialRequests.filter((r) => r.status === "Aprovada"), [materialRequests]);
+  const rejectedRequests = useMemo(() => materialRequests.filter((r) => r.status === "Rejeitada"), [materialRequests]);
 
   return {
     materialRequests,
     pendingRequests,
+    approvedRequests,
+    rejectedRequests,
     loading,
+    error,
     createMaterialRequest,
     approveMaterialRequest,
     rejectMaterialRequest,

@@ -19,7 +19,7 @@ const YearView = ({ currentDate, events, setView, setCurrentDate }: YearViewProp
   const year = currentDate.getFullYear();
   const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1));
 
-  const hasEvents = (day: Date) => {
+  const hasEvents = React.useCallback((day: Date) => {
     return events.some(event => {
       if (typeof event.startDate !== 'string' || typeof event.endDate !== 'string' || !event.startDate || !event.endDate) {
         return false;
@@ -30,7 +30,7 @@ const YearView = ({ currentDate, events, setView, setCurrentDate }: YearViewProp
         return false;
       }
     });
-  };
+  }, [events]);
 
   const handleMonthClick = (monthDate: Date) => {
     setCurrentDate(monthDate);
@@ -38,7 +38,7 @@ const YearView = ({ currentDate, events, setView, setCurrentDate }: YearViewProp
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       {months.map(monthDate => {
         const monthStart = startOfMonth(monthDate);
         const monthEnd = endOfMonth(monthDate);

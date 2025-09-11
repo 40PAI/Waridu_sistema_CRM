@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Event, Roster, Expense } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -6,6 +6,7 @@ import { showError, showSuccess } from "@/utils/toast";
 export const useEvents = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEvents();
@@ -14,6 +15,7 @@ export const useEvents = () => {
   const fetchEvents = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('events')
         .select('*')
@@ -39,7 +41,9 @@ export const useEvents = () => {
       setEvents(formattedEvents);
     } catch (error) {
       console.error("Error fetching events:", error);
-      showError("Erro ao carregar eventos.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao carregar eventos.";
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -67,7 +71,8 @@ export const useEvents = () => {
       fetchEvents(); // Refresh the list
     } catch (error) {
       console.error("Error adding event:", error);
-      showError("Erro ao criar evento.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao criar evento.";
+      showError(errorMessage);
     }
   };
 
@@ -94,7 +99,8 @@ export const useEvents = () => {
       fetchEvents(); // Refresh the list
     } catch (error) {
       console.error("Error updating event:", error);
-      showError("Erro ao atualizar evento.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao atualizar evento.";
+      showError(errorMessage);
     }
   };
 
@@ -114,13 +120,20 @@ export const useEvents = () => {
       fetchEvents(); // Refresh the list
     } catch (error) {
       console.error("Error updating event details:", error);
-      showError("Erro ao salvar detalhes do evento.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao salvar detalhes do evento.";
+      showError(errorMessage);
     }
   };
 
+  const upcomingEvents = useMemo(() => events.filter(e => e.status === 'Planejado' || e.status === 'Em Andamento'), [events]);
+  const pastEvents = useMemo(() => events.filter(e => e.status === 'Concluído'), [events]);
+
   return {
     events,
+    upcomingEvents,
+    pastEvents,
     loading,
+    error,
     addEvent,
     updateEvent,
     updateEventDetails,

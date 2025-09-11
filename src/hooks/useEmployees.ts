@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Employee } from "@/components/employees/EmployeeDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -19,6 +19,7 @@ function hashToIndex(id: string, max: number) {
 export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -27,6 +28,7 @@ export const useEmployees = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('employees')
         .select('*')
@@ -53,7 +55,9 @@ export const useEmployees = () => {
       setEmployees(formattedEmployees);
     } catch (error) {
       console.error("Error fetching employees:", error);
-      showError("Erro ao carregar funcionários.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao carregar funcionários.";
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -93,13 +97,18 @@ export const useEmployees = () => {
       fetchEmployees(); // Refresh the list
     } catch (error) {
       console.error("Error saving employee:", error);
-      showError("Erro ao salvar funcionário.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao salvar funcionário.";
+      showError(errorMessage);
     }
   };
 
+  const activeEmployees = useMemo(() => employees.filter(e => e.status === 'Ativo'), [employees]);
+
   return {
     employees,
+    activeEmployees,
     loading,
+    error,
     saveEmployee,
     refreshEmployees: fetchEmployees
   };
