@@ -31,7 +31,7 @@ interface MaterialDialogProps {
 }
 
 export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInitialStock }: MaterialDialogProps) {
-  const { locations } = useLocations();
+  const { locations, refreshLocations } = useLocations();
   const { categories: materialCategories, refreshCategories } = useMaterialCategories();
   
   const [name, setName] = React.useState("");
@@ -43,12 +43,18 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
   
   // Category management dialog state
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const isEditing = !!material;
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens and refresh data
   React.useEffect(() => {
     if (open) {
+      setIsLoading(true);
+      // Refresh data sources
+      refreshCategories();
+      refreshLocations();
+      
       if (material) {
         setName(material.name);
         setCategory(material.category);
@@ -64,12 +70,12 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
         setInitialLocation("");
         setInitialQuantity("");
       }
-      // Refresh categories when opening
-      refreshCategories();
+      setIsLoading(false);
     }
-  }, [material, open, refreshCategories]);
+  }, [material, open, refreshCategories, refreshLocations]);
 
   const handleSubmit = async () => {
+    if (isLoading) return;
     if (!name.trim() || !category.trim()) {
       showError("Nome e categoria são obrigatórios.");
       return;
@@ -90,6 +96,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
     };
 
     try {
+      setIsLoading(true);
       await onSave(materialData);
       
       if (!isEditing && initialLocation && initialQuantity && Number(initialQuantity) > 0) {
@@ -100,19 +107,34 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
       onOpenChange(false);
     } catch (error) {
       showError("Erro ao salvar material. Tente novamente.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Callback for when a category is added/updated in the manager
   const handleCategoryChange = (newCategoryName: string) => {
     setCategory(newCategoryName);
-    refreshCategories(); // Refresh to include the new/updated category
+    // Refresh to ensure the new category is available in the Select
+    refreshCategories();
   };
+
+  if (isLoading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div className="flex items-center justify-center py-8">
+            <p>Carregando...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto"> {/* Adjusted width and height for compactness */}
           <DialogHeader>
             <DialogTitle>{isEditing ? "Editar Material" : "Adicionar Novo Material"}</DialogTitle>
             <DialogDescription>
@@ -122,8 +144,8 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4"> {/* Changed from grid to space-y for better flow */}
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4"> {/* Responsive grid: 1 col mobile, 2 col desktop */}
+            <div className="md:col-span-2 space-y-2"> {/* Name spans full width */}
               <Label htmlFor="name">Nome</Label>
               <Input 
                 id="name" 
@@ -181,18 +203,6 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea 
-                id="description" 
-                value={description} 
-                onChange={(e) => setDescription(e.target.value)} 
-                placeholder="Detalhes sobre o material..."
-                rows={3}
-                className="min-h-[80px] resize-vertical"
-              />
-            </div>
-
             {!isEditing && (
               <>
                 <div className="space-y-2">
@@ -224,11 +234,23 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                 </div>
               </>
             )}
+
+            <div className="md:col-span-2 space-y-2"> {/* Description spans full width */}
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea 
+                id="description" 
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)} 
+                placeholder="Detalhes sobre o material..."
+                rows={3}
+                className="min-h-[80px] resize-none" // Removed resize-vertical to prevent vertical expansion
+              />
+            </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" onClick={handleSubmit} disabled={!name.trim() || !category.trim()}>
-              {isEditing ? "Atualizar" : "Adicionar"}
+            <Button type="button" onClick={handleSubmit} disabled={isLoading || !name.trim() || !category.trim()}>
+              {isLoading ? "Salvando..." : (isEditing ? "Atualizar" : "Adicionar")}
             </Button>
           </DialogFooter>
         </DialogContent>
