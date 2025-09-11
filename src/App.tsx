@@ -16,11 +16,10 @@ import MaterialRequestsPage from "@/pages/MaterialRequests";
 import AdminSettings from "@/pages/AdminSettings";
 import InviteMember from "@/pages/InviteMember";
 import DebugPage from "@/pages/Debug";
-import FinanceDashboard from "@/pages/finance/Dashboard";
 import Profitability from "@/pages/finance/Profitability";
 import FinanceCalendar from "@/pages/finance/Calendar";
 import CostManagement from "@/pages/finance/CostManagement";
-import FinanceProfile from "@/pages/finance/Profile"; // Importa a nova página
+import FinanceProfile from "@/pages/finance/Profile";
 import TechnicianDashboard from "@/pages/technician/Dashboard";
 import TechnicianCalendar from "@/pages/technician/Calendar";
 import TechnicianEvents from "@/pages/technician/Events";
@@ -71,11 +70,10 @@ function App() {
             <Route path="/debug" element={<DebugPage />} />
 
             {/* Finance Routes */}
-            <Route path="/finance-dashboard" element={<FinanceDashboard events={events} employees={employees} categories={categories} />} />
             <Route path="/finance-profitability" element={<Profitability events={events} employees={employees} categories={categories} />} />
             <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
             <Route path="/finance-costs" element={<CostManagement />} />
-            <Route path="/finance/profile" element={<FinanceProfile />} /> {/* Nova rota */}
+            <Route path="/finance/profile" element={<FinanceProfile />} />
 
             {/* Technician Routes */}
             <Route path="/technician/dashboard" element={<TechnicianDashboard />} />

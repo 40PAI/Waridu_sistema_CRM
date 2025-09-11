@@ -4,19 +4,19 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
   Admin: [
     '/', '/calendar', '/create-event', '/roster-management',
     '/employees', '/roles', '/materials', '/material-requests',
-    '/finance-dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs',
+    '/finance-profitability', '/finance-calendar', '/finance-costs',
     '/admin-settings', '/invite-member', '/debug', '/roles/:roleId'
   ],
   Coordenador: [
     '/', '/calendar', '/create-event', '/roster-management',
-    '/employees', '/roles', '/materials', '/finance-dashboard'
+    '/employees', '/roles', '/materials'
   ],
   'Gestor de Material': [
     '/', '/calendar', '/roster-management', '/materials', '/material-requests'
   ],
   Financeiro: [
-    '/finance-dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs',
-    '/finance/profile' // Adiciona a nova página de perfil
+    '/finance-profitability', '/finance-calendar', '/finance-costs',
+    '/finance/profile'
   ],
   Técnico: [
     '/technician/dashboard', '/technician/calendar', '/technician/events',

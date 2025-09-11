@@ -27,11 +27,10 @@ const Header = () => {
   ];
 
   const finance = [
-    { to: "/finance-dashboard", icon: LineChart, label: "Finance Dashboard" },
     { to: "/finance-profitability", icon: TrendingUp, label: "Rentabilidade" },
     { to: "/finance-calendar", icon: CalendarDays, label: "Calendário Financeiro" },
     { to: "/finance-costs", icon: Wallet, label: "Gestão de Custos" },
-    { to: "/finance/profile", icon: User, label: "Meu Perfil" }, // Adiciona o link
+    { to: "/finance/profile", icon: User, label: "Meu Perfil" },
   ];
 
   const admin = [
@@ -64,7 +63,7 @@ const Header = () => {
             <p className="text-xs">{user?.email}</p>
           </DropdownMenuLabel>
           <DropdownMenuSeparator/>
-          <DropdownMenuItem asChild><Link to={userRole === 'Financeiro' ? "/finance/profile" : "/technician/profile"}>Perfil</Link></DropdownMenuItem> {/* Ajusta o link do perfil no dropdown */}
+          <DropdownMenuItem asChild><Link to={userRole === 'Financeiro' ? "/finance/profile" : "/technician/profile"}>Perfil</Link></DropdownMenuItem>
           <DropdownMenuItem onClick={handleLogout}>Sair</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
