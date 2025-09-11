@@ -26,6 +26,7 @@ import TechnicianEventDetail from "@/pages/technician/EventDetail";
 import TechnicianTasks from "@/pages/technician/Tasks";
 import TechnicianProfile from "@/pages/technician/Profile";
 import TechnicianNotifications from "@/pages/technician/Notifications";
+import AdminProfile from "@/pages/AdminProfile";
 
 import { useEvents } from "@/hooks/useEvents";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -79,6 +80,7 @@ function App() {
               <Route path="/technician/tasks" element={<TechnicianTasks />} />
               <Route path="/technician/profile" element={<TechnicianProfile />} />
               <Route path="/technician/notifications" element={<TechnicianNotifications />} />
+              <Route path="/admin/profile" element={<AdminProfile />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
