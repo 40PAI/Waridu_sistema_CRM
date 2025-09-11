@@ -5,10 +5,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { DollarSign, TrendingUp, Wallet, Briefcase } from "lucide-react";
 import * as React from "react";
 import { useTechnicianCategories, TechnicianCategory } from "@/hooks/useTechnicianCategories";
-import { Event } from "@/types";
+import { Event, EventStatus } from "@/types";
 import { Employee } from "@/components/employees/EmployeeDialog";
-import { parseISO, format, getMonth, getYear, differenceInDays } from "date-fns";
+import { parseISO, format, getMonth, getYear, differenceInDays, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DateRangePicker } from "@/components/common/DateRangePicker";
+import { DateRange } from "react-day-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // --- Helper Functions ---
 const formatCurrency = (value: number) => {
@@ -17,8 +20,10 @@ const formatCurrency = (value: number) => {
 
 const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'Realizado': return 'default';
-      case 'Próximo': return 'secondary';
+      case 'Concluído': return 'default';
+      case 'Planejado': return 'secondary';
+      case 'Em Andamento': return 'secondary';
+      case 'Cancelado': return 'destructive';
       default: return 'outline';
     }
 };
@@ -31,6 +36,9 @@ interface FinanceDashboardProps {
 
 // --- Main Component ---
 const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardProps) => {
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = React.useState<EventStatus | "all">("all");
+
   const categoryMap = React.useMemo(() => {
     const map = new Map<string, number>();
     categories.forEach(c => map.set(c.id, c.dailyRate));
@@ -65,7 +73,22 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
   }, [employeeMap, categoryMap]);
 
   const processedFinancialData = React.useMemo(() => {
-    const completedEvents = events.filter(e => e.status === 'Concluído' && e.revenue);
+    const filteredEvents = events.filter(event => {
+      const eventStartDate = parseISO(event.startDate);
+      const eventEndDate = parseISO(event.endDate);
+
+      const matchesDateRange = dateRange?.from
+        ? isWithinInterval(eventStartDate, { start: dateRange.from, end: dateRange.to || eventStartDate }) ||
+          isWithinInterval(eventEndDate, { start: dateRange.from, end: dateRange.to || eventEndDate }) ||
+          (eventStartDate < dateRange.from && eventEndDate > (dateRange.to || eventEndDate)) // Event spans across the range
+        : true;
+
+      const matchesStatus = statusFilter === "all" || event.status === statusFilter;
+
+      return matchesDateRange && matchesStatus;
+    });
+
+    const completedEvents = filteredEvents.filter(e => e.status === 'Concluído' && e.revenue);
 
     const eventProfitability = completedEvents.map(event => {
       const personnelCost = calculatePersonnelCost(event);
@@ -79,7 +102,7 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
         revenue: event.revenue || 0,
         cost: totalCost,
         profit: profit,
-        status: 'Realizado',
+        status: 'Concluído',
       };
     });
 
@@ -112,7 +135,7 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
     ];
 
     return { eventProfitability, monthlyPerformanceData, costBreakdownData };
-  }, [events, calculatePersonnelCost]);
+  }, [events, calculatePersonnelCost, dateRange, statusFilter, employeeMap, categoryMap]);
 
   const { eventProfitability, monthlyPerformanceData, costBreakdownData } = processedFinancialData;
 
@@ -125,36 +148,58 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
 
   return (
     <div className="flex-1 space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard Financeiro</h1>
+          <p className="text-muted-foreground">Visão geral do desempenho financeiro da empresa.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as EventStatus | "all")}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Status</SelectItem>
+              <SelectItem value="Planejado">Planejado</SelectItem>
+              <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+              <SelectItem value="Concluído">Concluído</SelectItem>
+              <SelectItem value="Cancelado">Cancelado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* KPIs */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita (Mês Atual)</CardTitle>
+            <CardTitle className="text-sm font-medium">Receita (Período)</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(currentMonthData.receita)}</div>
-            <p className="text-xs text-muted-foreground">Faturamento dos eventos no mês</p>
+            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+            <p className="text-xs text-muted-foreground">Faturamento total no período selecionado</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custos (Mês Atual)</CardTitle>
+            <CardTitle className="text-sm font-medium">Custos (Período)</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(currentMonthData.custos)}</div>
-            <p className="text-xs text-muted-foreground">Despesas operacionais do mês</p>
+            <div className="text-2xl font-bold">{formatCurrency(totalCosts)}</div>
+            <p className="text-xs text-muted-foreground">Despesas operacionais no período selecionado</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lucro Líquido (Mês Atual)</CardTitle>
+            <CardTitle className="text-sm font-medium">Lucro Líquido (Período)</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(currentMonthData.lucro)}</div>
-            <p className="text-xs text-muted-foreground">Resultado final do mês</p>
+            <div className="text-2xl font-bold">{formatCurrency(totalRevenue - totalCosts)}</div>
+            <p className="text-xs text-muted-foreground">Resultado final no período selecionado</p>
           </CardContent>
         </Card>
         <Card>
@@ -164,13 +209,13 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{averageMargin.toFixed(2)}%</div>
-            <p className="text-xs text-muted-foreground">Margem de lucro média</p>
+            <p className="text-xs text-muted-foreground">Margem de lucro média no período</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Desempenho Mensal</CardTitle>
@@ -244,7 +289,7 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
               )) : (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center h-24">
-                    Nenhum evento concluído para exibir.
+                    Nenhum evento concluído para exibir no período/status selecionado.
                   </TableCell>
                 </TableRow>
               )}
