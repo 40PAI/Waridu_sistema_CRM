@@ -35,6 +35,7 @@ import { useRoles } from "@/hooks/useRoles";
 import { useLocations } from "@/hooks/useLocations";
 import { useMaterials } from "@/hooks/useMaterials";
 import { useMaterialRequests } from "@/hooks/useMaterialRequests";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 
 function App() {
   const { events, addEvent, updateEvent, updateEventDetails } = useEvents();
@@ -51,44 +52,46 @@ function App() {
   );
 
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<IndexPage events={events} materials={pageMaterials} />} />
-            <Route path="/calendar" element={<CalendarPage events={events} />} />
-            <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
-            <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} onCreateMaterialRequest={createMaterialRequest} pendingRequests={pendingRequests} materials={rawMaterials} />} />
-            <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
-            <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
-            <Route path="/roles/:roleId" element={<RoleDetail roles={roles} employees={employees} events={events} />} />
-            <Route path="/materials" element={<MaterialsPage materials={pageMaterials} locations={locations} onSaveMaterial={saveMaterial} onTransferMaterial={transferMaterial} history={[]} pendingRequests={pendingRequests} />} />
-            <Route path="/material-requests" element={<MaterialRequestsPage requests={materialRequests} events={events} materialNameMap={materialNameMap} onApproveRequest={approveMaterialRequest} onRejectRequest={rejectMaterialRequest} />} />
-            <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />
-            <Route path="/invite-member" element={<InviteMember />} />
-            <Route path="/debug" element={<DebugPage />} />
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<IndexPage events={events} materials={pageMaterials} />} />
+              <Route path="/calendar" element={<CalendarPage events={events} />} />
+              <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
+              <Route path="/roster-management" element={<RosterManagement events={events} employees={employees} onUpdateEventDetails={updateEventDetails} onUpdateEvent={updateEvent} onCreateMaterialRequest={createMaterialRequest} pendingRequests={pendingRequests} materials={rawMaterials} />} />
+              <Route path="/employees" element={<EmployeesPage roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
+              <Route path="/roles" element={<RolesPage roles={roles} employees={employees} events={events} />} />
+              <Route path="/roles/:roleId" element={<RoleDetail roles={roles} employees={employees} events={events} />} />
+              <Route path="/materials" element={<MaterialsPage materials={pageMaterials} locations={locations} onSaveMaterial={saveMaterial} onTransferMaterial={transferMaterial} history={[]} pendingRequests={pendingRequests} />} />
+              <Route path="/material-requests" element={<MaterialRequestsPage requests={materialRequests} events={events} materialNameMap={materialNameMap} onApproveRequest={approveMaterialRequest} onRejectRequest={rejectMaterialRequest} />} />
+              <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />
+              <Route path="/invite-member" element={<InviteMember />} />
+              <Route path="/debug" element={<DebugPage />} />
 
-            {/* Finance Routes */}
-            <Route path="/finance-profitability" element={<Profitability events={events} employees={employees} categories={categories} />} />
-            <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
-            <Route path="/finance-costs" element={<CostManagement />} />
-            <Route path="/finance/profile" element={<FinanceProfile />} />
+              {/* Finance Routes */}
+              <Route path="/finance-profitability" element={<Profitability events={events} employees={employees} categories={categories} />} />
+              <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
+              <Route path="/finance-costs" element={<CostManagement />} />
+              <Route path="/finance/profile" element={<FinanceProfile />} />
 
-            {/* Technician Routes */}
-            <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
-            <Route path="/technician/calendar" element={<TechnicianCalendar />} />
-            <Route path="/technician/events" element={<TechnicianEvents />} />
-            <Route path="/technician/events/:eventId" element={<TechnicianEventDetail />} />
-            <Route path="/technician/tasks" element={<TechnicianTasks />} />
-            <Route path="/technician/profile" element={<TechnicianProfile />} />
-            <Route path="/technician/notifications" element={<TechnicianNotifications />} />
+              {/* Technician Routes */}
+              <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
+              <Route path="/technician/calendar" element={<TechnicianCalendar />} />
+              <Route path="/technician/events" element={<TechnicianEvents />} />
+              <Route path="/technician/events/:eventId" element={<TechnicianEventDetail />} />
+              <Route path="/technician/tasks" element={<TechnicianTasks />} />
+              <Route path="/technician/profile" element={<TechnicianProfile />} />
+              <Route path="/technician/notifications" element={<TechnicianNotifications />} />
 
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

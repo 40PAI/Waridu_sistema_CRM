@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Event, PageMaterial } from "@/types";
 import { parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useMemo } from "react";
 
 interface IndexProps {
   events: Event[];
@@ -32,7 +33,7 @@ const getEventStatusVariant = (status: string) => {
 
 // --- Sub-components ---
 const MaterialStatusList = ({ materials }: { materials: PageMaterial[] }) => {
-    const activeMaterials = materials.filter(m => m.status !== 'Disponível');
+    const activeMaterials = useMemo(() => materials.filter(m => m.status !== 'Disponível'), [materials]);
     return (
         <div className="space-y-4">
             {activeMaterials.length > 0 ? activeMaterials.map((item) => (
@@ -55,19 +56,19 @@ const MaterialStatusList = ({ materials }: { materials: PageMaterial[] }) => {
 // --- Main Dashboard Component ---
 const Dashboard = ({ events, materials }: IndexProps) => {
   // --- Data Processing ---
-  const totalItems = materials.reduce((sum, item) => sum + item.quantity, 0);
-  const availableItems = materials.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = useMemo(() => materials.reduce((sum, item) => sum + item.quantity, 0), [materials]);
+  const availableItems = useMemo(() => materials.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0), [materials]);
 
   const now = new Date();
   const startOfThisMonth = startOfMonth(now);
   const endOfThisMonth = endOfMonth(now);
-  const totalEventsThisMonth = events.filter(event => {
+  const totalEventsThisMonth = useMemo(() => events.filter(event => {
       const eventDate = parseISO(event.startDate);
       return isWithinInterval(eventDate, { start: startOfThisMonth, end: endOfThisMonth });
-  }).length;
+  }).length, [events, startOfThisMonth, endOfThisMonth]);
 
-  const lastFourMonths = Array.from({ length: 4 }, (_, i) => subMonths(now, i)).reverse();
-  const financeData = lastFourMonths.map(monthDate => {
+  const lastFourMonths = useMemo(() => Array.from({ length: 4 }, (_, i) => subMonths(now, i)).reverse(), [now]);
+  const financeData = useMemo(() => lastFourMonths.map(monthDate => {
       const monthKey = format(monthDate, 'MMM', { locale: ptBR });
       const start = startOfMonth(monthDate);
       const end = endOfMonth(monthDate);
@@ -81,11 +82,11 @@ const Dashboard = ({ events, materials }: IndexProps) => {
           .reduce((sum, e) => sum + (e.expenses?.reduce((expSum, exp) => expSum + exp.amount, 0) || 0), 0);
 
       return { name: monthKey, Receita: revenueForMonth, Despesa: expensesForMonth };
-  });
+  }), [events, lastFourMonths]);
 
-  const totalRevenue = financeData.reduce((sum, item) => sum + item.Receita, 0);
+  const totalRevenue = useMemo(() => financeData.reduce((sum, item) => sum + item.Receita, 0), [financeData]);
 
-  const categoryData = materials.reduce((acc, item) => {
+  const categoryData = useMemo(() => materials.reduce((acc, item) => {
     const category = acc.find(c => c.name === item.category);
     if (category) {
       category.quantidade += item.quantity;
@@ -93,9 +94,9 @@ const Dashboard = ({ events, materials }: IndexProps) => {
       acc.push({ name: item.category, quantidade: item.quantity });
     }
     return acc;
-  }, [] as { name: string; quantidade: number }[]);
+  }, [] as { name: string; quantidade: number }[]), [materials]);
 
-  const recentEvents = events
+  const recentEvents = useMemo(() => events
     .sort((a, b) => parseISO(b.startDate).getTime() - parseISO(a.startDate).getTime())
     .slice(0, 4)
     .map(e => ({
@@ -103,7 +104,7 @@ const Dashboard = ({ events, materials }: IndexProps) => {
         name: e.name,
         date: format(parseISO(e.startDate), 'dd/MM/yyyy', { locale: ptBR }),
         status: e.status
-    }));
+    })), [events]);
 
   return (
     <div className="flex-1 space-y-6">

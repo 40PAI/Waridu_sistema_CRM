@@ -87,8 +87,8 @@ const TechnicianDashboard = () => {
   }, [user]);
 
   // Filter events for this technician
-  const upcomingEvents = events.filter(e => e.status === 'Planejado' || e.status === 'Em Andamento');
-  const pastEvents = events.filter(e => e.status === 'Concluído');
+  const upcomingEvents = React.useMemo(() => events.filter(e => e.status === 'Planejado' || e.status === 'Em Andamento'), [events]);
+  const pastEvents = React.useMemo(() => events.filter(e => e.status === 'Concluído'), [events]);
   
   const totalUpcoming = upcomingEvents.length;
   const totalPast = pastEvents.length;
