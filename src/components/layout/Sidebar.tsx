@@ -42,14 +42,16 @@ const Sidebar = () => {
     <div className="hidden border-r bg-muted/40 md:block">
       <div className="flex h-full flex-col">
         <div className="flex h-14 items-center border-b px-4">
-          <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold">
-            <Package2 className="h-6 w-6" /> Sua Empresa
+          <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold" aria-label="Ir para Dashboard">
+            <Package2 className="h-6 w-6" aria-hidden="true" />
+            Sua Empresa
           </NavLink>
         </div>
-        <nav className="flex-1 px-2 py-4 space-y-1 text-sm font-medium">
+        <nav className="flex-1 px-2 py-4 space-y-1 text-sm font-medium" aria-label="Navegação principal">
           {items.map(item => (
-            <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/"}>
-              <item.icon className="h-4 w-4" /> {item.label}
+            <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/"} aria-label={`Ir para ${item.label}`}>
+              <item.icon className="h-4 w-4" aria-hidden="true" />
+              {item.label}
             </NavLink>
           ))}
         </nav>

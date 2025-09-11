@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Role } from "@/types";
 import { Role as ConfigRole } from "@/config/roles";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { showError, showSuccess } from "@/utils/toast";
 export const useRoles = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRoles();
@@ -15,6 +16,7 @@ export const useRoles = () => {
   const fetchRoles = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('roles')
         .select('*')
@@ -30,7 +32,9 @@ export const useRoles = () => {
       setRoles(formattedRoles);
     } catch (error) {
       console.error("Error fetching roles:", error);
-      showError("Erro ao carregar funções.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao carregar funções.";
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -48,7 +52,8 @@ export const useRoles = () => {
       fetchRoles(); // Refresh the list
     } catch (error) {
       console.error("Error adding role:", error);
-      showError("Erro ao adicionar função.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao adicionar função.";
+      showError(errorMessage);
     }
   };
 
@@ -65,7 +70,8 @@ export const useRoles = () => {
       fetchRoles(); // Refresh the list
     } catch (error) {
       console.error("Error updating role:", error);
-      showError("Erro ao atualizar função.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao atualizar função.";
+      showError(errorMessage);
     }
   };
 
@@ -82,13 +88,24 @@ export const useRoles = () => {
       fetchRoles(); // Refresh the list
     } catch (error) {
       console.error("Error deleting role:", error);
-      showError("Erro ao remover função.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao remover função.";
+      showError(errorMessage);
     }
   };
 
+  const rolesByName = useMemo(() => {
+    const map: Record<string, Role> = {};
+    roles.forEach(role => {
+      map[role.name] = role;
+    });
+    return map;
+  }, [roles]);
+
   return {
     roles,
+    rolesByName,
     loading,
+    error,
     addRole,
     updateRole,
     deleteRole,

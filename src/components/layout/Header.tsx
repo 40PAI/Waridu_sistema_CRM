@@ -11,8 +11,12 @@ const Header = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await logout();
-    navigate("/login");
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   const common = [
@@ -49,22 +53,44 @@ const Header = () => {
   return (
     <header className="flex h-14 items-center border-b bg-muted/40 px-4">
       <Sheet>
-        <SheetTrigger asChild><Button variant="outline" size="icon">{/* menu icon */}</Button></SheetTrigger>
-        <SheetContent><nav className="flex flex-col">{navItems.filter(i=>allowed.includes(i.to)).map(item=>(
-          <NavLink key={item.to} to={item.to} className={navLinkClasses}>{<item.icon className="h-5 w-5"/>}{item.label}</NavLink>
-        ))}</nav></SheetContent>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="icon" aria-label="Abrir menu de navegação">
+            <span className="sr-only">Abrir menu</span>
+            {/* Add hamburger icon here if needed */}
+          </Button>
+        </SheetTrigger>
+        <SheetContent>
+          <nav className="flex flex-col" aria-label="Navegação principal">
+            {navItems.filter(i => allowed.includes(i.to)).map(item => (
+              <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/"}>
+                <item.icon className="h-5 w-5" aria-hidden="true" />
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </SheetContent>
       </Sheet>
-      <div className="flex-1"/>
+      <div className="flex-1" />
       <DropdownMenu>
-        <DropdownMenuTrigger asChild><Button size="icon"><CircleUser/></Button></DropdownMenuTrigger>
+        <DropdownMenuTrigger asChild>
+          <Button size="icon" aria-label="Menu do usuário">
+            <CircleUser aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>
             <p>{user?.profile?.first_name || user?.email}</p>
             <p className="text-xs">{user?.email}</p>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator/>
-          <DropdownMenuItem asChild><Link to={userRole === 'Financeiro' ? "/finance/profile" : "/technician/profile"}>Perfil</Link></DropdownMenuItem>
-          <DropdownMenuItem onClick={handleLogout}>Sair</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link to={userRole === 'Financeiro' ? "/finance/profile" : "/technician/profile"}>
+              Perfil
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>
+            Sair
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

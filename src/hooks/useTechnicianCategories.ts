@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 
@@ -11,6 +11,7 @@ export type TechnicianCategory = {
 export const useTechnicianCategories = () => {
   const [categories, setCategories] = useState<TechnicianCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -19,6 +20,7 @@ export const useTechnicianCategories = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from("technician_category_rates")
         .select("*")
@@ -35,7 +37,9 @@ export const useTechnicianCategories = () => {
       setCategories(formatted);
     } catch (err) {
       console.error("Erro ao carregar categorias:", err);
-      showError("Erro ao carregar categorias.");
+      const errorMessage = err instanceof Error ? err.message : "Erro ao carregar categorias.";
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -53,7 +57,8 @@ export const useTechnicianCategories = () => {
       fetchCategories();
     } catch (err: any) {
       console.error("Erro ao criar categoria:", err);
-      showError(err?.message || "Erro ao criar categoria.");
+      const errorMessage = err?.message || "Erro ao criar categoria.";
+      showError(errorMessage);
     }
   };
 
@@ -70,7 +75,8 @@ export const useTechnicianCategories = () => {
       fetchCategories();
     } catch (err: any) {
       console.error("Erro ao atualizar categoria:", err);
-      showError(err?.message || "Erro ao atualizar categoria.");
+      const errorMessage = err?.message || "Erro ao atualizar categoria.";
+      showError(errorMessage);
     }
   };
 
@@ -87,13 +93,24 @@ export const useTechnicianCategories = () => {
       fetchCategories();
     } catch (err: any) {
       console.error("Erro ao remover categoria:", err);
-      showError(err?.message || "Erro ao remover categoria.");
+      const errorMessage = err?.message || "Erro ao remover categoria.";
+      showError(errorMessage);
     }
   };
 
+  const categoriesById = useMemo(() => {
+    const map: Record<string, TechnicianCategory> = {};
+    categories.forEach(category => {
+      map[category.id] = category;
+    });
+    return map;
+  }, [categories]);
+
   return {
     categories,
+    categoriesById,
     loading,
+    error,
     addCategory,
     updateCategory,
     deleteCategory,

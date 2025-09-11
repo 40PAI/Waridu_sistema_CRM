@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Location } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -6,6 +6,7 @@ import { showError, showSuccess } from "@/utils/toast";
 export const useLocations = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLocations();
@@ -14,6 +15,7 @@ export const useLocations = () => {
   const fetchLocations = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('locations')
         .select('*')
@@ -29,7 +31,9 @@ export const useLocations = () => {
       setLocations(formattedLocations);
     } catch (error) {
       console.error("Error fetching locations:", error);
-      showError("Erro ao carregar localizações.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao carregar localizações.";
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -47,7 +51,8 @@ export const useLocations = () => {
       fetchLocations(); // Refresh the list
     } catch (error) {
       console.error("Error adding location:", error);
-      showError("Erro ao adicionar localização.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao adicionar localização.";
+      showError(errorMessage);
     }
   };
 
@@ -64,7 +69,8 @@ export const useLocations = () => {
       fetchLocations(); // Refresh the list
     } catch (error) {
       console.error("Error updating location:", error);
-      showError("Erro ao atualizar localização.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao atualizar localização.";
+      showError(errorMessage);
     }
   };
 
@@ -87,13 +93,24 @@ export const useLocations = () => {
       fetchLocations(); // Refresh the list
     } catch (error) {
       console.error("Error deleting location:", error);
-      showError("Erro ao remover localização.");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao remover localização.";
+      showError(errorMessage);
     }
   };
 
+  const locationsById = useMemo(() => {
+    const map: Record<string, Location> = {};
+    locations.forEach(location => {
+      map[location.id] = location;
+    });
+    return map;
+  }, [locations]);
+
   return {
     locations,
+    locationsById,
     loading,
+    error,
     addLocation,
     updateLocation,
     deleteLocation,
