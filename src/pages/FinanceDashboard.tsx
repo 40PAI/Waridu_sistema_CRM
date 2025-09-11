@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign, TrendingUp, Wallet, Briefcase, Download } from "lucide-react";
 import * as React from "react";
-import { TechnicianCategory } from "@/hooks/useTechnicianCategories";
+import { TechnicianCategory } from "@/hooks/useTechnicianCategories"; // Importa o tipo
 import { Event, EventStatus } from "@/types";
 import { Employee } from "@/components/employees/EmployeeDialog";
 import { parseISO, format, differenceInDays, isWithinInterval } from "date-fns";
@@ -43,6 +43,7 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   const [statusFilter, setStatusFilter] = React.useState<EventStatus | "all">("all");
 
+  // Criar mapas para acesso rápido
   const categoryMap = React.useMemo(() => {
     const map = new Map<string, number>();
     categories.forEach(c => map.set(c.id, c.dailyRate));
@@ -55,6 +56,7 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
     return map;
   }, [employees]);
 
+  // Função para calcular o custo de pessoal de um evento
   const calculatePersonnelCost = React.useCallback((event: Event): number => {
     if (!event.roster?.teamMembers || event.roster.teamMembers.length === 0) return 0;
 
@@ -76,6 +78,7 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
     return totalCost;
   }, [employeeMap, categoryMap]);
 
+  // Filtrar eventos com base em data e status
   const filteredEvents = React.useMemo(() => {
     return events.filter(event => {
       const eventStartDate = parseISO(event.startDate);
@@ -93,9 +96,12 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
     });
   }, [events, dateRange, statusFilter]);
 
+  // Processar dados financeiros com base nos eventos filtrados
   const processedFinancialData = React.useMemo(() => {
+    // Somente eventos concluídos com receita
     const completedEvents = filteredEvents.filter(e => e.status === 'Concluído' && e.revenue);
 
+    // Calcular rentabilidade por evento
     const eventProfitability = completedEvents.map(event => {
       const personnelCost = calculatePersonnelCost(event);
       const otherExpenses = event.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
@@ -112,6 +118,7 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
       };
     });
 
+    // Agregar performance mensal
     const monthlyPerformance: Record<string, { receita: number; custos: number; lucro: number }> = {};
     eventProfitability.forEach(event => {
       const eventDate = parseISO(events.find(e => e.id === event.id)!.startDate);
@@ -126,8 +133,9 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
 
     const monthlyPerformanceData = Object.entries(monthlyPerformance)
       .map(([month, data]) => ({ month, ...data }))
-      .sort((a, b) => parseISO(a.month).getTime() - parseISO(b.month).getTime());
+      .sort((a, b) => parseISO(`01 ${a.month}`)!.getTime() - parseISO(`01 ${b.month}`)!.getTime());
 
+    // Calcular custos totais para o gráfico de pizza
     let totalPersonnelCost = 0;
     let totalOtherExpenses = 0;
     completedEvents.forEach(event => {
@@ -145,12 +153,14 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
 
   const { eventProfitability, monthlyPerformanceData, costBreakdownData } = processedFinancialData;
 
+  // Calcular KPIs com base nos dados processados
   const totalRevenue = monthlyPerformanceData.reduce((sum, item) => sum + item.receita, 0);
   const totalCosts = monthlyPerformanceData.reduce((sum, item) => sum + item.custos, 0);
   const averageMargin = totalRevenue > 0 ? ((totalRevenue - totalCosts) / totalRevenue) * 100 : 0;
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
+  // Função para exportar dados para CSV
   const handleExport = () => {
     if (eventProfitability.length === 0) {
       showError("Não há dados para exportar com os filtros atuais.");
