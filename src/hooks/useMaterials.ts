@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { PageMaterial, InventoryMaterial, MaterialStatus } from "@/types";
+import { PageMaterial, InventoryMaterial, MaterialStatus, AllocationHistoryEntry } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 
@@ -248,6 +248,35 @@ export const useMaterials = () => {
     }
   };
 
+  const fetchAllocationHistory = async (): Promise<AllocationHistoryEntry[]> => {
+    try {
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('id, name, start_date, status, roster')
+        .eq('status', 'Concluído')
+        .order('start_date', { ascending: false })
+        .limit(50);
+
+      if (eventsError) throw eventsError;
+
+      const history: AllocationHistoryEntry[] = (eventsData || [])
+        .filter(event => event.roster && event.roster.materials && Object.keys(event.roster.materials).length > 0)
+        .map(event => ({
+          id: event.id.toString(),
+          date: new Date(event.start_date).toLocaleDateString('pt-BR'),
+          eventName: event.name,
+          materials: event.roster.materials
+        }));
+
+      return history;
+    } catch (error) {
+      console.error("Error fetching allocation history:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao carregar histórico.";
+      showError(errorMessage);
+      return [];
+    }
+  };
+
   const pageMaterials: PageMaterial[] = useMemo(() => materials.map(m => ({
     id: m.id,
     name: m.name,
@@ -266,6 +295,7 @@ export const useMaterials = () => {
     saveMaterial,
     addInitialStock,
     transferMaterial,
+    fetchAllocationHistory,
     refreshMaterials: fetchMaterials
   };
 };
