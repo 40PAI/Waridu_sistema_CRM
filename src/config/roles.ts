@@ -5,11 +5,11 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/', '/calendar', '/create-event', '/roster-management',
     '/employees', '/roles', '/materials', '/material-requests',
     '/finance-profitability', '/finance-calendar', '/finance-costs',
-    '/admin-settings', '/invite-member', '/debug', '/roles/:roleId'
+    '/admin-settings', '/invite-member', '/admin/members', '/debug', '/roles/:roleId'
   ],
   Coordenador: [
     '/', '/calendar', '/create-event', '/roster-management',
-    '/employees', '/roles', '/materials'
+    '/employees', '/roles', '/materials', '/invite-member', '/admin/members'
   ],
   'Gestor de Material': [
     '/', '/calendar', '/roster-management', '/materials', '/material-requests'
@@ -26,8 +26,8 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
 };
 
 export const ACTION_PERMISSIONS: Record<Role, string[]> = {
-  Admin: ['categories:manage','materials:write','employees:write','employees:assign_category','members:invite'],
-  Coordenador: ['members:invite','employees:write'],
+  Admin: ['categories:manage','materials:write','employees:write','employees:assign_category','members:invite','members:promote','members:ban','members:delete'],
+  Coordenador: ['members:invite','members:promote','employees:write'],
   'Gestor de Material': ['materials:write'],
   Financeiro: ['categories:manage'],
   Técnico: [],

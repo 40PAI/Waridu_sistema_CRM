@@ -15,6 +15,7 @@ import MaterialsPage from "@/pages/Materials";
 import MaterialRequestsPage from "@/pages/MaterialRequests";
 import AdminSettings from "@/pages/AdminSettings";
 import InviteMember from "@/pages/InviteMember";
+import GerenciarMembros from "@/pages/admin/GerenciarMembros";
 import Profitability from "@/pages/finance/Profitability";
 import FinanceCalendar from "@/pages/finance/Calendar";
 import CostManagement from "@/pages/finance/CostManagement";
@@ -66,16 +67,13 @@ function App() {
               <Route path="/roles/:roleId" element={<RoleDetail roles={roles} employees={employees} events={events} />} />
               <Route path="/materials" element={<MaterialsPage materials={pageMaterials} locations={locations} onSaveMaterial={saveMaterial} onTransferMaterial={transferMaterial} history={[]} pendingRequests={pendingRequests} />} />
               <Route path="/material-requests" element={<MaterialRequestsPage requests={materialRequests} events={events} materialNameMap={materialNameMap} onApproveRequest={approveMaterialRequest} onRejectRequest={rejectMaterialRequest} />} />
-              <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={addRole} onUpdateRole={updateRole} onDeleteRole={deleteRole} locations={locations} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />} />
+              <Route path="/admin-settings" element={<AdminSettings roles={roles} onAddRole={onAddRole} onUpdateRole={onUpdateRole} onDeleteRole={onDeleteRole} locations={locations} onAddLocation={onAddLocation} onUpdateLocation={onUpdateLocation} onDeleteLocation={onDeleteLocation} />} />
               <Route path="/invite-member" element={<InviteMember />} />
-
-              {/* Finance Routes */}
+              <Route path="/admin/members" element={<GerenciarMembros />} />
               <Route path="/finance-profitability" element={<Profitability events={events} employees={employees} categories={categories} />} />
               <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
               <Route path="/finance-costs" element={<CostManagement />} />
               <Route path="/finance/profile" element={<FinanceProfile />} />
-
-              {/* Technician Routes */}
               <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
               <Route path="/technician/calendar" element={<TechnicianCalendar />} />
               <Route path="/technician/events" element={<TechnicianEvents />} />
@@ -83,7 +81,6 @@ function App() {
               <Route path="/technician/tasks" element={<TechnicianTasks />} />
               <Route path="/technician/profile" element={<TechnicianProfile />} />
               <Route path="/technician/notifications" element={<TechnicianNotifications />} />
-
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>

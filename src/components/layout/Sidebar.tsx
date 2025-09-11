@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList, CheckCircle, User, TrendingUp, Wallet } from "lucide-react";
+import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList, CheckCircle, User, TrendingUp, Wallet, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { PAGE_PERMISSIONS } from "@/config/roles";
@@ -22,6 +22,12 @@ const Sidebar = () => {
     { to: "/material-requests", icon: ClipboardList, label: "Requisições" },
   ];
 
+  const admin = [
+    { to: "/admin-settings", icon: Settings, label: "Configurações" },
+    { to: "/invite-member", icon: UserPlus, label: "Convidar" },
+    { to: "/admin/members", icon: UserPlus, label: "Gerenciar Membros" },
+  ];
+
   const finance = [
     { to: "/finance-profitability", icon: TrendingUp, label: "Rentabilidade" },
     { to: "/finance-calendar", icon: CalendarDays, label: "Calendário Financeiro" },
@@ -29,14 +35,7 @@ const Sidebar = () => {
     { to: "/finance/profile", icon: User, label: "Meu Perfil" },
   ];
 
-  const admin = [
-    { to: "/admin-settings", icon: Settings, label: "Configurações" },
-    { to: "/invite-member", icon: Package2, label: "Convidar" },
-  ];
-
   const navItems = [...common, ...finance, ...admin].filter(i => allowed.includes(i.to));
-
-  const items = [...common, ...finance, ...admin].filter(i => allowed.includes(i.to));
 
   return (
     <div className="hidden border-r bg-muted/40 md:block">
@@ -48,7 +47,7 @@ const Sidebar = () => {
           </NavLink>
         </div>
         <nav className="flex-1 px-2 py-4 space-y-1 text-sm font-medium" aria-label="Navegação principal">
-          {items.map(item => (
+          {navItems.map(item => (
             <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/"} aria-label={`Ir para ${item.label}`}>
               <item.icon className="h-4 w-4" aria-hidden="true" />
               {item.label}
