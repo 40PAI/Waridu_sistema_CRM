@@ -116,6 +116,24 @@ export const useMaterials = () => {
     }
   };
 
+  const deleteMaterial = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('materials')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      showSuccess("Material removido com sucesso!");
+      fetchMaterials(); // Refresh the list
+    } catch (error) {
+      console.error("Error deleting material:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao remover material.";
+      showError(errorMessage);
+    }
+  };
+
   const addInitialStock = async (materialId: string, locationId: string, quantity: number) => {
     try {
       console.log("addInitialStock called with:", { materialId, locationId, quantity });
@@ -309,6 +327,7 @@ export const useMaterials = () => {
     loading,
     error,
     saveMaterial,
+    deleteMaterial,
     addInitialStock,
     transferMaterial,
     refreshMaterials: fetchMaterials

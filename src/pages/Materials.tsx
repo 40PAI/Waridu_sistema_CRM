@@ -14,6 +14,18 @@ import { TransferDialog } from "@/components/materials/TransferDialog";
 import { useMaterialCategories } from "@/hooks/useMaterialCategories";
 import type { MaterialRequest } from "@/types";
 import type { MaterialStatus, PageMaterial as Material } from "@/types";
+import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Location {
   id: string;
@@ -33,13 +45,14 @@ interface MaterialsPageProps {
   onSaveMaterial: (materialData: Omit<Material, 'id' | 'locations'> & { id?: string }) => Promise<Material>;
   onAddInitialStock: (materialId: string, locationId: string, quantity: number) => void;
   onTransferMaterial: (materialId: string, fromLocationId: string, toLocationId: string, quantity: number) => void;
+  onDeleteMaterial: (id: string) => void;
   history: AllocationHistoryEntry[];
   pendingRequests: MaterialRequest[];
 }
 
 type ViewMode = 'table' | 'cards';
 
-const MaterialsPage = ({ materials, locations, onSaveMaterial, onAddInitialStock, onTransferMaterial, history, pendingRequests }: MaterialsPageProps) => {
+const MaterialsPage = ({ materials, locations, onSaveMaterial, onAddInitialStock, onTransferMaterial, onDeleteMaterial, history, pendingRequests }: MaterialsPageProps) => {
   const { user } = useAuth();
   const userRole = user?.profile?.role;
   const canWrite = userRole ? hasActionPermission(userRole, 'materials:write') : false;
@@ -139,6 +152,27 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onAddInitialStock
               onTransfer={onTransferMaterial}
             />
             <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>Editar</Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remover Material?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. O material "{material.name}" será removido permanentemente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDeleteMaterial(material.id)}>
+                    Remover
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
       </CardContent>
@@ -268,6 +302,27 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onAddInitialStock
                                   onTransfer={onTransferMaterial}
                                 />
                                 <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>Editar</Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Remover Material?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Esta ação não pode ser desfeita. O material "{material.name}" será removido permanentemente.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => onDeleteMaterial(material.id)}>
+                                        Remover
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </>
                             )}
                           </TableCell>
