@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Material } from "@/pages/Materials";
+import type { PageMaterial as Material } from "@/types";
 import { showError } from "@/utils/toast";
 
 interface MaterialDialogProps {
@@ -62,7 +62,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material }: Materia
       quantity,
       status,
       description,
-      locations: {} // Adicionando o campo locations
+      locations: material?.locations || {}
     };
 
     onSave(materialData);

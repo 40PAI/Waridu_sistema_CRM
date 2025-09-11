@@ -3,8 +3,7 @@ import { Archive, CheckCircle, Calendar, DollarSign } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Event } from "@/types";
-import type { Material as PageMaterial } from "@/pages/Materials";
+import type { Event, PageMaterial } from "@/types";
 import { parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
