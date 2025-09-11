@@ -43,7 +43,6 @@ serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return<dyad-write path="supabase/functions/promote-user/index.ts" description="Continuação do edge function para promover usuários">
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: corsHeaders });
   }
 
