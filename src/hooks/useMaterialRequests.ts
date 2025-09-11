@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MaterialRequest, MaterialRequestItem, MaterialRequestStatus } from "@/types";
+import { MaterialRequest, MaterialRequestItem, MaterialRequestStatus, ApproveResult } from "@/types"; // Import ApproveResult
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 
@@ -109,7 +109,7 @@ export const useMaterialRequests = () => {
     }
   };
 
-  const approveMaterialRequest = async (requestId: string) => {
+  const approveMaterialRequest = async (requestId: string): Promise<ApproveResult> => {
     try {
       const { error } = await supabase
         .from('material_requests')
@@ -130,7 +130,7 @@ export const useMaterialRequests = () => {
     } catch (error) {
       console.error("Error approving request:", error);
       showError("Falha ao aprovar requisição.");
-      return { ok: false, shortages: [] };
+      return { ok: false, shortages: [] }; // Explicitly returning an empty array that matches the type
     }
   };
 
