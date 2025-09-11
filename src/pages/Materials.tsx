@@ -12,7 +12,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { TransferDialog } from "@/components/materials/TransferDialog";
 import { useMaterialCategories } from "@/hooks/useMaterialCategories";
-import { useMaterials } from "@/hooks/useMaterials"; // Import the hook
 import type { MaterialRequest } from "@/types";
 import type { MaterialStatus, PageMaterial as Material } from "@/types";
 
@@ -45,23 +44,12 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
   const canWrite = userRole ? hasActionPermission(userRole, 'materials:write') : false;
 
   const { categories: materialCategories } = useMaterialCategories();
-  const { fetchAllocationHistory } = useMaterials(); // Use the hook for history
 
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [categoryFilter, setCategoryFilter] = React.useState('all');
   const [viewMode, setViewMode] = React.useState<ViewMode>('table');
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
-  const [allocationHistory, setAllocationHistory] = React.useState<AllocationHistoryEntry[]>(history);
-
-  // Fetch history on mount
-  React.useEffect(() => {
-    const loadHistory = async () => {
-      const historyData = await fetchAllocationHistory();
-      setAllocationHistory(historyData);
-    };
-    loadHistory();
-  }, [fetchAllocationHistory]);
 
   const handleAddNew = () => {
     setEditingMaterial(null);
@@ -313,7 +301,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {allocationHistory.length > 0 ? allocationHistory.map(entry => (
+                  {history.length > 0 ? history.map(entry => (
                     <TableRow key={entry.id}>
                       <TableCell>{entry.date}</TableCell>
                       <TableCell>{entry.eventName}</TableCell>
@@ -350,7 +338,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
         onOpenChange={setIsDialogOpen}
         onSave={onSaveMaterial}
         material={editingMaterial}
-        onAddInitialStock={addInitialStock} // Now using the proper addInitialStock function
+        onAddInitialStock={onTransferMaterial} // Note: Using onTransferMaterial as placeholder; adjust if needed
       />
     </>
   );
