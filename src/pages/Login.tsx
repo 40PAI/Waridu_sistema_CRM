@@ -5,17 +5,27 @@ import { Package2 } from "lucide-react";
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { session } = useAuth();
 
   React.useEffect(() => {
-    if (session) {
-      navigate("/", { replace: true });
-    }
-  }, [session, navigate]);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/", { replace: true });
+      }
+    };
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        navigate("/", { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40">
@@ -57,7 +67,7 @@ const LoginPage = () => {
                 forgotten_password: {
                   email_label: 'Endereço de e-mail',
                   email_input_placeholder: 'seu@email.com',
-                  button_label: 'Enviar instruções',
+                  password_input_placeholder: 'Enviar instruções',
                   link_text: 'Esqueceu sua senha?',
                 },
               },
