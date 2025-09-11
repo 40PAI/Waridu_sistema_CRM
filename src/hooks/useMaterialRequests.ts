@@ -126,11 +126,11 @@ export const useMaterialRequests = () => {
       );
 
       showSuccess("Requisição aprovada e estoque atualizado.");
-      return { ok: true } as const;
+      return { ok: true };
     } catch (error) {
       console.error("Error approving request:", error);
       showError("Falha ao aprovar requisição.");
-      return { ok: false, shortages: [] } as const;
+      return { ok: false, shortages: [] };
     }
   };
 
