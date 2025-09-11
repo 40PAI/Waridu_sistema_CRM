@@ -210,9 +210,9 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="category" className="text-right">Categoria</Label>
               <div className="col-span-3 flex gap-2">
-                <Select value={category} onValueChange={setCategory} disabled={catLoading}>
+                <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder={catLoading ? "Carregando categorias..." : "Selecione a categoria"} />
+                    <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
                   <SelectContent>
                     {materialCategories.map(cat => (
@@ -225,7 +225,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" onClick={() => setIsCategoryDialogOpen(true)} disabled={catLoading}>
+                      <Button variant="outline" size="icon" onClick={() => setIsCategoryDialogOpen(true)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
