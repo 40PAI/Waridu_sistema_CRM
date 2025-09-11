@@ -10,14 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 
 const TechnicianDashboard = () => {
   const { user } = useAuth();
+  const { categories } = useTechnicianCategories();
   const technicianName = user?.profile?.first_name || user?.email || "Técnico";
   
   const [events, setEvents] = React.useState<Event[]>([]);
   const [notifications, setNotifications] = React.useState<any[]>([]);
-  const [earnings, setEarnings] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [unreadCount, setUnreadCount] = React.useState(0);
 
@@ -67,15 +68,6 @@ const TechnicianDashboard = () => {
         setNotifications(notificationsData || []);
         setUnreadCount((notificationsData || []).filter((n: any) => !n.read).length);
         
-        // Dados de ganhos fictícios para demonstração
-        const mockEarnings = [
-          { name: 'Evento A', Ganho: 1500 },
-          { name: 'Evento B', Ganho: 2300 },
-          { name: 'Evento C', Ganho: 1890 },
-          { name: 'Evento D', Ganho: 3000 },
-        ];
-        setEarnings(mockEarnings);
-        
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -85,6 +77,20 @@ const TechnicianDashboard = () => {
 
     fetchData();
   }, [user]);
+
+  // Calcular ganhos dinamicamente com base nos eventos e categoria do técnico
+  const earnings = React.useMemo(() => {
+    if (!user?.profile?.technician_category_id) return [];
+    
+    const category = categories.find(c => c.id === user.profile.technician_category_id);
+    if (!category) return [];
+    
+    const concludedEvents = events.filter(e => e.status === 'Concluído');
+    return concludedEvents.map(event => ({
+      name: event.name,
+      Ganho: category.dailyRate * 1 // Assumindo 1 dia por evento; ajuste conforme necessário
+    }));
+  }, [events, categories, user]);
 
   // Filter events for this technician
   const upcomingEvents = React.useMemo(() => events.filter(e => e.status === 'Planejado' || e.status === 'Em Andamento'), [events]);
