@@ -134,7 +134,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto"> {/* Adjusted width and height for compactness */}
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditing ? "Editar Material" : "Adicionar Novo Material"}</DialogTitle>
             <DialogDescription>
@@ -144,8 +144,9 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4"> {/* Responsive grid: 1 col mobile, 2 col desktop */}
-            <div className="md:col-span-2 space-y-2"> {/* Name spans full width */}
+          <div className="space-y-4 py-4">
+            {/* Name Field */}
+            <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
               <Input 
                 id="name" 
@@ -155,6 +156,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               />
             </div>
 
+            {/* Category Field */}
             <div className="space-y-2">
               <Label htmlFor="category">Categoria</Label>
               <div className="flex gap-2">
@@ -189,6 +191,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               </div>
             </div>
 
+            {/* Status Field */}
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select value={status} onValueChange={(value) => setStatus(value as Material['status'])}>
@@ -203,6 +206,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               </Select>
             </div>
 
+            {/* Initial Location and Quantity (only for new materials) */}
             {!isEditing && (
               <>
                 <div className="space-y-2">
@@ -235,7 +239,8 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               </>
             )}
 
-            <div className="md:col-span-2 space-y-2"> {/* Description spans full width */}
+            {/* Description Field */}
+            <div className="space-y-2">
               <Label htmlFor="description">Descrição</Label>
               <Textarea 
                 id="description" 
@@ -243,7 +248,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                 onChange={(e) => setDescription(e.target.value)} 
                 placeholder="Detalhes sobre o material..."
                 rows={3}
-                className="min-h-[80px] resize-none" // Removed resize-vertical to prevent vertical expansion
+                className="min-h-[80px] resize-y"
               />
             </div>
           </div>
@@ -260,7 +265,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
       <MaterialCategoryManager 
         open={isCategoryDialogOpen} 
         onOpenChange={setIsCategoryDialogOpen} 
-        onCategorySelected={handleCategoryChange} // Pass callback to update category selection
+        onCategorySelected={handleCategoryChange}
       />
     </>
   );
