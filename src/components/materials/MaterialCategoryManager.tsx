@@ -54,21 +54,28 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
       return;
     }
 
-    if (materialCategories.some(c => c.name.toLowerCase() === newCategoryName.trim().toLowerCase())) {
-      setAddCategoryError("Categoria já existe.");
+    const trimmedName = newCategoryName.trim();
+    if (materialCategories.some(c => c.name.toLowerCase() === trimmedName.toLowerCase())) {
+      setAddCategoryError("Categoria já existe (verificação sem distinção de maiúsculas/minúsculas).");
       return;
     }
 
     try {
       setAddCategoryError(null);
-      await addCategory(newCategoryName.trim(), newCategoryDesc.trim() || undefined);
+      await addCategory(trimmedName, newCategoryDesc.trim() || undefined);
       showSuccess("Categoria adicionada com sucesso!");
       setNewCategoryName("");
       setNewCategoryDesc("");
+      onCategorySelected?.(trimmedName); // Notify parent of new category
     } catch (err: any) {
-      const errorMessage = err?.message || "Erro ao adicionar categoria.";
-      setAddCategoryError(errorMessage);
-      showError(errorMessage);
+      console.error("Add category error:", err); // Debug log
+      if (err.message?.includes('duplicate key value violates unique constraint')) {
+        setAddCategoryError("Categoria já existe no banco de dados. Escolha um nome diferente.");
+      } else {
+        const errorMessage = err?.message || "Erro ao adicionar categoria. Verifique permissões ou conexão.";
+        setAddCategoryError(errorMessage);
+        showError(errorMessage);
+      }
     }
   };
 
@@ -82,18 +89,24 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
       return;
     }
 
-    if (materialCategories.some(c => c.name.toLowerCase() === editingCategory.name.trim().toLowerCase() && c.id !== editingCategory.id)) {
+    const trimmedName = editingCategory.name.trim();
+    if (materialCategories.some(c => c.name.toLowerCase() === trimmedName.toLowerCase() && c.id !== editingCategory.id)) {
       showError("Categoria já existe.");
       return;
     }
 
     try {
-      await updateCategory(editingCategory.id, editingCategory.name.trim(), editingCategory.description?.trim() || undefined);
+      await updateCategory(editingCategory.id, trimmedName, editingCategory.description?.trim() || undefined);
       showSuccess("Categoria atualizada com sucesso!");
       setEditingCategory(null);
-      onCategorySelected?.(editingCategory.name.trim()); // Notify parent if needed
+      onCategorySelected?.(trimmedName); // Notify parent of updated category
     } catch (err) {
-      showError("Erro ao atualizar categoria.");
+      console.error("Update category error:", err); // Debug log
+      if (err.message?.includes('duplicate key value violates unique constraint')) {
+        showError("Não foi possível atualizar: categoria já existe com este nome.");
+      } else {
+        showError("Erro ao atualizar categoria.");
+      }
     }
   };
 
@@ -103,6 +116,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
       showSuccess("Categoria removida com sucesso!");
       onCategorySelected?.(""); // Reset selection if needed
     } catch (err) {
+      console.error("Delete category error:", err); // Debug log
       showError("Erro ao remover categoria.");
     }
   };
