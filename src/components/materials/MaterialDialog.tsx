@@ -179,12 +179,13 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
     }
   }, [open, refreshCategories, refreshLocations]);
 
-  // Handle form submission
+  // Handle form submission (Save Button Logic)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (state.isSubmitting) return;
+    if (state.isSubmitting) return; // Prevent double submission
 
+    // Prepare form data
     const formData = {
       name: state.name,
       category: state.category,
@@ -194,15 +195,19 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
       initialQuantity: state.initialQuantity,
     };
 
+    // Validate form data
     const validationErrors = validateForm(formData, isEditing);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      showError("Por favor, corrija os erros no formulário.");
       return;
     }
 
+    // Set submitting state
     setSubmitting(true);
 
     try {
+      // Prepare material data for saving
       const materialData: Omit<Material, 'id' | 'locations'> & { id?: string } = {
         id: material?.id,
         name: state.name.trim(),
@@ -212,18 +217,24 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
         quantity: material?.quantity || 0,
       };
 
+      // Save material to database via onSave prop (which calls useMaterials hook)
       await onSave(materialData);
       
+      // If adding new material, add initial stock if provided
       if (!isEditing && state.initialLocation && state.initialQuantity && Number(state.initialQuantity) > 0) {
         onAddInitialStock?.(materialData.id || '', state.initialLocation, Number(state.initialQuantity));
       }
       
+      // Success feedback
       showSuccess(isEditing ? "Material atualizado com sucesso!" : "Material adicionado com sucesso!");
+      
+      // Close dialog
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving material:", error);
-      showError("Erro ao salvar material. Tente novamente.");
+      showError("Erro ao salvar material. Verifique a conexão e tente novamente.");
     } finally {
+      // Reset submitting state
       setSubmitting(false);
     }
   };
