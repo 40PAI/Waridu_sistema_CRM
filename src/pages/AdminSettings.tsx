@@ -98,14 +98,18 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
 
   const handleAddCategory = () => {
     const name = newCategoryName.trim();
-    if (!name) return;
+    if (!name) {
+      showError("O nome da categoria é obrigatório.");
+      return;
+    }
     if (materialCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
       showError("Já existe uma categoria com este nome.");
       return;
     }
-    addCategory(name, newCategoryDesc || undefined);
+    addCategory(name, newCategoryDesc.trim() || undefined);
     setNewCategoryName("");
     setNewCategoryDesc("");
+    showSuccess("Categoria adicionada com sucesso! Ela agora aparece no diálogo de materiais.");
   };
 
   const openCatEdit = (cat: { id: string; name: string; description?: string }) => {
@@ -124,13 +128,19 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
       showError("Já existe uma categoria com este nome.");
       return;
     }
-    updateCategory(editingCat.id, name, editingCat.description);
+    updateCategory(editingCat.id, name, editingCat.description?.trim() || undefined);
     setIsCatEditOpen(false);
     setEditingCat(null);
+    showSuccess("Categoria atualizada! Mudanças refletem em todos os diálogos de materiais.");
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    deleteCategory(id);
+    showSuccess("Categoria removida! Materiais existentes mantêm a referência antiga.");
   };
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1"> {/* Responsivo: 1 coluna em mobile, 2 em md+ */}
       <RoleManager
         roles={roles}
         onAddRole={onAddRole}
@@ -143,7 +153,7 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
       <Card>
         <CardHeader>
           <CardTitle>Categorias de Materiais</CardTitle>
-          <CardDescription>Gerencie as categorias disponíveis para materiais.</CardDescription>
+          <CardDescription>Gerencie as categorias disponíveis para materiais. Elas são carregadas automaticamente nos diálogos de adição/edição.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-2 sm:grid-cols-[1fr_200px_auto]">
@@ -172,20 +182,20 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
             </div>
           </div>
 
-          <div className="rounded-md border divide-y">
+          <div className="rounded-md border divide-y max-h-96 overflow-y-auto">
             {materialCategories.map((cat) => (
               <div key={cat.id} className="flex items-center justify-between p-3">
-                <div className="text-sm">
+                <div className="text-sm flex-1">
                   <div className="font-medium">{cat.name}</div>
                   {cat.description && <div className="text-muted-foreground">{cat.description}</div>}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openCatEdit(cat)}>
+                <div className="flex items-center gap-2 ml-4">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openCatEdit(cat)} disabled={catLoading}>
                     <Edit className="h-4 w-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" disabled={catLoading}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
@@ -193,12 +203,12 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
                       <AlertDialogHeader>
                         <AlertDialogTitle>Remover categoria?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Materiais nesta categoria não serão afetados, mas a categoria será removida. Esta ação não pode ser desfeita.
+                          Materiais existentes não serão afetados, mas a categoria será removida dos Selects. Esta ação não pode ser desfeita.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteCategory(cat.id)}>
+                        <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)} disabled={catLoading}>
                           Remover
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -208,12 +218,13 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
               </div>
             ))}
             {materialCategories.length === 0 && (
-              <div className="p-3 text-sm text-muted-foreground text-center">Nenhuma categoria cadastrada.</div>
+              <div className="p-3 text-sm text-muted-foreground text-center">Nenhuma categoria cadastrada. Adicione a primeira!</div>
             )}
           </div>
         </CardContent>
       </Card>
 
+      {/* Resto do código permanece igual... (localizações, configurações gerais, etc.) */}
       <Card>
         <CardHeader>
           <CardTitle>Localizações de Inventário</CardTitle>
@@ -337,7 +348,7 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
       <Dialog open={isCatEditOpen} onOpenChange={setIsCatEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Categoria</DialogTitle>
+            <DialogTitle>Editar Categoria de Material</DialogTitle>
           </DialogHeader>
           <div className="grid gap-2">
             <div className="space-y-1.5">
@@ -345,13 +356,13 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
               <Input value={editingCat?.name || ""} onChange={(e) => setEditingCat(prev => prev ? { ...prev, name: e.target.value } : null)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Descrição</Label>
+              <Label>Descrição (opcional)</Label>
               <Input value={editingCat?.description || ""} onChange={(e) => setEditingCat(prev => prev ? { ...prev, description: e.target.value } : null)} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCatEditOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveCatEdit} disabled={!editingCat?.name.trim()}>Salvar</Button>
+            <Button onClick={handleSaveCatEdit} disabled={!editingCat?.name.trim() || catLoading}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

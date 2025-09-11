@@ -114,11 +114,14 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
           <div className="flex flex-wrap gap-1 mt-1">
             {locations.map(loc => {
               const q = material.locations[loc.id] || 0;
-              return (
-                <Badge key={loc.id} variant="outline" className="text-xs">
-                  {loc.name}: {q}
-                </Badge>
-              );
+              if (q > 0) {
+                return (
+                  <Badge key={loc.id} variant="outline" className="text-xs">
+                    {loc.name}: {q}
+                  </Badge>
+                );
+              }
+              return null;
             })}
           </div>
         </div>
@@ -167,7 +170,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
               {canWrite && <Button onClick={handleAddNew}>Adicionar Material</Button>}
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 mb-6 flex-wrap">
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="status-filter">Filtrar por Status</Label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -206,66 +209,71 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
               </div>
 
               {viewMode === 'table' ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Localizações</TableHead>
-                      <TableHead>Pendentes</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredMaterials.map((material) => (
-                      <TableRow key={material.id}>
-                        <TableCell>{material.id}</TableCell>
-                        <TableCell className="font-medium">{material.name}</TableCell>
-                        <TableCell>{material.category}</TableCell>
-                        <TableCell>{material.quantity}</TableCell>
-                        <TableCell>
-                          <Badge variant={material.status === 'Disponível' ? 'default' : material.status === 'Em uso' ? 'secondary' : 'destructive'}>
-                            {material.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-2">
-                            {locations.map(loc => {
-                              const q = material.locations[loc.id] || 0;
-                              return (
-                                <div key={loc.id} className="text-xs px-2 py-1 border rounded">
-                                  {loc.name}: <span className="font-medium">{q}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{pendingByMaterial[material.id] || 0}</span>
-                        </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          {canWrite && (
-                            <>
-                              <TransferDialog
-                                materialName={material.name}
-                                materialId={material.id}
-                                locations={locations}
-                                distribution={material.locations}
-                                onTransfer={onTransferMaterial}
-                              />
-                              <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>Editar</Button>
-                            </>
-                          )}
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Categoria</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Localizações</TableHead>
+                        <TableHead>Pendentes</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredMaterials.map((material) => (
+                        <TableRow key={material.id}>
+                          <TableCell className="w-16">{material.id}</TableCell>
+                          <TableCell className="font-medium max-w-[200px] truncate">{material.name}</TableCell>
+                          <TableCell className="w-32">{material.category}</TableCell>
+                          <TableCell className="w-20 text-center">{material.quantity}</TableCell>
+                          <TableCell className="w-32">
+                            <Badge variant={material.status === 'Disponível' ? 'default' : material.status === 'Em uso' ? 'secondary' : 'destructive'}>
+                              {material.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[250px]">
+                            <div className="flex flex-wrap gap-1">
+                              {locations.map(loc => {
+                                const q = material.locations[loc.id] || 0;
+                                if (q > 0) {
+                                  return (
+                                    <Badge key={loc.id} variant="outline" className="text-xs">
+                                      {loc.name}: {q}
+                                    </Badge>
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-20 text-center">
+                            <span className="text-sm">{pendingByMaterial[material.id] || 0}</span>
+                          </TableCell>
+                          <TableCell className="text-right w-32 space-x-2">
+                            {canWrite && (
+                              <>
+                                <TransferDialog
+                                  materialName={material.name}
+                                  materialId={material.id}
+                                  locations={locations}
+                                  distribution={material.locations}
+                                  onTransfer={onTransferMaterial}
+                                />
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>Editar</Button>
+                              </>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredMaterials.map(renderMaterialCard)}
                 </div>
               )}

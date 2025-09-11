@@ -16,7 +16,18 @@ import type { PageMaterial as Material } from "@/types";
 import { showError } from "@/utils/toast";
 import { useLocations } from "@/hooks/useLocations";
 import { useMaterialCategories } from "@/hooks/useMaterialCategories";
-import { Edit, Plus } from "lucide-react";
+import { Edit, Plus, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface MaterialDialogProps {
   open: boolean;
@@ -28,7 +39,7 @@ interface MaterialDialogProps {
 
 export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInitialStock }: MaterialDialogProps) {
   const { locations } = useLocations();
-  const { categories: materialCategories, addCategory, updateCategory, deleteCategory } = useMaterialCategories();
+  const { categories: materialCategories, addCategory, updateCategory, deleteCategory, loading: catLoading } = useMaterialCategories();
   const [name, setName] = React.useState("");
   const [category, setCategory] = React.useState("");
   const [status, setStatus] = React.useState<Material['status']>("Disponível");
@@ -36,7 +47,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
   const [initialLocation, setInitialLocation] = React.useState("");
   const [initialQuantity, setInitialQuantity] = React.useState<number | "">("");
 
-  // Para edição de categorias
+  // Para gerenciamento de categorias no mini-diálogo
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<{ id: string; name: string; description?: string } | null>(null);
   const [newCategoryName, setNewCategoryName] = React.useState("");
@@ -99,17 +110,20 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
     addCategory(newCategoryName.trim(), newCategoryDesc || undefined);
     setNewCategoryName("");
     setNewCategoryDesc("");
-    setIsCategoryDialogOpen(false);
   };
 
-  const handleEditCategory = () => {
+  const openEditCategory = (cat: { id: string; name: string; description?: string }) => {
+    setEditingCategory({ ...cat });
+  };
+
+  const handleSaveCatEdit = () => {
     if (!editingCategory || !editingCategory.name.trim()) return;
     updateCategory(editingCategory.id, editingCategory.name.trim(), editingCategory.description);
     setEditingCategory(null);
   };
 
-  const openEditCategory = (cat: { id: string; name: string; description?: string }) => {
-    setEditingCategory({ ...cat });
+  const handleDeleteCategory = (id: string) => {
+    deleteCategory(id);
   };
 
   return (
@@ -144,7 +158,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                     ))}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="icon" onClick={() => setIsCategoryDialogOpen(true)}>
+                <Button variant="outline" size="icon" onClick={() => setIsCategoryDialogOpen(true)} title="Gerenciar Categorias">
                   <Edit className="h-4 w-4" />
                 </Button>
               </div>
@@ -200,46 +214,58 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para gerenciar categorias */}
+      {/* Mini-Diálogo para Gerenciar Categorias (aberto do botão no Select) */}
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Gerenciar Categorias</DialogTitle>
-            <DialogDescription>Adicione, edite ou remova categorias de materiais.</DialogDescription>
+            <DialogTitle>Gerenciar Categorias de Materiais</DialogTitle>
+            <DialogDescription>Adicione, edite ou remova categorias. Mudanças aparecem imediatamente no Select acima.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex gap-2">
+          <div className="space-y-4 py-4">
+            {/* Adicionar Nova Categoria */}
+            <div className="flex gap-2 p-2 border rounded">
               <Input
-                placeholder="Nome da nova categoria"
+                placeholder="Nome da nova categoria (ex: Equipamentos de Som)"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
+                className="flex-1"
               />
               <Input
                 placeholder="Descrição (opcional)"
                 value={newCategoryDesc}
                 onChange={(e) => setNewCategoryDesc(e.target.value)}
+                className="flex-1"
               />
-              <Button onClick={handleAddCategory} disabled={!newCategoryName.trim()}>
-                <Plus className="h-4 w-4" />
+              <Button size="sm" onClick={handleAddCategory} disabled={!newCategoryName.trim() || catLoading}>
+                <Plus className="h-4 w-4 mr-1" /> Adicionar
               </Button>
             </div>
-            <div className="max-h-60 overflow-y-auto space-y-2">
-              {materialCategories.map(cat => (
-                <div key={cat.id} className="flex items-center justify-between p-2 border rounded">
+
+            {/* Lista de Categorias Existentes */}
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {materialCategories.map((cat) => (
+                <div key={cat.id} className="flex items-center justify-between p-3 border rounded-md">
                   <div className="flex-1">
                     {editingCategory?.id === cat.id ? (
                       <div className="flex gap-2">
                         <Input
                           value={editingCategory.name}
                           onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
+                          placeholder="Nome"
+                          className="flex-1"
                         />
                         <Input
                           value={editingCategory.description || ""}
                           onChange={(e) => setEditingCategory(prev => prev ? { ...prev, description: e.target.value } : null)}
                           placeholder="Descrição"
+                          className="flex-1"
                         />
-                        <Button size="sm" onClick={handleEditCategory}>Salvar</Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingCategory(null)}>Cancelar</Button>
+                        <Button size="sm" onClick={handleSaveCatEdit} disabled={!editingCategory.name.trim() || catLoading}>
+                          Salvar
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingCategory(null)}>
+                          Cancelar
+                        </Button>
                       </div>
                     ) : (
                       <div>
@@ -249,21 +275,47 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                     )}
                   </div>
                   {editingCategory?.id !== cat.id && (
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="outline" onClick={() => openEditCategory(cat)}>
+                    <div className="flex gap-1 ml-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => openEditCategory({ id: cat.id, name: cat.name, description: cat.description })}
+                        disabled={catLoading}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => deleteCategory(cat.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remover Categoria?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Materiais existentes não serão afetados, mas esta categoria será removida do Select.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)} disabled={catLoading}>
+                              Remover
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   )}
                 </div>
               ))}
+              {materialCategories.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma categoria. Adicione a primeira!</p>
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => setIsCategoryDialogOpen(false)}>Fechar</Button>
+            <Button onClick={() => setIsCategoryDialogOpen(false)} disabled={catLoading}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
