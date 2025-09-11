@@ -10,19 +10,8 @@ import { MaterialDialog } from "@/components/materials/MaterialDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { TransferDialog } from "@/components/materials/TransferDialog";
-import type { MaterialRequest } from "@/App";
-
-export type MaterialStatus = 'Disponível' | 'Em uso' | 'Manutenção';
-
-export interface Material {
-  id: string;
-  name: string;
-  quantity: number; // total (derivado de locations)
-  status: MaterialStatus;
-  category: string;
-  description: string;
-  locations: Record<string, number>; // distribuição por localização
-}
+import type { MaterialRequest } from "@/types";
+import type { MaterialStatus, PageMaterial as Material } from "@/types";
 
 interface Location {
   id: string;
