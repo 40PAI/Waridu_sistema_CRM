@@ -1,8 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign, TrendingUp, Wallet, Briefcase } from "lucide-react";
+import * as React from "react";
+import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 
 // --- Mock Data ---
 
@@ -13,16 +15,6 @@ const monthlyPerformanceData = [
   { month: 'Jul', receita: 5100000, custos: 3100000, lucro: 2000000 },
   { month: 'Ago', receita: 7800000, custos: 4500000, lucro: 3300000 },
 ];
-
-// Análise de custos
-const costBreakdownData = [
-  { name: 'Pessoal', value: 450000 },
-  { name: 'Aluguel de Equip.', value: 250000 },
-  { name: 'Transporte', value: 120000 },
-  { name: 'Marketing', value: 80000 },
-  { name: 'Outros', value: 50000 },
-];
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
 // Rentabilidade por evento
 const eventProfitabilityData = [
@@ -48,6 +40,24 @@ const getStatusVariant = (status: string) => {
 
 // --- Main Component ---
 const FinanceDashboard = () => {
+  const { categories, loading: categoriesLoading } = useTechnicianCategories();
+
+  const personnelCostFromCategories = React.useMemo(() => {
+    if (categoriesLoading || categories.length === 0) return 0;
+    // Simula um custo mensal de pessoal somando as taxas diárias de todas as categorias e multiplicando por 20 dias (exemplo)
+    return categories.reduce((sum, cat) => sum + cat.dailyRate, 0) * 20;
+  }, [categories, categoriesLoading]);
+
+  // Análise de custos
+  const costBreakdownData = [
+    { name: 'Pessoal', value: personnelCostFromCategories || 450000 }, // Valor de 'Pessoal' agora é dinâmico
+    { name: 'Aluguel de Equip.', value: 250000 },
+    { name: 'Transporte', value: 120000 },
+    { name: 'Marketing', value: 80000 },
+    { name: 'Outros', value: 50000 },
+  ];
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+
   const currentMonthData = monthlyPerformanceData[monthlyPerformanceData.length - 1];
   const totalRevenue = monthlyPerformanceData.reduce((sum, item) => sum + item.receita, 0);
   const totalCosts = monthlyPerformanceData.reduce((sum, item) => sum + item.custos, 0);
@@ -177,6 +187,38 @@ const FinanceDashboard = () => {
               })}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      {/* New Card for Technician Categories */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Categorias de Técnicos</CardTitle>
+          <CardDescription>Valores diários para cada categoria de técnico.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {categoriesLoading ? (
+            <p>Carregando categorias...</p>
+          ) : categories.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead className="text-right">Valor/Dia (AOA)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {categories.map((cat) => (
+                  <TableRow key={cat.id}>
+                    <TableCell className="font-medium">{cat.categoryName}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(cat.dailyRate)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center">Nenhuma categoria de técnico cadastrada.</p>
+          )}
         </CardContent>
       </Card>
     </div>
