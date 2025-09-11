@@ -82,7 +82,7 @@ const AppContent = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route element={<ProtectedRoute />}>
               {/* Admin/Coordinator/Gestor routes */}
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Index events={events} materials={materials} />} />
               <Route path="/calendar" element={<CalendarPage events={events} />} />
               <Route path="/create-event" element={<CreateEventPage onAddEvent={addEvent} />} />
               <Route path="/roster-management" element={

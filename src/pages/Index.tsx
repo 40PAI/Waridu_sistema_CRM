@@ -3,29 +3,15 @@ import { Archive, CheckCircle, Calendar, DollarSign } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { Event } from "@/types";
+import type { Material as PageMaterial } from "@/pages/Materials";
+import { parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-// --- Mock Data ---
-const materialsData = [
-    { id: 'MAT001', name: 'Câmera Sony A7S III', quantity: 5, status: 'Disponível', category: 'Câmeras' },
-    { id: 'MAT002', name: 'Lente Canon 24-70mm', quantity: 8, status: 'Em uso', category: 'Lentes' },
-    { id: 'MAT003', name: 'Kit de Luz Aputure 300D', quantity: 3, status: 'Disponível', category: 'Iluminação' },
-    { id: 'MAT004', name: 'Microfone Rode NTG5', quantity: 10, status: 'Manutenção', category: 'Áudio' },
-    { id: 'MAT007', name: 'Gravador Zoom H6', quantity: 4, status: 'Em uso', category: 'Áudio' },
-];
-
-const recentEvents = [
-    { id: 1, name: "Conferência de Tecnologia", date: "15/08/2024", status: 'Realizado' },
-    { id: 2, name: "Workshop de Design", date: "09/08/2024", status: 'Realizado' },
-    { id: 3, name: "Lançamento de Produto", date: "28/07/2024", status: 'Realizado' },
-    { id: 4, name: "Reunião de Alinhamento", date: "25/07/2024", status: 'Cancelado' },
-];
-
-const financeData = [
-  { name: 'Mai', Receita: 1890, Despesa: 4800 },
-  { name: 'Jun', Receita: 2390, Despesa: 3800 },
-  { name: 'Jul', Receita: 3490, Despesa: 4300 },
-  { name: 'Ago', Receita: 5100, Despesa: 2300 },
-];
+interface IndexProps {
+  events: Event[];
+  materials: PageMaterial[];
+}
 
 // --- Helper Functions ---
 const getMaterialStatusVariant = (status: string) => {
@@ -40,14 +26,15 @@ const getMaterialStatusVariant = (status: string) => {
 const getEventStatusVariant = (status: string) => {
     switch (status) {
       case 'Realizado': return 'default';
+      case 'Concluído': return 'default';
       case 'Cancelado': return 'destructive';
       default: return 'secondary';
     }
 };
 
 // --- Sub-components ---
-const MaterialStatusList = () => {
-    const activeMaterials = materialsData.filter(m => m.status !== 'Disponível');
+const MaterialStatusList = ({ materials }: { materials: PageMaterial[] }) => {
+    const activeMaterials = materials.filter(m => m.status !== 'Disponível');
     return (
         <div className="space-y-4">
             {activeMaterials.length > 0 ? activeMaterials.map((item) => (
@@ -68,13 +55,39 @@ const MaterialStatusList = () => {
 };
 
 // --- Main Dashboard Component ---
-const Dashboard = () => {
-  const totalItems = materialsData.reduce((sum, item) => sum + item.quantity, 0);
-  const availableItems = materialsData.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0);
-  const totalRevenue = financeData.reduce((sum, item) => sum + item.Receita, 0);
-  const totalEventsThisMonth = 2; // Mocked for current month
+const Dashboard = ({ events, materials }: IndexProps) => {
+  // --- Data Processing ---
+  const totalItems = materials.reduce((sum, item) => sum + item.quantity, 0);
+  const availableItems = materials.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0);
 
-  const categoryData = materialsData.reduce((acc, item) => {
+  const now = new Date();
+  const startOfThisMonth = startOfMonth(now);
+  const endOfThisMonth = endOfMonth(now);
+  const totalEventsThisMonth = events.filter(event => {
+      const eventDate = parseISO(event.startDate);
+      return isWithinInterval(eventDate, { start: startOfThisMonth, end: endOfThisMonth });
+  }).length;
+
+  const lastFourMonths = Array.from({ length: 4 }, (_, i) => subMonths(now, i)).reverse();
+  const financeData = lastFourMonths.map(monthDate => {
+      const monthKey = format(monthDate, 'MMM', { locale: ptBR });
+      const start = startOfMonth(monthDate);
+      const end = endOfMonth(monthDate);
+
+      const revenueForMonth = events
+          .filter(e => (e.status === 'Concluído' || e.status === 'Realizado') && isWithinInterval(parseISO(e.startDate), { start, end }))
+          .reduce((sum, e) => sum + (e.revenue || 0), 0);
+      
+      const expensesForMonth = events
+          .filter(e => (e.status === 'Concluído' || e.status === 'Realizado') && isWithinInterval(parseISO(e.startDate), { start, end }))
+          .reduce((sum, e) => sum + (e.expenses?.reduce((expSum, exp) => expSum + exp.amount, 0) || 0), 0);
+
+      return { name: monthKey, Receita: revenueForMonth, Despesa: expensesForMonth };
+  });
+
+  const totalRevenue = financeData.reduce((sum, item) => sum + item.Receita, 0);
+
+  const categoryData = materials.reduce((acc, item) => {
     const category = acc.find(c => c.name === item.category);
     if (category) {
       category.quantidade += item.quantity;
@@ -83,6 +96,16 @@ const Dashboard = () => {
     }
     return acc;
   }, [] as { name: string; quantidade: number }[]);
+
+  const recentEvents = events
+    .sort((a, b) => parseISO(b.startDate).getTime() - parseISO(a.startDate).getTime())
+    .slice(0, 4)
+    .map(e => ({
+        id: e.id,
+        name: e.name,
+        date: format(parseISO(e.startDate), 'dd/MM/yyyy', { locale: ptBR }),
+        status: e.status
+    }));
 
   return (
     <div className="flex-1 space-y-6">
@@ -114,17 +137,17 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{totalEventsThisMonth}</div>
-            <p className="text-xs text-muted-foreground">Eventos realizados este mês</p>
+            <p className="text-xs text-muted-foreground">Eventos agendados para este mês</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+            <CardTitle className="text-sm font-medium">Receita (4 meses)</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">AOA {totalRevenue.toLocaleString('pt-AO')}</div>
-            <p className="text-xs text-muted-foreground">Nos últimos 4 meses</p>
+            <p className="text-xs text-muted-foreground">Receita de eventos concluídos</p>
           </CardContent>
         </Card>
       </div>
@@ -201,7 +224,7 @@ const Dashboard = () => {
             <CardDescription>Materiais em uso ou manutenção.</CardDescription>
           </CardHeader>
           <CardContent>
-            <MaterialStatusList />
+            <MaterialStatusList materials={materials} />
           </CardContent>
         </Card>
       </div>
