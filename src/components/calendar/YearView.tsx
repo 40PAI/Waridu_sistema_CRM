@@ -38,7 +38,7 @@ const YearView = ({ currentDate, events, setView, setCurrentDate }: YearViewProp
   };
 
   return (
-    <div className<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       {months.map(monthDate => {
         const monthStart = startOfMonth(monthDate);
         const monthEnd = endOfMonth(monthDate);
