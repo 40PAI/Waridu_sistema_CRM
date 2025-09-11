@@ -25,7 +25,6 @@ const getMaterialStatusVariant = (status: string) => {
 
 const getEventStatusVariant = (status: string) => {
     switch (status) {
-      case 'Realizado': return 'default';
       case 'Concluído': return 'default';
       case 'Cancelado': return 'destructive';
       default: return 'secondary';
@@ -75,11 +74,11 @@ const Dashboard = ({ events, materials }: IndexProps) => {
       const end = endOfMonth(monthDate);
 
       const revenueForMonth = events
-          .filter(e => (e.status === 'Concluído' || e.status === 'Realizado') && isWithinInterval(parseISO(e.startDate), { start, end }))
+          .filter(e => (e.status === 'Concluído') && isWithinInterval(parseISO(e.startDate), { start, end }))
           .reduce((sum, e) => sum + (e.revenue || 0), 0);
       
       const expensesForMonth = events
-          .filter(e => (e.status === 'Concluído' || e.status === 'Realizado') && isWithinInterval(parseISO(e.startDate), { start, end }))
+          .filter(e => (e.status === 'Concluído') && isWithinInterval(parseISO(e.startDate), { start, end }))
           .reduce((sum, e) => sum + (e.expenses?.reduce((expSum, exp) => expSum + exp.amount, 0) || 0), 0);
 
       return { name: monthKey, Receita: revenueForMonth, Despesa: expensesForMonth };

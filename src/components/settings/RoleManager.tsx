@@ -146,7 +146,9 @@ export const RoleManager = ({ roles, onAddRole, onUpdateRole, onDeleteRole }: Ro
             <Input 
               id="edit-role-name"
               value={editingRole?.name || ""}
-              onChange={(e) => setEditingRole(prev => prev ? { ...prev, name: e.target.value } : null)}
+              onChange={(e) => setEditingRole(prev => 
+                prev ? { ...prev, name: e.target.value as typeof prev.name } : null
+              )}
             />
           </div>
           <DialogFooter>

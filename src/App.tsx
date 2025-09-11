@@ -133,7 +133,7 @@ const AppContent = () => {
                   requests={materialRequests} 
                   events={events} 
                   materialNameMap={materialNameMap} 
-                  onApproveRequest={approveMaterialRequest} 
+                  onApproveRequest={(requestId: string) => approveMaterialRequest(requestId) as Promise<{ ok: true } | { ok: false; shortages: { materialId: string; needed: number; available: number }[] }>} 
                   onRejectRequest={rejectMaterialRequest} 
                 />
               } />

@@ -80,7 +80,7 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     if (res.ok) {
       showSuccess("Requisição aprovada e estoque atualizado.");
     } else {
-      const names = res.shortages
+      const names = (res as { ok: false; shortages: { materialId: string; needed: number; available: number }[] }).shortages
         .map((s) => `${materialNameMap[s.materialId] || s.materialId} (precisa ${s.needed}, tem ${s.available})`)
         .join("; ");
       showError(`Estoque insuficiente: ${names}`);
@@ -111,7 +111,144 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
 
   return (
     <>
-      {/* ...conteúdo idêntico ao arquivo original, removido por brevidade, já atualizado acima... */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Requisições de Materiais</CardTitle>
+          <CardDescription>
+            Gerencie as solicitações de materiais feitas pelos membros da equipe.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Input
+              placeholder="Buscar por nome, email, evento ou material..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="md:col-span-2"
+            />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as MaterialRequest["status"] | "all")}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="Pendente">Pendente</SelectItem>
+                <SelectItem value="Aprovada">Aprovada</SelectItem>
+                <SelectItem value="Rejeitada">Rejeitada</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={eventFilter} onValueChange={setEventFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filtrar por evento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Eventos</SelectItem>
+                {events.map((event) => (
+                  <SelectItem key={event.id} value={String(event.id)}>
+                    {event.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Solicitante</TableHead>
+                <TableHead>Evento</TableHead>
+                <TableHead>Itens</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length > 0 ? (
+                filtered.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell className="font-medium">
+                      <div>{request.requestedBy.name}</div>
+                      <div className="text-xs text-muted-foreground">{request.requestedBy.email}</div>
+                    </TableCell>
+                    <TableCell>{eventsMap[request.eventId] || "Evento não encontrado"}</TableCell>
+                    <TableCell>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="link" className="p-0 h-auto">
+                            Ver itens ({request.items.length})
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="grid gap-2">
+                            {request.items.map((item, idx) => (
+                              <div key={idx} className="flex justify-between text-sm">
+                                <span>{materialNameMap[item.materialId] || item.materialId}</span>
+                                <span className="font-medium">{item.quantity}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(request.status)}>{request.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(request.createdAt).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      {request.status === "Pendente" && canManage && (
+                        <>
+                          <Button size="sm" onClick={() => handleApprove(request.id)} disabled={!!processingId}>
+                            {processingId === request.id ? "Processando..." : "Aprovar"}
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => openReject(request.id)} disabled={!!processingId}>
+                            Rejeitar
+                          </Button>
+                        </>
+                      )}
+                      <Button variant="outline" size="icon" asChild>
+                        <a href={`/events/${request.eventId}`}>
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">Ver Evento</span>
+                        </a>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center h-24">
+                    Nenhuma requisição encontrada.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeitar Requisição</DialogTitle>
+            <DialogDescription>
+              Informe o motivo da rejeição desta requisição de materiais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Motivo da rejeição..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmReject} disabled={!rejectReason.trim()}>Confirmar Rejeição</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

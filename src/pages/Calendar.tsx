@@ -82,7 +82,7 @@ function CalendarPage({ events }: CalendarPageProps) {
           <YearView
             currentDate={currentDate}
             events={events}
-            setView={setView}
+            setView={(v) => setView(v as CalendarView)}
             setCurrentDate={setCurrentDate}
           />
         )}

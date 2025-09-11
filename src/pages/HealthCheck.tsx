@@ -2,6 +2,7 @@ import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 
 const HealthCheck = () => {
   const [loading, setLoading] = React.useState(false);
@@ -64,8 +65,8 @@ const HealthCheck = () => {
               <Button onClick={fetchSession} disabled={loading}>
                 {loading ? "Verificando..." : "Reverificar Sessão"}
               </Button>
-              <Button as="a" href="/debug" variant="outline">
-                Abrir /debug
+              <Button asChild variant="outline">
+                <Link to="/debug">Abrir /debug</Link>
               </Button>
             </div>
 

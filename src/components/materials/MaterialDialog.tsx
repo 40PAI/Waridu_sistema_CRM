@@ -62,6 +62,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material }: Materia
       quantity,
       status,
       description,
+      locations: {} // Adicionando o campo locations
     };
 
     onSave(materialData);

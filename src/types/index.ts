@@ -81,3 +81,13 @@ export interface TechnicianCategory {
   categoryName: string;
   dailyRate: number;
 }
+
+export interface PageMaterial {
+  id: string;
+  name: string;
+  quantity: number;
+  status: MaterialStatus;
+  category: string;
+  description: string;
+  locations: Record<string, number>;
+}
