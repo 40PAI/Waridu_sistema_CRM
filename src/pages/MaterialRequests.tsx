@@ -36,6 +36,11 @@ const statusVariant = (status: MaterialRequest["status"]) => {
   }
 };
 
+// Type guard for ApproveResult failure shape
+function isApproveFailure(res: ApproveResult): res is { ok: false; shortages: { materialId: string; needed: number; available: number }[] } {
+  return (res as any)?.ok === false;
+}
+
 const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequest, onRejectRequest }: MaterialRequestsPageProps) => {
   const { user } = useAuth();
   const userRole = user?.profile?.role;
@@ -75,7 +80,8 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     if (processingId) return;
     setProcessingId(id);
     const res = await onApproveRequest(id);
-    if (!res.ok) {
+
+    if (isApproveFailure(res)) {
       const names = res.shortages
         .map((s) => `${materialNameMap[s.materialId] || s.materialId} (precisa ${s.needed}, tem ${s.available})`)
         .join("; ");
@@ -83,6 +89,7 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     } else {
       showSuccess("Requisição aprovada e estoque atualizado.");
     }
+
     setProcessingId(null);
   };
 
