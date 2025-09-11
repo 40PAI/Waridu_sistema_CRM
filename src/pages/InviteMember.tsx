@@ -65,7 +65,13 @@ const InviteMember = () => {
     defaultValues: { employeeId: "", roleName: "Técnico" }, // Default para Técnico
   });
 
-  const employeeOptions = React.useMemo(() => employees.map(e => ({ value: e.id, label: `${e.name} (${e.email})` })), [employees]);
+  // Filtrar apenas funcionários que ainda não têm usuário associado
+  const availableEmployees = React.useMemo(() => {
+    const employeesWithUsers = new Set(users.map(u => u.employee?.id).filter(Boolean));
+    return employees.filter(e => !employeesWithUsers.has(e.id));
+  }, [employees, users]);
+
+  const employeeOptions = React.useMemo(() => availableEmployees.map(e => ({ value: e.id, label: `${e.name} (${e.email})` })), [availableEmployees]);
 
   const handleInvite = async (values: InviteFormValues) => {
     if (!canInvite) return;
@@ -86,6 +92,7 @@ const InviteMember = () => {
       if (error) throw error;
       showSuccess(`Convite enviado para ${selectedEmployee.email} com role ${values.roleName}! Ele terá acesso às páginas correspondentes.`);
       inviteForm.reset();
+      refreshUsers(); // Atualizar lista de usuários após convite
     } catch (err: any) {
       showError(err.message || "Erro ao enviar convite.");
     } finally {
@@ -224,7 +231,7 @@ const InviteMember = () => {
                             </SelectTrigger>
                             <SelectContent>
                               {specificRoles.map(role => (
-                                <SelectItem key={role.value} value={role.value}>
+                                <SelectItem key={role.value} value={role.label}>
                                   {role.label}
                                 </SelectItem>
                               ))}
