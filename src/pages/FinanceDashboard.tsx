@@ -3,10 +3,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign, TrendingUp, Wallet, Briefcase } from "lucide-react";
-import CategoryManager from "@/components/settings/CategoryManager";
-import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
-import { useEmployees } from "@/hooks/useEmployees";
-import { useMemo } from "react";
 
 // --- Mock Data ---
 
@@ -57,30 +53,6 @@ const FinanceDashboard = () => {
   const totalCosts = monthlyPerformanceData.reduce((sum, item) => sum + item.custos, 0);
   const averageMargin = totalRevenue > 0 ? ((totalRevenue - totalCosts) / totalRevenue) * 100 : 0;
 
-  // Usando os hooks para obter as categorias e funcionários
-  const { categories, loading: categoriesLoading } = useTechnicianCategories();
-  const { employees, loading: employeesLoading } = useEmployees();
-
-  // Calcular custos totais com técnicos
-  const technicianCosts = useMemo(() => {
-    if (categoriesLoading || employeesLoading) return 0;
-    
-    // Criar um mapa de categorias para fácil acesso
-    const categoryMap = categories.reduce((acc, category) => {
-      acc[category.id] = category;
-      return acc;
-    }, {} as Record<string, { id: string; categoryName: string; dailyRate: number }>);
-
-    // Calcular custo total (simplificado - considerando que todos os técnicos estão ativos)
-    return employees.reduce((total, employee) => {
-      if (employee.technicianCategoryId && categoryMap[employee.technicianCategoryId]) {
-        // Para simplificação, considerando 20 dias úteis por mês
-        return total + (categoryMap[employee.technicianCategoryId].dailyRate * 20);
-      }
-      return total;
-    }, 0);
-  }, [categories, employees, categoriesLoading, employeesLoading]);
-
   return (
     <div className="flex-1 space-y-6">
       {/* KPIs */}
@@ -126,20 +98,6 @@ const FinanceDashboard = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Gerenciamento de Categorias de Técnicos */}
-      <CategoryManager />
-
-      {/* Custo com Técnicos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Custo com Técnicos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(technicianCosts)}</div>
-          <p className="text-xs text-muted-foreground">Custo mensal estimado com técnicos</p>
-        </CardContent>
-      </Card>
 
       {/* Charts */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
