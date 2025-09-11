@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MaterialDialog } from "@/components/materials/MaterialDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
@@ -34,6 +35,8 @@ interface MaterialsPageProps {
   pendingRequests: MaterialRequest[];
 }
 
+type ViewMode = 'table' | 'cards';
+
 const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMaterial, history, pendingRequests }: MaterialsPageProps) => {
   const { user } = useAuth();
   const userRole = user?.profile?.role;
@@ -41,6 +44,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
 
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [categoryFilter, setCategoryFilter] = React.useState('all');
+  const [viewMode, setViewMode] = React.useState<ViewMode>('table');
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
 
@@ -82,6 +86,57 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
     });
     return map;
   }, [pendingRequests]);
+
+  const renderMaterialCard = (material: Material) => (
+    <Card key={material.id} className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">{material.name}</CardTitle>
+            <CardDescription>{material.category}</CardDescription>
+          </div>
+          <Badge variant={material.status === 'Disponível' ? 'default' : material.status === 'Em uso' ? 'secondary' : 'destructive'}>
+            {material.status}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="font-medium">Total:</span> {material.quantity}
+          </div>
+          <div>
+            <span className="font-medium">Pendentes:</span> {pendingByMaterial[material.id] || 0}
+          </div>
+        </div>
+        <div>
+          <span className="font-medium text-sm">Localizações:</span>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {locations.map(loc => {
+              const q = material.locations[loc.id] || 0;
+              return (
+                <Badge key={loc.id} variant="outline" className="text-xs">
+                  {loc.name}: {q}
+                </Badge>
+              );
+            })}
+          </div>
+        </div>
+        {canWrite && (
+          <div className="flex gap-2 pt-2">
+            <TransferDialog
+              materialName={material.name}
+              materialId={material.id}
+              locations={locations}
+              distribution={material.locations}
+              onTransfer={onTransferMaterial}
+            />
+            <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>Editar</Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <>
@@ -141,66 +196,79 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="flex flex-col space-y-1.5">
+                  <Label>Modo de Visualização</Label>
+                  <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ViewMode)}>
+                    <ToggleGroupItem value="table">Tabela</ToggleGroupItem>
+                    <ToggleGroupItem value="cards">Cartões</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Localizações</TableHead>
-                    <TableHead>Pendentes</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredMaterials.map((material) => (
-                    <TableCell key={material.id}>
-                      <TableCell>{material.id}</TableCell>
-                      <TableCell className="font-medium">{material.name}</TableCell>
-                      <TableCell>{material.category}</TableCell>
-                      <TableCell>{material.quantity}</TableCell>
-                      <TableCell>
-                        <Badge variant={material.status === 'Disponível' ? 'default' : material.status === 'Em uso' ? 'secondary' : 'destructive'}>
-                          {material.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          {locations.map(loc => {
-                            const q = material.locations[loc.id] || 0;
-                            return (
-                              <div key={loc.id} className="text-xs px-2 py-1 border rounded">
-                                {loc.name}: <span className="font-medium">{q}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{pendingByMaterial[material.id] || 0}</span>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        {canWrite && (
-                          <>
-                            <TransferDialog
-                              materialName={material.name}
-                              materialId={material.id}
-                              locations={locations}
-                              distribution={material.locations}
-                              onTransfer={onTransferMaterial}
-                            />
-                            <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>Editar</Button>
-                          </>
-                        )}
-                      </TableCell>
-                    </TableCell>
-                  ))}
-                </TableBody>
-              </Table>
+              {viewMode === 'table' ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Localizações</TableHead>
+                      <TableHead>Pendentes</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMaterials.map((material) => (
+                      <TableRow key={material.id}>
+                        <TableCell>{material.id}</TableCell>
+                        <TableCell className="font-medium">{material.name}</TableCell>
+                        <TableCell>{material.category}</TableCell>
+                        <TableCell>{material.quantity}</TableCell>
+                        <TableCell>
+                          <Badge variant={material.status === 'Disponível' ? 'default' : material.status === 'Em uso' ? 'secondary' : 'destructive'}>
+                            {material.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-2">
+                            {locations.map(loc => {
+                              const q = material.locations[loc.id] || 0;
+                              return (
+                                <div key={loc.id} className="text-xs px-2 py-1 border rounded">
+                                  {loc.name}: <span className="font-medium">{q}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{pendingByMaterial[material.id] || 0}</span>
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
+                          {canWrite && (
+                            <>
+                              <TransferDialog
+                                materialName={material.name}
+                                materialId={material.id}
+                                locations={locations}
+                                distribution={material.locations}
+                                onTransfer={onTransferMaterial}
+                              />
+                              <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>Editar</Button>
+                            </>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredMaterials.map(renderMaterialCard)}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
