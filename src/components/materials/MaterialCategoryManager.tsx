@@ -297,7 +297,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
         <DialogFooter>
           <Button 
             onClick={() => { 
-              setIsCategoryDialogOpen(false); 
+              onOpenChange(false); 
               setCategorySearch(""); 
               setAddCategoryError(null); 
             }}
