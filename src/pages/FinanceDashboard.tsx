@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { DollarSign, TrendingUp, Wallet, Briefcase } from "lucide-react";
+import { DollarSign, TrendingUp, Wallet, Briefcase, Download } from "lucide-react";
 import * as React from "react";
 import { TechnicianCategory } from "@/hooks/useTechnicianCategories";
 import { Event, EventStatus } from "@/types";
@@ -14,6 +14,8 @@ import { DateRange } from "react-day-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FinancialCalendarView from "@/components/finance/FinancialCalendarView";
+import { Button } from "@/components/ui/button";
+import { showError } from "@/utils/toast";
 
 // --- Helper Functions ---
 const formatCurrency = (value: number) => {
@@ -149,6 +151,35 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
+  const handleExport = () => {
+    if (eventProfitability.length === 0) {
+      showError("Não há dados para exportar com os filtros atuais.");
+      return;
+    }
+
+    const headers = ["Evento", "Data", "Receita", "Custo", "Lucro", "Status"];
+    const rows = eventProfitability.map(event => [
+      `"${event.name.replace(/"/g, '""')}"`,
+      event.date,
+      event.revenue,
+      event.cost,
+      event.profit,
+      event.status
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    const formattedDate = new Date().toISOString().split('T')[0];
+    link.setAttribute("download", `relatorio_financeiro_${formattedDate}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="flex-1 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -170,6 +201,10 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
               <SelectItem value="Cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </Button>
         </div>
       </div>
 
