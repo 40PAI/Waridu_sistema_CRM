@@ -32,9 +32,8 @@ export const useEvents = () => {
         revenue: event.revenue,
         status: event.status,
         description: event.description,
-        // roster and expenses would come from related tables
-        roster: undefined,
-        expenses: undefined
+        roster: event.roster,
+        expenses: event.expenses
       }));
 
       setEvents(formattedEvents);
@@ -100,9 +99,23 @@ export const useEvents = () => {
   };
 
   const updateEventDetails = async (eventId: number, details: { roster: Roster; expenses: Expense[] }) => {
-    // This would update related tables for roster and expenses
-    // Implementation depends on how these are structured in the database
-    showSuccess("Detalhes do evento atualizados!");
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({
+          roster: details.roster,
+          expenses: details.expenses,
+        })
+        .eq('id', eventId);
+
+      if (error) throw error;
+      
+      showSuccess("Detalhes do evento atualizados!");
+      fetchEvents(); // Refresh the list
+    } catch (error) {
+      console.error("Error updating event details:", error);
+      showError("Erro ao salvar detalhes do evento.");
+    }
   };
 
   return {

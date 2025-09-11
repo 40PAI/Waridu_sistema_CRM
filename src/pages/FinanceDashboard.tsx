@@ -4,26 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign, TrendingUp, Wallet, Briefcase } from "lucide-react";
 import * as React from "react";
-import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
-
-// --- Mock Data ---
-
-// Desempenho mensal
-const monthlyPerformanceData = [
-  { month: 'Mai', receita: 4500000, custos: 2900000, lucro: 1600000 },
-  { month: 'Jun', receita: 6200000, custos: 3800000, lucro: 2400000 },
-  { month: 'Jul', receita: 5100000, custos: 3100000, lucro: 2000000 },
-  { month: 'Ago', receita: 7800000, custos: 4500000, lucro: 3300000 },
-];
-
-// Rentabilidade por evento
-const eventProfitabilityData = [
-  { id: 1, name: 'Conferência de Tecnologia', date: '15/08/2024', revenue: 1200000, cost: 750000, status: 'Realizado' },
-  { id: 2, name: 'Lançamento de Produto X', date: '01/09/2024', revenue: 800000, cost: 400000, status: 'Próximo' },
-  { id: 3, name: 'Casamento Silva & Costa', date: '25/08/2024', revenue: 1500000, cost: 950000, status: 'Realizado' },
-  { id: 4, name: 'Workshop de Marketing', date: '10/09/2024', revenue: 500000, cost: 250000, status: 'Próximo' },
-  { id: 5, name: 'Festa Corporativa Acme', date: '20/07/2024', revenue: 900000, cost: 600000, status: 'Realizado' },
-];
+import { useTechnicianCategories, TechnicianCategory } from "@/hooks/useTechnicianCategories";
+import { Event } from "@/types";
+import { Employee } from "@/components/employees/EmployeeDialog";
+import { parseISO, format, getMonth, getYear, differenceInDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 // --- Helper Functions ---
 const formatCurrency = (value: number) => {
@@ -38,30 +23,107 @@ const getStatusVariant = (status: string) => {
     }
 };
 
+interface FinanceDashboardProps {
+  events: Event[];
+  employees: Employee[];
+  categories: TechnicianCategory[];
+}
+
 // --- Main Component ---
-const FinanceDashboard = () => {
-  const { categories, loading: categoriesLoading } = useTechnicianCategories();
+const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardProps) => {
+  const { loading: categoriesLoading } = useTechnicianCategories();
 
-  const personnelCostFromCategories = React.useMemo(() => {
-    if (categoriesLoading || categories.length === 0) return 0;
-    // Simula um custo mensal de pessoal somando as taxas diárias de todas as categorias e multiplicando por 20 dias (exemplo)
-    return categories.reduce((sum, cat) => sum + cat.dailyRate, 0) * 20;
-  }, [categories, categoriesLoading]);
+  const categoryMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    categories.forEach(c => map.set(c.id, c.dailyRate));
+    return map;
+  }, [categories]);
 
-  // Análise de custos
-  const costBreakdownData = [
-    { name: 'Pessoal', value: personnelCostFromCategories || 450000 }, // Valor de 'Pessoal' agora é dinâmico
-    { name: 'Aluguel de Equip.', value: 250000 },
-    { name: 'Transporte', value: 120000 },
-    { name: 'Marketing', value: 80000 },
-    { name: 'Outros', value: 50000 },
-  ];
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+  const employeeMap = React.useMemo(() => {
+    const map = new Map<string, Employee>();
+    employees.forEach(e => map.set(e.id, e));
+    return map;
+  }, [employees]);
 
-  const currentMonthData = monthlyPerformanceData[monthlyPerformanceData.length - 1];
+  const calculatePersonnelCost = React.useCallback((event: Event): number => {
+    if (!event.roster?.teamMembers || event.roster.teamMembers.length === 0) return 0;
+
+    const eventStart = parseISO(event.startDate);
+    const eventEnd = parseISO(event.endDate);
+    const durationInDays = differenceInDays(eventEnd, eventStart) + 1;
+    if (durationInDays <= 0) return 0;
+
+    let totalCost = 0;
+    for (const member of event.roster.teamMembers) {
+        const employee = employeeMap.get(member.id);
+        if (employee?.technicianCategoryId) {
+            const dailyRate = categoryMap.get(employee.technicianCategoryId);
+            if (dailyRate) {
+                totalCost += dailyRate * durationInDays;
+            }
+        }
+    }
+    return totalCost;
+  }, [employeeMap, categoryMap]);
+
+  const processedFinancialData = React.useMemo(() => {
+    const completedEvents = events.filter(e => e.status === 'Concluído' && e.revenue);
+
+    const eventProfitability = completedEvents.map(event => {
+      const personnelCost = calculatePersonnelCost(event);
+      const otherExpenses = event.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+      const totalCost = personnelCost + otherExpenses;
+      const profit = (event.revenue || 0) - totalCost;
+      return {
+        id: event.id,
+        name: event.name,
+        date: format(parseISO(event.startDate), 'dd/MM/yyyy', { locale: ptBR }),
+        revenue: event.revenue || 0,
+        cost: totalCost,
+        profit: profit,
+        status: 'Realizado',
+      };
+    });
+
+    const monthlyPerformance: Record<string, { receita: number; custos: number; lucro: number }> = {};
+    eventProfitability.forEach(event => {
+      const eventDate = parseISO(events.find(e => e.id === event.id)!.startDate);
+      const monthKey = format(eventDate, 'MMM yyyy', { locale: ptBR });
+      if (!monthlyPerformance[monthKey]) {
+        monthlyPerformance[monthKey] = { receita: 0, custos: 0, lucro: 0 };
+      }
+      monthlyPerformance[monthKey].receita += event.revenue;
+      monthlyPerformance[monthKey].custos += event.cost;
+      monthlyPerformance[monthKey].lucro += event.profit;
+    });
+
+    const monthlyPerformanceData = Object.entries(monthlyPerformance)
+      .map(([month, data]) => ({ month, ...data }))
+      .sort((a, b) => parseISO(a.month).getTime() - parseISO(b.month).getTime());
+
+    let totalPersonnelCost = 0;
+    let totalOtherExpenses = 0;
+    completedEvents.forEach(event => {
+      totalPersonnelCost += calculatePersonnelCost(event);
+      totalOtherExpenses += event.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+    });
+
+    const costBreakdownData = [
+      { name: 'Custos de Pessoal', value: totalPersonnelCost },
+      { name: 'Outras Despesas', value: totalOtherExpenses },
+    ];
+
+    return { eventProfitability, monthlyPerformanceData, costBreakdownData };
+  }, [events, calculatePersonnelCost]);
+
+  const { eventProfitability, monthlyPerformanceData, costBreakdownData } = processedFinancialData;
+
+  const currentMonthData = monthlyPerformanceData[monthlyPerformanceData.length - 1] || { receita: 0, custos: 0, lucro: 0 };
   const totalRevenue = monthlyPerformanceData.reduce((sum, item) => sum + item.receita, 0);
   const totalCosts = monthlyPerformanceData.reduce((sum, item) => sum + item.custos, 0);
   const averageMargin = totalRevenue > 0 ? ((totalRevenue - totalCosts) / totalRevenue) * 100 : 0;
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
   return (
     <div className="flex-1 space-y-6">
@@ -168,29 +230,32 @@ const FinanceDashboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {eventProfitabilityData.map((event) => {
-                const profit = event.revenue - event.cost;
-                return (
-                  <TableRow key={event.id}>
-                    <TableCell className="font-medium">{event.name}</TableCell>
-                    <TableCell>{event.date}</TableCell>
-                    <TableCell>{formatCurrency(event.revenue)}</TableCell>
-                    <TableCell>{formatCurrency(event.cost)}</TableCell>
-                    <TableCell className={profit > 0 ? "text-green-600" : "text-red-600"}>
-                      {formatCurrency(profit)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(event.status)}>{event.status}</Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {eventProfitability.length > 0 ? eventProfitability.map((event) => (
+                <TableRow key={event.id}>
+                  <TableCell className="font-medium">{event.name}</TableCell>
+                  <TableCell>{event.date}</TableCell>
+                  <TableCell>{formatCurrency(event.revenue)}</TableCell>
+                  <TableCell>{formatCurrency(event.cost)}</TableCell>
+                  <TableCell className={event.profit > 0 ? "text-green-600" : "text-red-600"}>
+                    {formatCurrency(event.profit)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(event.status)}>{event.status}</Badge>
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center h-24">
+                    Nenhum evento concluído para exibir.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* New Card for Technician Categories */}
+      {/* Technician Categories Card */}
       <Card>
         <CardHeader>
           <CardTitle>Categorias de Técnicos</CardTitle>

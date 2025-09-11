@@ -34,7 +34,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { useMaterials } from "@/hooks/useMaterials";
 import { useMaterialRequests } from "@/hooks/useMaterialRequests";
 import { supabase } from "@/integrations/supabase/client";
-import { showError, showSuccess } from "@/utils/toast";
+import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 
 const queryClient = new QueryClient();
 
@@ -52,26 +52,7 @@ const AppContent = () => {
     rejectMaterialRequest,
     loading: requestsLoading
   } = useMaterialRequests();
-
-  const inviteMember = async (email: string, roleId: string) => {
-    const roleName = roles.find(r => r.id === roleId)?.name || "Técnico";
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-
-    const { error } = await supabase.functions.invoke(
-      "invite-member",
-      {
-        body: { email, roleId, roleName },
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }
-    );
-
-    if (error) {
-      return { ok: false as const, error: error.message || "Falha ao enviar convite" };
-    }
-
-    return { ok: true as const };
-  };
+  const { categories, loading: categoriesLoading } = useTechnicianCategories();
 
   const materialNameMap: Record<string, string> = rawMaterials.reduce((acc, m) => {
     acc[m.id] = m.name;
@@ -79,7 +60,7 @@ const AppContent = () => {
   }, {} as Record<string, string>);
 
   // Show loading state while fetching initial data
-  if (eventsLoading || employeesLoading || rolesLoading || locationsLoading || materialsLoading || requestsLoading) {
+  if (eventsLoading || employeesLoading || rolesLoading || locationsLoading || materialsLoading || requestsLoading || categoriesLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p>Carregando dados...</p>
@@ -155,7 +136,13 @@ const AppContent = () => {
                   onRejectRequest={rejectMaterialRequest} 
                 />
               } />
-              <Route path="/finance-dashboard" element={<FinanceDashboard />} />
+              <Route path="/finance-dashboard" element={
+                <FinanceDashboard 
+                  events={events} 
+                  employees={employees} 
+                  categories={categories} 
+                />
+              } />
               <Route path="/admin-settings" element={
                 <AdminSettings 
                   roles={roles} 
