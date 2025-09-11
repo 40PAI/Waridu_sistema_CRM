@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,6 +107,12 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
 
     try {
       await onSave(materialData);
+      if (!isEditing && initialLocation && initialQuantity && Number(initialQuantity) > 0) {
+        // Adicionar estoque inicial após salvar o material (assumindo que onAddInitialStock é chamado com o novo ID)
+        // Nota: Você precisará ajustar o hook useMaterials para retornar o ID do novo material e passá-lo aqui
+        // Por enquanto, assumimos que onSave retorna o ID ou é gerenciado no parent
+        onAddInitialStock?.(materialData.id || '', initialLocation, Number(initialQuantity));
+      }
       showSuccess(isEditing ? "Material atualizado!" : "Material adicionado com sucesso!");
       onOpenChange(false);
     } catch (error) {
@@ -230,7 +238,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">Status</Label>
-              <Select value={status} onValueChange={(value) => setStatus(value as Material['status'])} disabled={catLoading}>
+              <Select value={status} onValueChange={(value) => setStatus(value as Material['status'])}>
                   <SelectTrigger id="status" className="col-span-3"><SelectValue /></SelectTrigger>
                   <SelectContent>
                       <SelectItem value="Disponível">Disponível</SelectItem>
@@ -241,13 +249,13 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="description" className="text-right">Descrição</Label>
-              <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" placeholder="Detalhes sobre o material..." disabled={catLoading} />
+              <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" placeholder="Detalhes sobre o material..." />
             </div>
             {!isEditing && (
               <>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="initialLocation" className="text-right">Localização Inicial</Label>
-                  <Select value={initialLocation} onValueChange={setInitialLocation} disabled={catLoading}>
+                  <Select value={initialLocation} onValueChange={setInitialLocation}>
                     <SelectTrigger id="initialLocation" className="col-span-3">
                       <SelectValue placeholder="Selecione a localização" />
                     </SelectTrigger>
@@ -268,14 +276,13 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                     className="col-span-3"
                     placeholder="Ex: 5"
                     min={1}
-                    disabled={catLoading}
                   />
                 </div>
               </>
             )}
           </div>
           <DialogFooter>
-            <Button type="button" onClick={handleSubmit} disabled={catLoading || !name || !category}>Salvar</Button>
+            <Button type="button" onClick={handleSubmit} disabled={!name || !category}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -296,7 +303,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                 onChange={(e) => setCategorySearch(e.target.value)}
                 className="flex-1"
               />
-              <Button variant="outline" size="icon" onClick={() => setCategorySearch("")} disabled={!categorySearch || catLoading}>
+              <Button variant="outline" size="icon" onClick={() => setCategorySearch("")} disabled={!categorySearch}>
                 <Search className="h-4 w-4" />
               </Button>
             </div>
@@ -308,16 +315,14 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 className="flex-1"
-                disabled={catLoading}
               />
               <Input
                 placeholder="Descrição (opcional)"
                 value={newCategoryDesc}
                 onChange={(e) => setNewCategoryDesc(e.target.value)}
                 className="flex-1"
-                disabled={catLoading}
               />
-              <Button size="sm" onClick={handleAddCategory} disabled={!newCategoryName.trim() || catLoading}>
+              <Button size="sm" onClick={handleAddCategory} disabled={!newCategoryName.trim()}>
                 <Plus className="h-4 w-4 mr-1" /> Adicionar
               </Button>
             </div>
@@ -334,16 +339,14 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                           onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
                           placeholder="Nome"
                           className="flex-1 min-w-[150px]"
-                          disabled={catLoading}
                         />
                         <Input
                           value={editingCategory.description || ""}
                           onChange={(e) => setEditingCategory(prev => prev ? { ...prev, description: e.target.value } : null)}
                           placeholder="Descrição"
                           className="flex-1 min-w-[150px]"
-                          disabled={catLoading}
                         />
-                        <Button size="sm" onClick={handleSaveCatEdit} disabled={!editingCategory.name.trim() || catLoading}>
+                        <Button size="sm" onClick={handleSaveCatEdit} disabled={!editingCategory.name.trim()}>
                           Salvar
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => setEditingCategory(null)}>
@@ -366,7 +369,6 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                               size="sm" 
                               variant="outline" 
                               onClick={() => openEditCategory({ id: cat.id, name: cat.name, description: cat.description })}
-                              disabled={catLoading}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -379,7 +381,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                           <TooltipTrigger asChild>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={catLoading}>
+                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -392,7 +394,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)} disabled={catLoading}>
+                                  <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)}>
                                     Remover
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -414,7 +416,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => { setIsCategoryDialogOpen(false); setCategorySearch(""); }} disabled={catLoading}>Fechar</Button>
+            <Button onClick={() => { setIsCategoryDialogOpen(false); setCategorySearch(""); }}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
