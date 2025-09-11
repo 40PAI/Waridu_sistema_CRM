@@ -122,21 +122,20 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Nome</Label>
+          <div className="space-y-4 py-4"> {/* Changed from grid to space-y for better flow */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome</Label>
               <Input 
                 id="name" 
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
-                className="col-span-3" 
                 placeholder="Ex: Câmera Sony A7S III" 
               />
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">Categoria</Label>
-              <div className="col-span-3 flex gap-2">
+            <div className="space-y-2">
+              <Label htmlFor="category">Categoria</Label>
+              <div className="flex gap-2">
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Selecione a categoria" />
@@ -168,10 +167,10 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               </div>
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">Status</Label>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
               <Select value={status} onValueChange={(value) => setStatus(value as Material['status'])}>
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -182,23 +181,24 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               </Select>
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">Descrição</Label>
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição</Label>
               <Textarea 
                 id="description" 
                 value={description} 
                 onChange={(e) => setDescription(e.target.value)} 
-                className="col-span-3" 
                 placeholder="Detalhes sobre o material..."
+                rows={3}
+                className="min-h-[80px] resize-vertical"
               />
             </div>
 
             {!isEditing && (
               <>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="initialLocation" className="text-right">Localização Inicial</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="initialLocation">Localização Inicial</Label>
                   <Select value={initialLocation} onValueChange={setInitialLocation}>
-                    <SelectTrigger className="col-span-3">
+                    <SelectTrigger>
                       <SelectValue placeholder="Selecione a localização" />
                     </SelectTrigger>
                     <SelectContent>
@@ -211,14 +211,13 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="initialQuantity" className="text-right">Quantidade Inicial</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="initialQuantity">Quantidade Inicial</Label>
                   <Input
                     id="initialQuantity"
                     type="number"
                     value={initialQuantity}
                     onChange={(e) => setInitialQuantity(e.target.value ? Number(e.target.value) : "")}
-                    className="col-span-3"
                     placeholder="Ex: 5"
                     min={1}
                   />
