@@ -67,7 +67,7 @@ const LoginPage = () => {
                 forgotten_password: {
                   email_label: 'Endereço de e-mail',
                   email_input_placeholder: 'seu@email.com',
-                  password_input_placeholder: 'Enviar instruções',
+                  button_label: 'Enviar instruções',
                   link_text: 'Esqueceu sua senha?',
                 },
               },
