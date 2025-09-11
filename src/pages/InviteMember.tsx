@@ -12,29 +12,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Combobox } from "@/components/ui/combobox";
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { useEmployees } from "@/hooks/useEmployees";
-import { useRoles } from "@/hooks/useRoles";
 import { useUsers } from "@/hooks/useUsers";
 import { useUserLogs } from "@/hooks/useUserLogs";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MoreHorizontal, UserPlus, Crown, Ban, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const inviteSchema = z.object({
   employeeId: z.string().min(1, "Selecione um funcionário."),
-  roleId: z.string().min(1, "Selecione uma função."),
+  roleName: z.enum(["Técnico", "Financeiro", "Gestor de Material", "Admin"], { message: "Selecione um role válido." }), // Hardcoded roles específicos
 });
 
 type InviteFormValues = z.infer<typeof inviteSchema>;
+
+// Roles específicos que você quer (hardcoded para o dropdown)
+const specificRoles = [
+  { value: "Técnico", label: "Técnico (acesso a páginas de técnico)" },
+  { value: "Financeiro", label: "Financeiro (acesso a páginas financeiras)" },
+  { value: "Gestor de Material", label: "Gestor de Material (acesso a materiais e requisições)" },
+  { value: "Admin", label: "Admin (acesso total a todas as páginas)" },
+] as const;
 
 const InviteMember = () => {
   const { user } = useAuth();
@@ -45,42 +50,41 @@ const InviteMember = () => {
   const canDelete = !!userRole && hasActionPermission(userRole, "members:delete");
 
   const { employees } = useEmployees();
-  const { roles } = useRoles();
-  const { users, loading: usersLoading, refreshUsers } = useUsers();
+  const { refreshUsers } = useUsers(); // Para recarregar após promoções
   const { logs, loading: logsLoading } = useUserLogs();
 
   const [inviteSubmitting, setInviteSubmitting] = React.useState(false);
-  const [promoteDialog, setPromoteDialog] = React.useState<{ open: boolean; userId: string; currentRole: string }>({ open: false, userId: '', currentRole: '' });
   const [banDialog, setBanDialog] = React.useState<{ open: boolean; userId: string }>({ open: false, userId: '' });
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; userId: string }>({ open: false, userId: '' });
   const [banReason, setBanReason] = React.useState('');
   const [banUntil, setBanUntil] = React.useState('');
   const [deleteReason, setDeleteReason] = React.useState('');
-  const [newRole, setNewRole] = React.useState('');
 
   const inviteForm = useForm<InviteFormValues>({
     resolver: zodResolver(inviteSchema),
-    defaultValues: { employeeId: "", roleId: "" },
+    defaultValues: { employeeId: "", roleName: "Técnico" }, // Default para Técnico
   });
 
-  // Mostrar TODOS os roles disponíveis (removido o filtro)
   const employeeOptions = React.useMemo(() => employees.map(e => ({ value: e.id, label: `${e.name} (${e.email})` })), [employees]);
-  const roleOptions = React.useMemo(() => roles.map(r => ({ value: r.id, label: r.name })), [roles]);
 
   const handleInvite = async (values: InviteFormValues) => {
     if (!canInvite) return;
     setInviteSubmitting(true);
     const selectedEmployee = employees.find(e => e.id === values.employeeId);
-    const selectedRole = roles.find(r => r.id === values.roleId);
-    if (!selectedEmployee || !selectedRole) return;
+    if (!selectedEmployee) return;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { error } = await supabase.functions.invoke("invite-member", {
-        body: { email: selectedEmployee.email, roleId: values.roleId, roleName: selectedRole.name, employeeId: values.employeeId },
-        headers: { Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
+        body: { 
+          email: selectedEmployee.email, 
+          roleName: values.roleName, // Role específico selecionado
+          employeeId: values.employeeId 
+        },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error) throw error;
-      showSuccess(`Convite enviado para ${selectedEmployee.email}!`);
+      showSuccess(`Convite enviado para ${selectedEmployee.email} com role ${values.roleName}! Ele terá acesso às páginas correspondentes.`);
       inviteForm.reset();
     } catch (err: any) {
       showError(err.message || "Erro ao enviar convite.");
@@ -92,24 +96,26 @@ const InviteMember = () => {
   const handlePromote = async (targetUserId: string, newRole: string) => {
     if (!canPromote) return;
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { error } = await supabase.functions.invoke("promote-user", {
-        body: { targetUserId, newRole, reason: "Alteração de função via dropdown" },
-        headers: { Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
+        body: { targetUserId, newRole, reason: `Atribuição de role via dropdown` },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error) throw error;
-      showSuccess("Função atualizada com sucesso!");
-      refreshUsers();
+      showSuccess(`Role "${newRole}" atribuído! O membro agora tem acesso às páginas correspondentes.`);
+      refreshUsers(); // Recarrega a lista para refletir mudanças
     } catch (err: any) {
-      showError(err.message || "Erro ao atualizar função.");
+      showError(err.message || "Erro ao atualizar role.");
     }
   };
 
   const handleBan = async () => {
     if (!canBan || !banUntil || !banReason) return;
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { error } = await supabase.functions.invoke("ban-user", {
         body: { targetUserId: banDialog.userId, bannedUntil: banUntil, reason: banReason },
-        headers: { Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error) throw error;
       showSuccess("Usuário banido!");
@@ -125,9 +131,10 @@ const InviteMember = () => {
   const handleDelete = async () => {
     if (!canDelete || !deleteReason) return;
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const { error } = await supabase.functions.invoke("delete-user", {
         body: { targetUserId: deleteDialog.userId, reason: deleteReason },
-        headers: { Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error) throw error;
       showSuccess("Usuário eliminado!");
@@ -145,7 +152,7 @@ const InviteMember = () => {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Acesso não autorizado</CardTitle>
-            <CardDescription>Você não possui permissão para convidar novos membros.</CardDescription>
+            <CardDescription>Você não possui permissão para gerenciar membros.</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="w-full">
@@ -161,7 +168,7 @@ const InviteMember = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Gerenciar Membros</h1>
-        <p className="text-muted-foreground">Convide, promova, banir ou elimine usuários.</p>
+        <p className="text-muted-foreground">Convide novos membros ou atribua roles a existentes para controlar acesso às páginas.</p>
       </div>
 
       <Tabs defaultValue="invite">
@@ -175,7 +182,7 @@ const InviteMember = () => {
           <Card>
             <CardHeader>
               <CardTitle>Convidar Novo Membro</CardTitle>
-              <CardDescription>Selecione um funcionário e função para enviar convite.</CardDescription>
+              <CardDescription>Selecione um funcionário e atribua um role específico para dar acesso às páginas correspondentes.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...inviteForm}>
@@ -187,14 +194,18 @@ const InviteMember = () => {
                       <FormItem>
                         <FormLabel>Funcionário</FormLabel>
                         <FormControl>
-                          <Combobox
-                            options={employeeOptions}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Buscar funcionário..."
-                            searchPlaceholder="Digite nome ou email"
-                            emptyMessage="Nenhum funcionário encontrado."
-                          />
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um funcionário para convidar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {employeeOptions.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -202,17 +213,21 @@ const InviteMember = () => {
                   />
                   <FormField
                     control={inviteForm.control}
-                    name="roleId"
+                    name="roleName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Função</FormLabel>
+                        <FormLabel>Role a Atribuir</FormLabel>
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma função" />
+                              <SelectValue placeholder="Selecione o role (acesso a páginas específicas)" />
                             </SelectTrigger>
                             <SelectContent>
-                              {roleOptions.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                              {specificRoles.map(role => (
+                                <SelectItem key={role.value} value={role.value}>
+                                  {role.label}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </FormControl>
@@ -233,25 +248,20 @@ const InviteMember = () => {
           <Card>
             <CardHeader>
               <CardTitle>Lista de Membros</CardTitle>
-              <CardDescription>Gerencie usuários existentes. Use a dropdown na coluna "Função" para alterar diretamente.</CardDescription>
+              <CardDescription>Atribua roles diretamente para dar acesso às páginas (ex: Técnico acessa dashboard técnico).</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Usuário</TableHead>
-                    <TableHead>Função</TableHead>
+                    <TableHead>Role Atual</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Último Login</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {usersLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={5}>Carregando...</TableCell>
-                    </TableRow>
-                  ) : users.map(u => (
+                  {users.map(u => (
                     <TableRow key={u.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -270,17 +280,18 @@ const InviteMember = () => {
                           <Select
                             value={u.role}
                             onValueChange={(newRole) => handlePromote(u.id, newRole)}
-                            disabled={!canPromote}
                           >
                             <SelectTrigger className="w-full">
-                              <SelectValue />
+                              <SelectValue placeholder="Atribuir Role" />
                             </SelectTrigger>
                             <SelectContent>
-                              {roles.filter(r => r.name !== u.role).map(r => (
-                                <SelectItem key={r.id} value={r.name}>
-                                  {r.name}
-                                </SelectItem>
-                              ))}
+                              {specificRoles
+                                .filter(role => role.value !== u.role) // Exclui o atual
+                                .map(role => (
+                                  <SelectItem key={role.value} value={role.value}>
+                                    {role.label}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         ) : (
@@ -292,27 +303,19 @@ const InviteMember = () => {
                           {u.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{u.last_sign_in_at ? format(new Date(u.last_sign_in_at), 'dd/MM/yyyy', { locale: ptBR }) : 'Nunca'}</TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
+                        <div className="flex gap-1">
+                          {canBan && u.status !== 'banned' && (
+                            <Button variant="outline" size="icon" onClick={() => setBanDialog({ open: true, userId: u.id })}>
+                              <Ban className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {canBan && u.status !== 'banned' && (
-                              <DropdownMenuItem onClick={() => setBanDialog({ open: true, userId: u.id })}>
-                                <Ban className="h-4 w-4 mr-2" /> Banir
-                              </DropdownMenuItem>
-                            )}
-                            {canDelete && (
-                              <DropdownMenuItem onClick={() => setDeleteDialog({ open: false, userId: u.id })}>
-                                <Trash2 className="h-4 w-4 mr-2" /> Eliminar
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          )}
+                          {canDelete && (
+                            <Button variant="outline" size="icon" onClick={() => setDeleteDialog({ open: true, userId: u.id })}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -326,7 +329,7 @@ const InviteMember = () => {
           <Card>
             <CardHeader>
               <CardTitle>Histórico de Ações</CardTitle>
-              <CardDescription>Registros de convites, promoções, bans e deletes.</CardDescription>
+              <CardDescription>Registros de convites, atribuições de roles, bans e deletes.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -335,7 +338,7 @@ const InviteMember = () => {
                     <TableHead>Data</TableHead>
                     <TableHead>Ação</TableHead>
                     <TableHead>Por</TableHead>
-                    <TableCell>Alvo</TableCell>
+                    <TableHead>Alvo</TableHead>
                     <TableHead>Detalhes</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -360,7 +363,7 @@ const InviteMember = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Dialogs */}
+      {/* Diálogos para Ban e Delete (mantidos como antes) */}
       <Dialog open={banDialog.open} onOpenChange={(open) => setBanDialog({ ...banDialog, open })}>
         <DialogContent>
           <DialogHeader>
