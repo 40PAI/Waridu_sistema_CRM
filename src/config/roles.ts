@@ -1,5 +1,3 @@
-import type { Role as ConfigRole } from "@/config/roles";
-
 export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico';
 
 export const PAGE_PERMISSIONS: Record<Role, string[]> = {
