@@ -54,7 +54,8 @@ const TechnicianEvents = () => {
           endTime: event.end_time,
           revenue: event.revenue,
           status: event.status,
-          description: event.description
+          description: event.description,
+          roster: event.roster,
         }));
         
         setEvents(formattedEvents);

@@ -23,6 +23,7 @@ import DebugPage from "@/pages/Debug";
 import HealthCheck from "@/pages/HealthCheck";
 import TechnicianDashboard from "@/pages/technician/Dashboard";
 import TechnicianEvents from "@/pages/technician/Events";
+import TechnicianEventDetail from "@/pages/technician/EventDetail";
 import TechnicianTasks from "@/pages/technician/Tasks";
 import TechnicianProfile from "@/pages/technician/Profile";
 import TechnicianCalendar from "@/pages/technician/Calendar";
@@ -162,6 +163,7 @@ const AppContent = () => {
               <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
               <Route path="/technician/calendar" element={<TechnicianCalendar />} />
               <Route path="/technician/events" element={<TechnicianEvents />} />
+              <Route path="/technician/events/:eventId" element={<TechnicianEventDetail />} />
               <Route path="/technician/tasks" element={<TechnicianTasks />} />
               <Route path="/technician/profile" element={<TechnicianProfile />} />
               <Route path="/technician/notifications" element={<TechnicianNotifications />} />
