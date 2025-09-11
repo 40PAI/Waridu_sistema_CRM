@@ -33,7 +33,7 @@ interface MaterialCategoryManagerProps {
 }
 
 export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected }: MaterialCategoryManagerProps) {
-  const { categories: materialCategories, addCategory, updateCategory, deleteCategory, loading: catLoading, refreshCategories } = useMaterialCategories();
+  const { categories: materialCategories, addCategory, updateCategory, deleteCategory, refreshCategories } = useMaterialCategories();
   
   const [editingCategory, setEditingCategory] = React.useState<{ id: string; name: string; description?: string } | null>(null);
   const [newCategoryName, setNewCategoryName] = React.useState("");
@@ -179,9 +179,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
 
           {/* Categories List */}
           <div className="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
-            {catLoading ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
-            ) : filteredCategories.length > 0 ? (
+            {filteredCategories.length > 0 ? (
               filteredCategories.map((cat) => (
                 <div key={cat.id} className="flex items-center justify-between p-2 border rounded">
                   <div className="flex-1 min-w-0">
