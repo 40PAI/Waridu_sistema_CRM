@@ -56,7 +56,9 @@ export const ACTION_PERMISSIONS: Record<string, Role[]> = {
   'materials:write': ['Admin', 'Gestor de Material'],
   'members:invite': ['Admin', 'Coordenador'],
   'employees:write': ['Admin', 'Coordenador'],
-  'roster:manage': ['Admin', 'Coordenador'], // New permission for managing rosters
+  'roster:manage': ['Admin', 'Coordenador'],
+  'categories:manage': ['Admin', 'Financeiro'],
+  'employees:assign_category': ['Admin', 'Coordenador'],
 };
 
 export const hasPermission = (role: Role, path: string): boolean => {

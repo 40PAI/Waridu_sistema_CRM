@@ -28,7 +28,7 @@ export const useEmployees = () => {
         email: emp.email,
         avatar: `/avatars/0${Math.floor(Math.random() * 4) + 1}.png`,
         status: emp.status,
-        costPerDay: emp.cost_per_day
+        technicianCategoryId: emp.technician_category || null,
       }));
 
       setEmployees(formattedEmployees);
@@ -43,7 +43,6 @@ export const useEmployees = () => {
   const saveEmployee = async (employeeData: Omit<Employee, 'id' | 'avatar'> & { id?: string }) => {
     try {
       if (employeeData.id) {
-        // Update existing employee
         const { error } = await supabase
           .from('employees')
           .update({
@@ -51,14 +50,13 @@ export const useEmployees = () => {
             role: employeeData.role,
             email: employeeData.email,
             status: employeeData.status,
-            cost_per_day: employeeData.costPerDay
+            technician_category: employeeData.technicianCategoryId || null,
           })
           .eq('id', employeeData.id);
 
         if (error) throw error;
         showSuccess("Funcionário atualizado com sucesso!");
       } else {
-        // Create new employee
         const { error } = await supabase
           .from('employees')
           .insert({
@@ -66,7 +64,7 @@ export const useEmployees = () => {
             role: employeeData.role,
             email: employeeData.email,
             status: employeeData.status,
-            cost_per_day: employeeData.costPerDay
+            technician_category: employeeData.technicianCategoryId || null,
           });
 
         if (error) throw error;

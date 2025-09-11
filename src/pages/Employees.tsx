@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
+import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 
 interface EmployeesPageProps {
   roles: Role[];
@@ -21,6 +22,14 @@ const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps)
   const { user } = useAuth();
   const userRole = user?.profile?.role;
   const canWrite = userRole ? hasActionPermission(userRole, 'employees:write') : false;
+  const canAssignCategory = userRole ? hasActionPermission(userRole, 'employees:assign_category') : false;
+
+  const { categories } = useTechnicianCategories();
+  const categoryMap = React.useMemo(() => {
+    const map: Record<string, { name: string; rate: number }> = {};
+    categories.forEach(c => { map[c.id] = { name: c.categoryName, rate: c.dailyRate }; });
+    return map;
+  }, [categories]);
 
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingEmployee, setEditingEmployee] = React.useState<Employee | null>(null);
@@ -94,12 +103,15 @@ const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps)
                       <TableHead>Funcionário</TableHead>
                       <TableHead>Função</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Custo/Dia</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Valor/Dia</TableHead>
                       {canWrite && <TableHead className="text-right">Ações</TableHead>}
                   </TableRow>
               </TableHeader>
               <TableBody>
-                  {filteredEmployees.map((employee) => (
+                  {filteredEmployees.map((employee) => {
+                    const cat = employee.technicianCategoryId ? categoryMap[employee.technicianCategoryId] : undefined;
+                    return (
                       <TableRow key={employee.id}>
                           <TableCell>
                               <div className="flex items-center gap-3">
@@ -119,16 +131,16 @@ const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps)
                               {employee.status}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {employee.costPerDay ? `AOA ${employee.costPerDay.toLocaleString('pt-AO')}` : 'N/A'}
-                          </TableCell>
+                          <TableCell>{cat ? cat.name : '—'}</TableCell>
+                          <TableCell>{cat ? `AOA ${cat.rate.toLocaleString('pt-AO')}` : '—'}</TableCell>
                           {canWrite && (
                             <TableCell className="text-right">
                                 <Button variant="outline" size="sm" onClick={() => handleEdit(employee)}>Editar</Button>
                             </TableCell>
                           )}
                       </TableRow>
-                  ))}
+                    );
+                  })}
               </TableBody>
           </Table>
         </CardContent>
@@ -139,6 +151,8 @@ const EmployeesPage = ({ roles, employees, onSaveEmployee }: EmployeesPageProps)
         employee={editingEmployee}
         onSave={onSaveEmployee}
         roles={roles}
+        categories={categories}
+        canAssignCategory={canAssignCategory}
       />
     </>
   );

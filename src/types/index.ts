@@ -75,3 +75,9 @@ export interface MaterialRequest {
   createdAt: string;
   decidedAt?: string;
 }
+
+export interface TechnicianCategory {
+  id: string;
+  categoryName: string;
+  dailyRate: number;
+}

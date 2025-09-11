@@ -23,8 +23,14 @@ export interface Employee {
   email: string;
   avatar: string;
   status: EmployeeStatus;
-  costPerDay?: number;
+  technicianCategoryId?: string | null;
 }
+
+type TechnicianCategory = {
+  id: string;
+  categoryName: string;
+  dailyRate: number;
+};
 
 interface EmployeeDialogProps {
   open: boolean;
@@ -32,14 +38,16 @@ interface EmployeeDialogProps {
   employee?: Employee | null;
   onSave: (employeeData: Omit<Employee, 'id' | 'avatar'> & { id?: string }) => void;
   roles: Role[];
+  categories: TechnicianCategory[];
+  canAssignCategory: boolean;
 }
 
-export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: EmployeeDialogProps) {
+export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, categories, canAssignCategory }: EmployeeDialogProps) {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState("");
   const [status, setStatus] = React.useState<EmployeeStatus>("Ativo");
-  const [costPerDay, setCostPerDay] = React.useState<number | undefined>(undefined);
+  const [technicianCategoryId, setTechnicianCategoryId] = React.useState<string>("");
 
   const isEditing = !!employee;
 
@@ -50,13 +58,13 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
         setEmail(employee.email);
         setRole(employee.role);
         setStatus(employee.status);
-        setCostPerDay(employee.costPerDay);
+        setTechnicianCategoryId(employee.technicianCategoryId || "");
       } else {
         setName("");
         setEmail("");
         setRole("");
         setStatus("Ativo");
-        setCostPerDay(undefined);
+        setTechnicianCategoryId("");
       }
     }
   }, [employee, open]);
@@ -78,7 +86,7 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
       email,
       role,
       status,
-      costPerDay,
+      technicianCategoryId: technicianCategoryId || undefined,
     };
 
     onSave(employeeData);
@@ -126,6 +134,7 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
               </SelectContent>
             </Select>
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="status" className="text-right">
               Status
@@ -140,11 +149,25 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles }: 
               </SelectContent>
             </Select>
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="costPerDay" className="text-right">
-              Custo/Dia (AOA)
-            </Label>
-            <Input id="costPerDay" type="number" value={costPerDay || ''} onChange={(e) => setCostPerDay(e.target.value ? Number(e.target.value) : undefined)} className="col-span-3" />
+            <Label className="text-right">Categoria</Label>
+            <Select
+              value={technicianCategoryId}
+              onValueChange={setTechnicianCategoryId}
+              disabled={!canAssignCategory}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder={canAssignCategory ? "Selecione a categoria" : "Sem permissão para alterar"} />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.categoryName} — AOA {c.dailyRate.toLocaleString("pt-AO")}/dia
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>

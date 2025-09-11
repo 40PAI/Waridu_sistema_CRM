@@ -26,6 +26,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { showSuccess, showError } from "@/utils/toast";
+import CategoryManager from "@/components/settings/CategoryManager";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasActionPermission } from "@/config/roles";
 
 interface Location {
   id: string;
@@ -48,6 +51,8 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
   const [newLocation, setNewLocation] = React.useState("");
   const [editingLoc, setEditingLoc] = React.useState<Location | null>(null);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
+  const { user } = useAuth();
+  const canManageCategories = user?.profile?.role ? hasActionPermission(user.profile.role, "categories:manage") : false;
 
   const handleAddLocation = () => {
     const name = newLocation.trim();
@@ -91,6 +96,8 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
         onUpdateRole={onUpdateRole}
         onDeleteRole={onDeleteRole}
       />
+
+      {canManageCategories && <CategoryManager />}
 
       <Card>
         <CardHeader>
