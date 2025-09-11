@@ -16,7 +16,7 @@ interface CreateEventPageProps {
     startTime: string;
     endTime: string;
     revenue?: number;
-  }) => void;
+  }) => Promise<void> | void; // aceita funções assíncronas também
 }
 
 const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
@@ -39,7 +39,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
     onAddEvent({
       name: eventName,
       startDate: startDate,
-      endDate: endDate || startDate, // Se a data de fim não for preenchida, assume-se que é um evento de um dia
+      endDate: endDate || startDate,
       location: eventLocation,
       startTime: startTime,
       endTime: endTime,

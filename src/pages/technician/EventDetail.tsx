@@ -41,7 +41,26 @@ const TechnicianEventDetail = () => {
           .single();
 
         if (eventError) throw eventError;
-        setEvent(eventData as Event);
+
+        if (eventData) {
+          const mapped: Event = {
+            id: eventData.id,
+            name: eventData.name,
+            startDate: eventData.start_date,
+            endDate: eventData.end_date,
+            location: eventData.location,
+            startTime: eventData.start_time || undefined,
+            endTime: eventData.end_time || undefined,
+            revenue: eventData.revenue || undefined,
+            status: eventData.status,
+            description: eventData.description || undefined,
+            roster: eventData.roster || undefined,
+            expenses: eventData.expenses || undefined,
+          };
+          setEvent(mapped);
+        } else {
+          setEvent(null);
+        }
 
         const { data: tasksData, error: tasksError } = await supabase
           .from('tasks')
@@ -49,7 +68,7 @@ const TechnicianEventDetail = () => {
           .eq('event_id', eventId);
 
         if (tasksError) throw tasksError;
-        setTasks(tasksData as Task[]);
+        setTasks((tasksData || []) as Task[]);
 
       } catch (error) {
         console.error("Error fetching event details:", error);

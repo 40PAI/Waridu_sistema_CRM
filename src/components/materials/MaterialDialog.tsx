@@ -18,7 +18,7 @@ import { showError } from "@/utils/toast";
 interface MaterialDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (materialData: Omit<Material, 'id'> & { id?: string }) => void;
+  onSave: (materialData: Omit<Material, 'id' | 'locations'> & { id?: string }) => void; // não exige 'locations'
   material?: Material | null;
 }
 
@@ -55,14 +55,13 @@ export function MaterialDialog({ open, onOpenChange, onSave, material }: Materia
       return;
     }
 
-    const materialData = {
+    const materialData: Omit<Material, 'id' | 'locations'> & { id?: string } = {
       id: material?.id,
       name,
       category,
       quantity,
       status,
       description,
-      locations: material?.locations || {}
     };
 
     onSave(materialData);
