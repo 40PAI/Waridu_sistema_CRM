@@ -11,6 +11,7 @@ import { MaterialDialog } from "@/components/materials/MaterialDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { TransferDialog } from "@/components/materials/TransferDialog";
+import { useMaterialCategories } from "@/hooks/useMaterialCategories";
 import type { MaterialRequest } from "@/types";
 import type { MaterialStatus, PageMaterial as Material } from "@/types";
 
@@ -41,6 +42,8 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
   const { user } = useAuth();
   const userRole = user?.profile?.role;
   const canWrite = userRole ? hasActionPermission(userRole, 'materials:write') : false;
+
+  const { categories: materialCategories } = useMaterialCategories();
 
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [categoryFilter, setCategoryFilter] = React.useState('all');

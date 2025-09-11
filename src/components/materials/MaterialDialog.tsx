@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { PageMaterial as Material } from "@/types";
 import { showError, showSuccess } from "@/utils/toast";
 import { useLocations } from "@/hooks/useLocations";
+import { useMaterialCategories } from "@/hooks/useMaterialCategories";
 import { MaterialCategoryManager } from "./MaterialCategoryManager";
 import { Edit } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,6 +32,7 @@ interface MaterialDialogProps {
 
 export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInitialStock }: MaterialDialogProps) {
   const { locations } = useLocations();
+  const { categories: materialCategories, refreshCategories } = useMaterialCategories();
   
   const [name, setName] = React.useState("");
   const [category, setCategory] = React.useState("");
@@ -60,8 +64,10 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
         setInitialLocation("");
         setInitialQuantity("");
       }
+      // Refresh categories when opening
+      refreshCategories();
     }
-  }, [material, open]);
+  }, [material, open, refreshCategories]);
 
   const handleSubmit = async () => {
     if (!name.trim() || !category.trim()) {
@@ -97,6 +103,12 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
     }
   };
 
+  // Callback for when a category is added/updated in the manager
+  const handleCategoryChange = (newCategoryName: string) => {
+    setCategory(newCategoryName);
+    refreshCategories(); // Refresh to include the new/updated category
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,8 +142,11 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                     <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Categories will be populated by the parent or via props if needed */}
-                    <SelectItem value="example">Exemplo de Categoria</SelectItem>
+                    {materialCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <TooltipProvider>
@@ -224,7 +239,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
       <MaterialCategoryManager 
         open={isCategoryDialogOpen} 
         onOpenChange={setIsCategoryDialogOpen} 
-        onCategorySelected={setCategory} // Pass callback to update category selection
+        onCategorySelected={handleCategoryChange} // Pass callback to update category selection
       />
     </>
   );
