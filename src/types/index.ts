@@ -76,10 +76,9 @@ export interface MaterialRequest {
   decidedAt?: string;
 }
 
-export interface ApproveResult {
-  ok: boolean;
-  shortages?: { materialId: string; needed: number; available: number }[];
-}
+export type ApproveResult =
+  | { ok: true }
+  | { ok: false; shortages: { materialId: string; needed: number; available: number }[] };
 
 export interface TechnicianCategory {
   id: string;

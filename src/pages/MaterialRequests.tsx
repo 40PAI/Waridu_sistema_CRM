@@ -8,14 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import type { Event, MaterialRequest } from "@/types";
+import type { Event, MaterialRequest, ApproveResult } from "@/types";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-type ApproveResult = { ok: true } | { ok: false; shortages: { materialId: string; needed: number; available: number }[] };
 
 interface MaterialRequestsPageProps {
   requests: MaterialRequest[];
@@ -80,7 +78,7 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     if (res.ok) {
       showSuccess("Requisição aprovada e estoque atualizado.");
     } else {
-      const names = (res as { ok: false; shortages: { materialId: string; needed: number; available: number }[] }).shortages
+      const names = res.shortages
         .map((s) => `${materialNameMap[s.materialId] || s.materialId} (precisa ${s.needed}, tem ${s.available})`)
         .join("; ");
       showError(`Estoque insuficiente: ${names}`);
