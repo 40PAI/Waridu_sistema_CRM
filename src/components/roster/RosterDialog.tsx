@@ -156,6 +156,27 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
     setIsSaving(false);
   };
 
+  const handleSendRequest = async () => {
+    if (!user || !user.email || !user.profile) {
+      showError("Sessão inválida. Faça login novamente.");
+      return;
+    }
+    const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
+    if (!hasRequestedItems) {
+      showError("Selecione pelo menos um material para requisitar.");
+      return;
+    }
+    await onCreateMaterialRequest(event.id, selectedMaterials, {
+      name: user.profile.first_name || user.email,
+      email: user.email,
+      role: user.profile.role,
+    });
+    showSuccess("Requisição de materiais enviada para o gestor de materiais.");
+    if (onRequestsChange) {
+      onRequestsChange();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -292,7 +313,10 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
             </ScrollArea>
           </TabsContent>
         </Tabs>
-        <DialogFooter>
+        <DialogFooter className="flex justify-between">
+          <Button variant="outline" onClick={handleSendRequest} disabled={!Object.values(selectedMaterials).some(qty => qty > 0)}>
+            Enviar Requisição
+          </Button>
           <Button type="button" onClick={handleSave} disabled={isSaving}>
             {isSaving ? "Salvando..." : "Salvar Detalhes"}
           </Button>

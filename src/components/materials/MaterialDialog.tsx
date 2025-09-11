@@ -25,7 +25,6 @@ interface MaterialDialogProps {
 export function MaterialDialog({ open, onOpenChange, onSave, material }: MaterialDialogProps) {
   const [name, setName] = React.useState("");
   const [category, setCategory] = React.useState("");
-  const [quantity, setQuantity] = React.useState(1);
   const [status, setStatus] = React.useState<Material['status']>("Disponível");
   const [description, setDescription] = React.useState("");
 
@@ -36,13 +35,11 @@ export function MaterialDialog({ open, onOpenChange, onSave, material }: Materia
       if (material) {
         setName(material.name);
         setCategory(material.category);
-        setQuantity(material.quantity);
         setStatus(material.status);
         setDescription(material.description);
       } else {
         setName("");
         setCategory("");
-        setQuantity(1);
         setStatus("Disponível");
         setDescription("");
       }
@@ -59,7 +56,6 @@ export function MaterialDialog({ open, onOpenChange, onSave, material }: Materia
       id: material?.id,
       name,
       category,
-      quantity,
       status,
       description,
     };
@@ -99,10 +95,6 @@ export function MaterialDialog({ open, onOpenChange, onSave, material }: Materia
                     <SelectItem value="Cabos">Cabos</SelectItem>
                 </SelectContent>
             </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="quantity" className="text-right">Quantidade</Label>
-            <Input id="quantity" type="number" value={quantity} onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} className="col-span-3" min="1" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="status" className="text-right">Status</Label>
