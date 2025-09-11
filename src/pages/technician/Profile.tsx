@@ -54,7 +54,7 @@ const TechnicianProfile = () => {
     setUploading(true);
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    const filePath = fileName; // Caminho corrigido
 
     try {
       // Upload file to Supabase Storage
@@ -80,6 +80,20 @@ const TechnicianProfile = () => {
       // Update local state
       setAvatarUrl(data.publicUrl);
       
+      // Update user in AuthContext
+      if (user && user.profile) {
+        setUser(prevUser => {
+          if (!prevUser || !prevUser.profile) return prevUser;
+          return {
+            ...prevUser,
+            profile: {
+              ...prevUser.profile,
+              avatar_url: data.publicUrl,
+            },
+          };
+        });
+      }
+      
       showSuccess("Foto de perfil atualizada com sucesso!");
     } catch (error) {
       console.error("Error uploading avatar:", error);
@@ -87,7 +101,7 @@ const TechnicianProfile = () => {
     } finally {
       setUploading(false);
     }
-  }, [user]);
+  }, [user, setUser]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
