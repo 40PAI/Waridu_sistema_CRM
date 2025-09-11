@@ -58,6 +58,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material }: Materia
       category,
       status,
       description,
+      quantity: material?.quantity || 0, // Added missing 'quantity' property
     };
 
     onSave(materialData);

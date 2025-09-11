@@ -50,7 +50,7 @@ const InviteMember = () => {
   const canDelete = !!userRole && hasActionPermission(userRole, "members:delete");
 
   const { employees } = useEmployees();
-  const { refreshUsers } = useUsers(); // Para recarregar após promoções
+  const { users, refreshUsers } = useUsers(); // Fixed: Added 'users' to destructuring
   const { logs, loading: logsLoading } = useUserLogs();
 
   const [inviteSubmitting, setInviteSubmitting] = React.useState(false);
