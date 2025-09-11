@@ -56,6 +56,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
   const [newCategoryName, setNewCategoryName] = React.useState("");
   const [newCategoryDesc, setNewCategoryDesc] = React.useState("");
   const [categorySearch, setCategorySearch] = React.useState(""); // Busca nas categorias
+  const [addCategoryError, setAddCategoryError] = React.useState<string | null>(null); // Para feedback de erro no botão
 
   const isEditing = !!material;
 
@@ -122,22 +123,27 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
-      showError("Nome da categoria é obrigatório.");
+      setAddCategoryError("Nome da categoria é obrigatório.");
       return;
     }
     if (materialCategories.some(c => c.name.toLowerCase() === newCategoryName.trim().toLowerCase())) {
-      showError("Categoria já existe.");
+      setAddCategoryError("Categoria já existe.");
       return;
     }
     try {
+      setAddCategoryError(null);
+      console.log("Adding category:", newCategoryName, newCategoryDesc); // Debug log
       await addCategory(newCategoryName.trim(), newCategoryDesc.trim() || undefined);
       showSuccess("Categoria adicionada!");
       setNewCategoryName("");
       setNewCategoryDesc("");
       // Refresh garante que o Select atualize
       await refreshCategories();
-    } catch (err) {
-      showError("Erro ao adicionar categoria.");
+    } catch (err: any) {
+      console.error("Erro ao adicionar categoria:", err); // Debug log
+      const errorMessage = err?.message || "Erro ao adicionar categoria. Verifique permissões ou conexão.";
+      setAddCategoryError(errorMessage);
+      showError(errorMessage);
     }
   };
 
@@ -322,9 +328,19 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                 onChange={(e) => setNewCategoryDesc(e.target.value)}
                 className="flex-1"
               />
-              <Button size="sm" onClick={handleAddCategory} disabled={!newCategoryName.trim()}>
+              <Button 
+                size="sm" 
+                onClick={handleAddCategory} 
+                disabled={!newCategoryName.trim()}
+                className="min-w-[100px]"
+              >
                 <Plus className="h-4 w-4 mr-1" /> Adicionar
               </Button>
+              {addCategoryError && (
+                <p className="text-xs text-destructive mt-1 w-full col-span-3">
+                  {addCategoryError}
+                </p>
+              )}
             </div>
 
             {/* Lista de Categorias (filtradas) */}
@@ -416,7 +432,7 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => { setIsCategoryDialogOpen(false); setCategorySearch(""); }}>Fechar</Button>
+            <Button onClick={() => { setIsCategoryDialogOpen(false); setCategorySearch(""); setAddCategoryError(null); }}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
