@@ -92,23 +92,74 @@ export const useMaterials = () => {
         showSuccess("Material atualizado com sucesso!");
       } else {
         // Create new material
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('materials')
           .insert({
             name: materialData.name,
             category: materialData.category,
             status: materialData.status,
             description: materialData.description
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
         showSuccess("Material adicionado com sucesso!");
+        return data; // Return the saved material for addInitialStock
       }
 
       fetchMaterials(); // Refresh the list
     } catch (error) {
       console.error("Error saving material:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao salvar material.";
+      showError(errorMessage);
+    }
+  };
+
+  const addInitialStock = async (materialId: string, locationId: string, quantity: number) => {
+    try {
+      if (quantity <= 0) {
+        showError("Quantidade deve ser maior que 0.");
+        return;
+      }
+
+      // Check if entry already exists
+      const { data: existing, error: checkError } = await supabase
+        .from('material_locations')
+        .select('quantity')
+        .eq('material_id', materialId)
+        .eq('location_id', locationId)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existing) {
+        // Update existing
+        const { error } = await supabase
+          .from('material_locations')
+          .update({ quantity: existing.quantity + quantity })
+          .eq('material_id', materialId)
+          .eq('location_id', locationId);
+
+        if (error) throw error;
+      } else {
+        // Insert new
+        const { error } = await supabase
+          .from('material_locations')
+          .insert({
+            material_id: materialId,
+            location_id: locationId,
+            quantity
+          });
+
+        if (error) throw error;
+      }
+
+      showSuccess("Estoque inicial adicionado!");
+      fetchMaterials(); // Refresh
+    } catch (error) {
+      console.error("Error adding initial stock:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao adicionar estoque inicial.";
       showError(errorMessage);
     }
   };
@@ -213,6 +264,7 @@ export const useMaterials = () => {
     loading,
     error,
     saveMaterial,
+    addInitialStock,
     transferMaterial,
     refreshMaterials: fetchMaterials
   };

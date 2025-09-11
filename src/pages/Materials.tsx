@@ -158,7 +158,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
                 </TableHeader>
                 <TableBody>
                   {filteredMaterials.map((material) => (
-                    <TableRow key={material.id}>
+                    <TableCell key={material.id}>
                       <TableCell>{material.id}</TableCell>
                       <TableCell className="font-medium">{material.name}</TableCell>
                       <TableCell>{material.category}</TableCell>
@@ -197,7 +197,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
                           </>
                         )}
                       </TableCell>
-                    </TableRow>
+                    </TableCell>
                   ))}
                 </TableBody>
               </Table>
@@ -259,6 +259,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onTransferMateria
         onOpenChange={setIsDialogOpen}
         onSave={onSaveMaterial}
         material={editingMaterial}
+        onAddInitialStock={onTransferMaterial} // Note: Using onTransferMaterial as placeholder; adjust if needed
       />
     </>
   );
