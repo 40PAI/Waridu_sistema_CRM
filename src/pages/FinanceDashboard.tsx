@@ -4,14 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign, TrendingUp, Wallet, Briefcase } from "lucide-react";
 import * as React from "react";
-import { useTechnicianCategories, TechnicianCategory } from "@/hooks/useTechnicianCategories";
+import { TechnicianCategory } from "@/hooks/useTechnicianCategories";
 import { Event, EventStatus } from "@/types";
 import { Employee } from "@/components/employees/EmployeeDialog";
-import { parseISO, format, getMonth, getYear, differenceInDays, isWithinInterval } from "date-fns";
+import { parseISO, format, differenceInDays, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DateRangePicker } from "@/components/common/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import FinancialCalendarView from "@/components/finance/FinancialCalendarView";
 
 // --- Helper Functions ---
 const formatCurrency = (value: number) => {
@@ -72,22 +74,24 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
     return totalCost;
   }, [employeeMap, categoryMap]);
 
-  const processedFinancialData = React.useMemo(() => {
-    const filteredEvents = events.filter(event => {
+  const filteredEvents = React.useMemo(() => {
+    return events.filter(event => {
       const eventStartDate = parseISO(event.startDate);
       const eventEndDate = parseISO(event.endDate);
 
       const matchesDateRange = dateRange?.from
         ? isWithinInterval(eventStartDate, { start: dateRange.from, end: dateRange.to || eventStartDate }) ||
           isWithinInterval(eventEndDate, { start: dateRange.from, end: dateRange.to || eventEndDate }) ||
-          (eventStartDate < dateRange.from && eventEndDate > (dateRange.to || eventEndDate)) // Event spans across the range
+          (eventStartDate < dateRange.from && eventEndDate > (dateRange.to || eventEndDate))
         : true;
 
       const matchesStatus = statusFilter === "all" || event.status === statusFilter;
 
       return matchesDateRange && matchesStatus;
     });
+  }, [events, dateRange, statusFilter]);
 
+  const processedFinancialData = React.useMemo(() => {
     const completedEvents = filteredEvents.filter(e => e.status === 'Concluído' && e.revenue);
 
     const eventProfitability = completedEvents.map(event => {
@@ -135,11 +139,10 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
     ];
 
     return { eventProfitability, monthlyPerformanceData, costBreakdownData };
-  }, [events, calculatePersonnelCost, dateRange, statusFilter, employeeMap, categoryMap]);
+  }, [filteredEvents, calculatePersonnelCost, events]);
 
   const { eventProfitability, monthlyPerformanceData, costBreakdownData } = processedFinancialData;
 
-  const currentMonthData = monthlyPerformanceData[monthlyPerformanceData.length - 1] || { receita: 0, custos: 0, lucro: 0 };
   const totalRevenue = monthlyPerformanceData.reduce((sum, item) => sum + item.receita, 0);
   const totalCosts = monthlyPerformanceData.reduce((sum, item) => sum + item.custos, 0);
   const averageMargin = totalRevenue > 0 ? ((totalRevenue - totalCosts) / totalRevenue) * 100 : 0;
@@ -170,133 +173,156 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita (Período)</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">Faturamento total no período selecionado</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custos (Período)</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalCosts)}</div>
-            <p className="text-xs text-muted-foreground">Despesas operacionais no período selecionado</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lucro Líquido (Período)</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenue - totalCosts)}</div>
-            <p className="text-xs text-muted-foreground">Resultado final no período selecionado</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Margem Média</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{averageMargin.toFixed(2)}%</div>
-            <p className="text-xs text-muted-foreground">Margem de lucro média no período</p>
-          </CardContent>
-        </Card>
-      </div>
+      <Tabs defaultValue="dashboard">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="calendar">Calendário Financeiro</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="dashboard" className="mt-6 space-y-6">
+          {/* KPIs */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Receita (Período)</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+                <p className="text-xs text-muted-foreground">Faturamento total no período selecionado</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Custos (Período)</CardTitle>
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(totalCosts)}</div>
+                <p className="text-xs text-muted-foreground">Despesas operacionais no período selecionado</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Lucro Líquido (Período)</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(totalRevenue - totalCosts)}</div>
+                <p className="text-xs text-muted-foreground">Resultado final no período selecionado</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Margem Média</CardTitle>
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{averageMargin.toFixed(2)}%</div>
+                <p className="text-xs text-muted-foreground">Margem de lucro média no período</p>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Charts */}
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Desempenho Mensal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyPerformanceData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" fontSize={12} />
-                <YAxis fontSize={12} tickFormatter={(value) => `${(value as number / 1000000).toFixed(1)}M`} />
-                <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                <Legend />
-                <Bar dataKey="receita" fill="#8884d8" name="Receita" />
-                <Bar dataKey="custos" fill="#82ca9d" name="Custos" />
-                <Bar dataKey="lucro" fill="#ffc658" name="Lucro" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Análise de Custos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie data={costBreakdownData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                  {costBreakdownData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Charts */}
+          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-5">
+            <Card className="lg:col-span-3">
+              <CardHeader>
+                <CardTitle>Desempenho Mensal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={monthlyPerformanceData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" fontSize={12} />
+                    <YAxis fontSize={12} tickFormatter={(value) => `${(value as number / 1000000).toFixed(1)}M`} />
+                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                    <Legend />
+                    <Bar dataKey="receita" fill="#8884d8" name="Receita" />
+                    <Bar dataKey="custos" fill="#82ca9d" name="Custos" />
+                    <Bar dataKey="lucro" fill="#ffc658" name="Lucro" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Análise de Custos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie data={costBreakdownData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                      {costBreakdownData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Profitability Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Rentabilidade por Evento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Evento</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Receita</TableHead>
-                <TableHead>Custo</TableHead>
-                <TableHead>Lucro</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {eventProfitability.length > 0 ? eventProfitability.map((event) => (
-                <TableRow key={event.id}>
-                  <TableCell className="font-medium">{event.name}</TableCell>
-                  <TableCell>{event.date}</TableCell>
-                  <TableCell>{formatCurrency(event.revenue)}</TableCell>
-                  <TableCell>{formatCurrency(event.cost)}</TableCell>
-                  <TableCell className={event.profit > 0 ? "text-green-600" : "text-red-600"}>
-                    {formatCurrency(event.profit)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(event.status)}>{event.status}</Badge>
-                  </TableCell>
-                </TableRow>
-              )) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center h-24">
-                    Nenhum evento concluído para exibir no período/status selecionado.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          {/* Profitability Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Rentabilidade por Evento</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Evento</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Receita</TableHead>
+                    <TableHead>Custo</TableHead>
+                    <TableHead>Lucro</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {eventProfitability.length > 0 ? eventProfitability.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell className="font-medium">{event.name}</TableCell>
+                      <TableCell>{event.date}</TableCell>
+                      <TableCell>{formatCurrency(event.revenue)}</TableCell>
+                      <TableCell>{formatCurrency(event.cost)}</TableCell>
+                      <TableCell className={event.profit > 0 ? "text-green-600" : "text-red-600"}>
+                        {formatCurrency(event.profit)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(event.status)}>{event.status}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center h-24">
+                        Nenhum evento concluído para exibir no período/status selecionado.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="calendar" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Calendário Financeiro</CardTitle>
+              <CardDescription>
+                Visualize eventos com impacto financeiro. Os dados respeitam os filtros aplicados acima.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FinancialCalendarView events={filteredEvents} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
