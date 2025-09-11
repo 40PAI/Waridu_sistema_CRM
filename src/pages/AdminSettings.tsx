@@ -29,6 +29,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import CategoryManager from "@/components/settings/CategoryManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
+import { useMaterialCategories } from "@/hooks/useMaterialCategories";
 
 interface Location {
   id: string;
@@ -53,6 +54,13 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const { user } = useAuth();
   const canManageCategories = user?.profile?.role ? hasActionPermission(user.profile.role, "categories:manage") : false;
+
+  const { categories: materialCategories, addCategory, updateCategory, deleteCategory, loading: catLoading } = useMaterialCategories();
+
+  const [newCategoryName, setNewCategoryName] = React.useState("");
+  const [newCategoryDesc, setNewCategoryDesc] = React.useState("");
+  const [editingCat, setEditingCat] = React.useState<{ id: string; name: string; description?: string } | null>(null);
+  const [isCatEditOpen, setIsCatEditOpen] = React.useState(false);
 
   const handleAddLocation = () => {
     const name = newLocation.trim();
@@ -88,6 +96,39 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
     showSuccess("Localização atualizada!");
   };
 
+  const handleAddCategory = () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    if (materialCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+      showError("Já existe uma categoria com este nome.");
+      return;
+    }
+    addCategory(name, newCategoryDesc || undefined);
+    setNewCategoryName("");
+    setNewCategoryDesc("");
+  };
+
+  const openCatEdit = (cat: { id: string; name: string; description?: string }) => {
+    setEditingCat({ ...cat });
+    setIsCatEditOpen(true);
+  };
+
+  const handleSaveCatEdit = () => {
+    if (!editingCat) return;
+    const name = editingCat.name.trim();
+    if (!name) {
+      showError("O nome não pode ser vazio.");
+      return;
+    }
+    if (materialCategories.some(c => c.name.toLowerCase() === name.toLowerCase() && c.id !== editingCat.id)) {
+      showError("Já existe uma categoria com este nome.");
+      return;
+    }
+    updateCategory(editingCat.id, name, editingCat.description);
+    setIsCatEditOpen(false);
+    setEditingCat(null);
+  };
+
   return (
     <div className="grid gap-6">
       <RoleManager
@@ -98,6 +139,80 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
       />
 
       {canManageCategories && <CategoryManager />}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Categorias de Materiais</CardTitle>
+          <CardDescription>Gerencie as categorias disponíveis para materiais.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-2 sm:grid-cols-[1fr_200px_auto]">
+            <div className="space-y-1.5">
+              <Label>Nome da Categoria</Label>
+              <Input
+                placeholder="Ex: Equipamentos de Som"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                disabled={catLoading}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Descrição (opcional)</Label>
+              <Input
+                placeholder="Ex: Microfones, mixers, etc."
+                value={newCategoryDesc}
+                onChange={(e) => setNewCategoryDesc(e.target.value)}
+                disabled={catLoading}
+              />
+            </div>
+            <div className="flex items-end">
+              <Button onClick={handleAddCategory} disabled={catLoading || !newCategoryName.trim()}>
+                Adicionar
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-md border divide-y">
+            {materialCategories.map((cat) => (
+              <div key={cat.id} className="flex items-center justify-between p-3">
+                <div className="text-sm">
+                  <div className="font-medium">{cat.name}</div>
+                  {cat.description && <div className="text-muted-foreground">{cat.description}</div>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openCatEdit(cat)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remover categoria?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Materiais nesta categoria não serão afetados, mas a categoria será removida. Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteCategory(cat.id)}>
+                          Remover
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
+            {materialCategories.length === 0 && (
+              <div className="p-3 text-sm text-muted-foreground text-center">Nenhuma categoria cadastrada.</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -215,6 +330,28 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
             <Button onClick={handleSaveEdit}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCatEditOpen} onOpenChange={setIsCatEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Categoria</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={editingCat?.name || ""} onChange={(e) => setEditingCat(prev => prev ? { ...prev, name: e.target.value } : null)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Descrição</Label>
+              <Input value={editingCat?.description || ""} onChange={(e) => setEditingCat(prev => prev ? { ...prev, description: e.target.value } : null)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCatEditOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveCatEdit} disabled={!editingCat?.name.trim()}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

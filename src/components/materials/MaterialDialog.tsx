@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { PageMaterial as Material } from "@/types";
 import { showError } from "@/utils/toast";
 import { useLocations } from "@/hooks/useLocations";
+import { useMaterialCategories } from "@/hooks/useMaterialCategories";
 
 interface MaterialDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ interface MaterialDialogProps {
 
 export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInitialStock }: MaterialDialogProps) {
   const { locations } = useLocations();
+  const { categories: materialCategories } = useMaterialCategories();
   const [name, setName] = React.useState("");
   const [category, setCategory] = React.useState("");
   const [status, setStatus] = React.useState<Material['status']>("Disponível");
@@ -108,12 +110,11 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
                     <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="Câmeras">Câmeras</SelectItem>
-                    <SelectItem value="Lentes">Lentes</SelectItem>
-                    <SelectItem value="Iluminação">Iluminação</SelectItem>
-                    <SelectItem value="Áudio">Áudio</SelectItem>
-                    <SelectItem value="Acessórios">Acessórios</SelectItem>
-                    <SelectItem value="Cabos">Cabos</SelectItem>
+                    {materialCategories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                            {cat.name}
+                        </SelectItem>
+                    ))}
                 </SelectContent>
             </Select>
           </div>
