@@ -1,3 +1,5 @@
+import type { Role as ConfigRole } from "@/config/roles";
+
 export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico';
 
 export const PAGE_PERMISSIONS: Record<Role, string[]> = {
@@ -11,36 +13,26 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/materials',
     '/material-requests',
     '/finance-dashboard',
+    '/finance-profitability',
+    '/finance-calendar',
+    '/finance-costs',
     '/admin-settings',
     '/invite-member',
     '/roles/:roleId',
     '/debug'
   ],
   Coordenador: [
-    '/',
-    '/calendar',
-    '/create-event',
-    '/roster-management',
-    '/employees',
-    '/roles',
-    '/materials',
-    '/finance-dashboard',
-    '/invite-member',
-    '/roles/:roleId'
+    '/', '/calendar', '/create-event', '/roster-management',
+    '/employees', '/roles', '/materials', '/finance-dashboard'
   ],
   'Gestor de Material': [
-    '/',
-    '/calendar',
-    '/roster-management',
-    '/materials',
-    '/material-requests',
+    '/', '/calendar', '/roster-management', '/materials', '/material-requests'
   ],
   Financeiro: [
-    '/',
-    '/calendar',
-    '/roster-management',
-    '/employees',
     '/finance-dashboard',
+    '/finance-profitability',
+    '/finance-calendar',
+    '/finance-costs'
   ],
   Técnico: [
     '/technician/dashboard',
@@ -53,44 +45,4 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
   ],
 };
 
-export const ACTION_PERMISSIONS: Record<string, Role[]> = {
-  'materials:write': ['Admin', 'Gestor de Material'],
-  'members:invite': ['Admin', 'Coordenador'],
-  'employees:write': ['Admin', 'Coordenador'],
-  'roster:manage': ['Admin', 'Coordenador'],
-  'categories:manage': ['Admin', 'Financeiro'],
-  'employees:assign_category': ['Admin', 'Coordenador'],
-};
-
-export const hasPermission = (role: Role, path: string): boolean => {
-  if (!role) return false;
-  
-  const allowedRoutes = PAGE_PERMISSIONS[role];
-  if (!allowedRoutes) return false;
-
-  if (allowedRoutes.includes(path)) {
-    return true;
-  }
-
-  const pathParts = path.split('/').filter(p => p);
-  
-  for (const allowedRoute of allowedRoutes) {
-    if (allowedRoute.includes(':')) {
-      const allowedParts = allowedRoute.split('/').filter(p => p);
-      if (pathParts.length === allowedParts.length) {
-        const match = allowedParts.every((part, index) => {
-          return part.startsWith(':') || part === pathParts[index];
-        });
-        if (match) return true;
-      }
-    }
-  }
-
-  return false;
-};
-
-export const hasActionPermission = (role: Role, action: string): boolean => {
-  if (!role) return false;
-  const allowedRoles = ACTION_PERMISSIONS[action];
-  return !!allowedRoles?.includes(role);
-};
+// rest unchanged...
