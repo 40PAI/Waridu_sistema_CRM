@@ -31,8 +31,6 @@ interface FinanceDashboardProps {
 
 // --- Main Component ---
 const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardProps) => {
-  const { loading: categoriesLoading } = useTechnicianCategories();
-
   const categoryMap = React.useMemo(() => {
     const map = new Map<string, number>();
     categories.forEach(c => map.set(c.id, c.dailyRate));
@@ -252,38 +250,6 @@ const FinanceDashboard = ({ events, employees, categories }: FinanceDashboardPro
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      {/* Technician Categories Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Categorias de Técnicos</CardTitle>
-          <CardDescription>Valores diários para cada categoria de técnico.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {categoriesLoading ? (
-            <p>Carregando categorias...</p>
-          ) : categories.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead className="text-right">Valor/Dia (AOA)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categories.map((cat) => (
-                  <TableRow key={cat.id}>
-                    <TableCell className="font-medium">{cat.categoryName}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(cat.dailyRate)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center">Nenhuma categoria de técnico cadastrada.</p>
-          )}
         </CardContent>
       </Card>
     </div>
