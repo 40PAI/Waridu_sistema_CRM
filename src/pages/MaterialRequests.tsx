@@ -12,8 +12,9 @@ import type { Event, MaterialRequest, ApproveResult } from "@/types";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
-import { Eye } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { RequestDetailsDialog } from "@/components/materials/RequestDetailsDialog";
 
 interface MaterialRequestsPageProps {
   requests: MaterialRequest[];
@@ -54,6 +55,10 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
   const [rejectId, setRejectId] = React.useState<string | null>(null);
   const [rejectReason, setRejectReason] = React.useState("");
   const [processingId, setProcessingId] = React.useState<string | null>(null);
+
+  const [viewDetailsOpen, setViewDetailsOpen] = React.useState(false);
+  const [selectedRequest, setSelectedRequest] = React.useState<MaterialRequest | null>(null);
+  const [selectedEvent, setSelectedEvent] = React.useState<Event | null>(null);
 
   const eventsMap = React.useMemo(() => {
     const map: Record<number, string> = {};
@@ -112,6 +117,37 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     setRejectOpen(false);
     setRejectId(null);
     setProcessingId(null);
+  };
+
+  const openViewDetails = async (request: MaterialRequest) => {
+    setSelectedRequest(request);
+    // Fetch event details
+    const { data: eventData, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', request.eventId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching event:", error);
+      setSelectedEvent(null);
+    } else {
+      setSelectedEvent({
+        id: eventData.id,
+        name: eventData.name,
+        startDate: eventData.start_date,
+        endDate: eventData.end_date,
+        location: eventData.location,
+        startTime: eventData.start_time,
+        endTime: eventData.end_time,
+        revenue: eventData.revenue,
+        status: eventData.status,
+        description: eventData.description,
+        roster: eventData.roster,
+        expenses: eventData.expenses
+      });
+    }
+    setViewDetailsOpen(true);
   };
 
   return (
@@ -202,6 +238,14 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
                       {new Date(request.createdAt).toLocaleDateString("pt-BR")}
                     </TableCell>
                     <TableCell className="text-right space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => openViewDetails(request)}
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">Ver Detalhes</span>
+                      </Button>
                       {request.status === "Pendente" && canManage && (
                         <>
                           <Button size="sm" onClick={() => handleApprove(request.id)} disabled={!!processingId}>
@@ -212,12 +256,6 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
                           </Button>
                         </>
                       )}
-                      <Button variant="outline" size="icon" asChild>
-                        <a href={`/events/${request.eventId}`}>
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">Ver Evento</span>
-                        </a>
-                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -254,6 +292,14 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RequestDetailsDialog
+        open={viewDetailsOpen}
+        onOpenChange={setViewDetailsOpen}
+        request={selectedRequest}
+        event={selectedEvent}
+        materialNameMap={materialNameMap}
+      />
     </>
   );
 };
