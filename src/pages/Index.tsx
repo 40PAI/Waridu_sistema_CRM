@@ -3,15 +3,12 @@ import { Archive, CheckCircle, Calendar, DollarSign } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Event, PageMaterial } from "@/types";
+import { useEvents } from "@/hooks/useEvents";
+import { useMaterials } from "@/hooks/useMaterials";
+import type { Event } from "@/types";
 import { parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
-
-interface IndexProps {
-  events: Event[];
-  materials: PageMaterial[];
-}
 
 // --- Helper Functions ---
 const getMaterialStatusVariant = (status: string) => {
@@ -32,7 +29,7 @@ const getEventStatusVariant = (status: string) => {
 };
 
 // --- Sub-components ---
-const MaterialStatusList = ({ materials }: { materials: PageMaterial[] }) => {
+const MaterialStatusList = ({ materials }: { materials: any[] }) => {
     const activeMaterials = useMemo(() => materials.filter(m => m.status !== 'Disponível'), [materials]);
     return (
         <div className="space-y-4">
@@ -54,10 +51,13 @@ const MaterialStatusList = ({ materials }: { materials: PageMaterial[] }) => {
 };
 
 // --- Main Dashboard Component ---
-const Dashboard = ({ events, materials }: IndexProps) => {
+const Dashboard = () => {
+  const { events } = useEvents();
+  const { materials: pageMaterials } = useMaterials();
+
   // --- Data Processing ---
-  const totalItems = useMemo(() => materials.reduce((sum, item) => sum + item.quantity, 0), [materials]);
-  const availableItems = useMemo(() => materials.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0), [materials]);
+  const totalItems = useMemo(() => pageMaterials.reduce((sum, item) => sum + item.quantity, 0), [pageMaterials]);
+  const availableItems = useMemo(() => pageMaterials.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0), [pageMaterials]);
 
   const now = new Date();
   const startOfThisMonth = startOfMonth(now);
@@ -86,7 +86,7 @@ const Dashboard = ({ events, materials }: IndexProps) => {
 
   const totalRevenue = useMemo(() => financeData.reduce((sum, item) => sum + item.Receita, 0), [financeData]);
 
-  const categoryData = useMemo(() => materials.reduce((acc, item) => {
+  const categoryData = useMemo(() => pageMaterials.reduce((acc, item) => {
     const category = acc.find(c => c.name === item.category);
     if (category) {
       category.quantidade += item.quantity;
@@ -94,7 +94,7 @@ const Dashboard = ({ events, materials }: IndexProps) => {
       acc.push({ name: item.category, quantidade: item.quantity });
     }
     return acc;
-  }, [] as { name: string; quantidade: number }[]), [materials]);
+  }, [] as { name: string; quantidade: number }[]), [pageMaterials]);
 
   const recentEvents = useMemo(() => events
     .sort((a, b) => parseISO(b.startDate).getTime() - parseISO(a.startDate).getTime())
@@ -130,105 +130,65 @@ const Dashboard = ({ events, materials }: IndexProps) => {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Eventos no Mês</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+{totalEventsThisMonth}</div>
-            <p className="text-xs text-muted-foreground">Eventos agendados para este mês</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita (4 meses)</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">AOA {totalRevenue.toLocaleString('pt-AO')}</div>
-            <p className="text-xs text-muted-foreground">Receita de eventos concluídos</p>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Resumo Financeiro</CardTitle>
-            <CardDescription>Receitas e despesas dos últimos meses.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={financeData}>
-                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="Receita" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Despesa" fill="#82ca9d" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventário por Categoria</CardTitle>
-            <CardDescription>Distribuição de itens nas categorias.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={categoryData}>
-                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
-                <Tooltip />
-                <Bar dataKey="quantidade" fill="#adfa1d" name="Quantidade" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          <CardHeader className="flex flex-row<dyad-write path="src/config/roles.ts" description="Adding hasPermission and hasActionPermission functions to config/roles.ts for role-based access control.">
+export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico';
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Eventos Recentes</CardTitle>
-            <CardDescription>Últimos eventos gerenciados pela equipe.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Evento</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentEvents.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell className="font-medium">{event.name}</TableCell>
-                    <TableCell>{event.date}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={getEventStatusVariant(event.status)}>{event.status}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Status dos Materiais</CardTitle>
-            <CardDescription>Materiais em uso ou manutenção.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <MaterialStatusList materials={materials} />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+export const PAGE_PERMISSIONS: Record<Role, string[]> = {
+  Admin: [
+    '/', '/calendar', '/create-event', '/roster-management',
+    '/employees', '/roles', '/materials', '/material-requests',
+    '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
+    '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId',
+    '/notifications'
+  ],
+  Coordenador: [
+    '/', '/calendar', '/create-event', '/roster-management',
+    '/employees', '/roles', '/materials', '/invite-member', '/admin/members', '/admin/users',
+    '/notifications'
+  ],
+  'Gestor de Material': [
+    '/', '/calendar', '/roster-management', '/materials', '/material-requests',
+    '/notifications'
+  ],
+  Financeiro: [
+    '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
+    '/finance/profile', '/notifications'
+  ],
+  Técnico: [
+    '/technician/dashboard', '/technician/calendar', '/technician/events',
+    '/technician/events/:eventId', '/technician/tasks',
+    '/technician/tasks-kanban', '/technician/profile', '/technician/notifications', '/notifications'
+  ],
 };
 
-export default Dashboard;
+export const ACTION_PERMISSIONS: Record<Role, string[]> = {
+  Admin: [
+    'members:invite', 'members:promote', 'members:ban', 'members:delete',
+    'materials:write', 'employees:write', 'employees:assign_category', 'categories:manage'
+  ],
+  Coordenador: [
+    'members:invite', 'members:promote', 'employees:write'
+  ],
+  'Gestor de Material': [
+    'materials:write'
+  ],
+  Financeiro: [
+    'categories:manage'
+  ],
+  Técnico: []
+};
+
+export function hasPermission(role: Role | undefined, path: string): boolean {
+  if (!role) return false;
+  const permissions = PAGE_PERMISSIONS[role] || [];
+  return permissions.some(p => {
+    if (p.endsWith('/:roleId')) return path === '/roles' || path.startsWith('/roles/');
+    return path === p || (p.endsWith('*') && path.startsWith(p.slice(0, -1)));
+  });
+}
+
+export function hasActionPermission(role: Role | undefined, action: string): boolean {
+  if (!role) return false;
+  const permissions = ACTION_PERMISSIONS[role] || [];
+  return permissions.includes(action);
+}

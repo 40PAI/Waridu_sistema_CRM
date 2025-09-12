@@ -2,17 +2,14 @@ import * as React from "react";
 import { useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { Calendar, Users, FileText, Settings, Home, Users2, Package, CalendarDays, Bell, KanbanSquare } from "lucide-react";
+import { Calendar, Users, FileText, Settings, Home, Users2, Package, CalendarDays, Bell, KanbanSquare, CheckCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/config/roles";
-import { Button } from "@/components/ui/button";
-import NotificationsBell from "@/components/notifications/NotificationsBell";
 
 const SidebarNav = () => {
   const { user } = useAuth();
   const location = useLocation();
-  const [open, setOpen] = useState(true);
 
   const role = user?.profile?.role;
   const canAccess = (path: string) => hasPermission(role, path);
@@ -66,10 +63,10 @@ const SidebarNav = () => {
     }
 
     return items.filter(item => canAccess(item.to));
-  }, [role, location]);
+  };
 
   return (
-    <Sidebar open={open} onOpenChange={setOpen}>
+    <Sidebar>
       <SidebarContent className="flex flex-col">
         <div className="p-2">
           <Button variant="ghost" size="icon" className="w-full justify-start" asChild>
