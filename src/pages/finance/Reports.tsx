@@ -12,17 +12,21 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { parseISO, isWithinInterval, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Event, EventStatus } from "@/types";
-import { Download, TrendingUp, TrendingDown, DollarSign, Calendar as CalendarIcon, PieChart as PieChartIcon } from "lucide-react";
+import { Download, TrendingUp, TrendingDown, DollarSign, Calendar as CalendarIcon, PieChart as PieChartIcon, FileText, FileDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DateRange } from "react-day-picker";
+import { usePdfExport, type ExportData } from "@/hooks/usePdfExport";
+import { showSuccess, showError } from "@/utils/toast";
 
 const Reports = () => {
   const { events, loading: eventsLoading } = useEvents();
   const { categories, loading: categoriesLoading } = useTechnicianCategories();
   const { employees, loading: employeesLoading } = useEmployees();
+  const { exportToPDF } = usePdfExport();
 
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   const [statusFilter, setStatusFilter] = React.useState<EventStatus | "all">("all");
+  const [isExportingPDF, setIsExportingPDF] = React.useState(false);
 
   const rateMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.dailyRate])), [categories]);
   const empMap = React.useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
@@ -101,13 +105,44 @@ const Reports = () => {
       ])
     ].map(row => row.join(",")).join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `relatorio-financeiro-${format(new Date(), "yyyy-MM-dd")}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio-financeiro-${format(new Date(), "yyyy-MM-dd")}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = async () => {
+    if (isExportingPDF || eventProfitability.length === 0) return;
+    
+    setIsExportingPDF(true);
+    
+    try {
+      const exportData: ExportData = {
+        title: "Relatório Financeiro Detalhado",
+        events: eventProfitability,
+        consolidated: consolidatedMetrics,
+        filters: {
+          dateRange: dateRange ? {
+            from: format(dateRange.from, "dd/MM/yyyy", { locale: ptBR }),
+            to: format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })
+          } : undefined,
+          statusFilter: statusFilter
+        }
+      };
+
+      await exportToPDF(exportData);
+      showSuccess("Relatório PDF exportado com sucesso!");
+    } catch (error) {
+      console.error("Export error:", error);
+      showError("Erro ao gerar relatório PDF. Tente novamente.");
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   if (eventsLoading || categoriesLoading || employeesLoading) {
@@ -135,10 +170,29 @@ const Reports = () => {
           <h1 className="text-2xl font-bold">Relatórios Financeiros Detalhados</h1>
           <p className="text-muted-foreground">Análise completa da saúde financeira da empresa.</p>
         </div>
-        <Button onClick={exportToCSV} variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Exportar CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={exportToCSV} variant="outline">
+            <Download className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </Button>
+          <Button 
+            onClick={handleExportPDF} 
+            variant="outline" 
+            disabled={isExportingPDF || eventProfitability.length === 0}
+          >
+            {isExportingPDF ? (
+              <>
+                <div className="animate-spin h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full" />
+                Gerando...
+              </>
+            ) : (
+              <>
+                <FileDown className="mr-2 h-4 w-4" />
+                Exportar PDF
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -225,7 +279,7 @@ const Reports = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {eventProfitability.slice(0, 10).map((event) => (
+                {eventProfitability.length > 0 ? eventProfitability.slice(0, 10).map((event) => (
                   <TableRow key={event.id}>
                     <TableCell className="font-medium max-w-[150px] truncate">{event.name}</TableCell>
                     <TableCell>{event.date}</TableCell>
@@ -240,7 +294,11 @@ const Reports = () => {
                       </Badge>
                     </TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center">Nenhum evento encontrado.</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
             {eventProfitability.length > 10 && (
