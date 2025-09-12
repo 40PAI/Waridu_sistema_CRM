@@ -19,7 +19,6 @@ import Profitability from "@/pages/finance/Profitability";
 import FinanceCalendar from "@/pages/finance/Calendar";
 import CostManagement from "@/pages/finance/CostManagement";
 import FinanceProfile from "@/pages/finance/Profile";
-import FinanceDashboard from "@/pages/finance/Dashboard";
 import TechnicianDashboard from "@/pages/technician/Dashboard";
 import TechnicianCalendar from "@/pages/technician/Calendar";
 import TechnicianEvents from "@/pages/technician/Events";
@@ -74,7 +73,6 @@ function App() {
               <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
               <Route path="/finance-costs" element={<CostManagement />} />
               <Route path="/finance/profile" element={<FinanceProfile />} />
-              <Route path="/finance/dashboard" element={<FinanceDashboard />} />
               <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
               <Route path="/technician/calendar" element={<TechnicianCalendar />} />
               <Route path="/technician/events" element={<TechnicianEvents />} />
