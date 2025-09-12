@@ -33,53 +33,77 @@ interface MaterialCategoryManagerProps {
 }
 
 export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected }: MaterialCategoryManagerProps) {
-  const { categories: materialCategories, addCategory, updateCategory, deleteCategory, refreshCategories } = useMaterialCategories();
+  const { categories: materialCategories, addCategory, updateCategory, deleteCategory, refreshCategories, loading } = useMaterialCategories();
   
   const [editingCategory, setEditingCategory] = React.useState<{ id: string; name: string; description?: string } | null>(null);
   const [newCategoryName, setNewCategoryName] = React.useState("");
   const [newCategoryDesc, setNewCategoryDesc] = React.useState("");
   const [categorySearch, setCategorySearch] = React.useState("");
   const [addCategoryError, setAddCategoryError] = React.useState<string | null>(null);
+  const [adding, setAdding] = React.useState(false);
 
   // Refresh categories when dialog opens
   React.useEffect(() => {
     if (open) {
+      console.log("Dialog opened, refreshing categories...");
       refreshCategories();
+    } else {
+      console.log("Dialog closed, cleaning up states...");
+      setNewCategoryName("");
+      setNewCategoryDesc("");
+      setEditingCategory(null);
+      setAddCategoryError(null);
+      setCategorySearch("");
     }
   }, [open, refreshCategories]);
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) {
+    const trimmedName = newCategoryName.trim();
+    if (!trimmedName) {
       setAddCategoryError("Nome da categoria é obrigatório.");
       return;
     }
-
-    const trimmedName = newCategoryName.trim();
     if (materialCategories.some(c => c.name.toLowerCase() === trimmedName.toLowerCase())) {
       setAddCategoryError("Categoria já existe (verificação sem distinção de maiúsculas/minúsculas).");
       return;
     }
 
+    setAdding(true);
+    setAddCategoryError(null);
+    console.log("Adding category:", { name: trimmedName, description: newCategoryDesc.trim() || undefined });
+
     try {
-      setAddCategoryError(null);
+      console.log("Calling addCategory from hook...");
       await addCategory(trimmedName, newCategoryDesc.trim() || undefined);
+      console.log("addCategory returned successfully. Refreshing categories...");
+      await refreshCategories();
+      console.log("Categories refreshed. New list length:", materialCategories.length + 1);
       showSuccess("Categoria adicionada com sucesso!");
+      onCategorySelected?.(trimmedName); // Notify parent of new category
       setNewCategoryName("");
       setNewCategoryDesc("");
-      onCategorySelected?.(trimmedName); // Notify parent of new category
+      console.log("Closing dialog after success...");
+      onOpenChange(false);
     } catch (err: any) {
-      console.error("Add category error:", err); // Debug log
+      console.error("Add category error caught:", err);
       if (err.message?.includes('duplicate key value violates unique constraint')) {
-        setAddCategoryError("Categoria já existe no banco de dados. Escolha um nome diferente.");
+        setAddCategoryError("Nome duplicado no banco de dados. Escolha um nome diferente.");
+      } else if (err.message?.includes('row level security policy')) {
+        setAddCategoryError("Permissão negada para criar categorias. Verifique RLS no Supabase.");
       } else {
         const errorMessage = err?.message || "Erro ao adicionar categoria. Verifique permissões ou conexão.";
         setAddCategoryError(errorMessage);
         showError(errorMessage);
       }
+    } finally {
+      setAdding(false);
+      // Do not close dialog on error to allow retry
+      console.log("Add process ended (finally block).");
     }
   };
 
   const openEditCategory = (cat: MaterialCategory) => {
+    console.log("Opening edit for category:", cat.name);
     setEditingCategory({ id: cat.id, name: cat.name, description: cat.description });
   };
 
@@ -95,15 +119,22 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
       return;
     }
 
+    console.log("Saving edit for category:", editingCategory.id, { name: trimmedName, description: editingCategory.description });
     try {
       await updateCategory(editingCategory.id, trimmedName, editingCategory.description?.trim() || undefined);
+      console.log("Update successful. Refreshing categories...");
+      await refreshCategories();
       showSuccess("Categoria atualizada com sucesso!");
-      setEditingCategory(null);
       onCategorySelected?.(trimmedName); // Notify parent of updated category
-    } catch (err) {
-      console.error("Update category error:", err); // Debug log
+      setEditingCategory(null);
+      console.log("Closing dialog after edit success...");
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error("Update category error:", err);
       if (err.message?.includes('duplicate key value violates unique constraint')) {
         showError("Não foi possível atualizar: categoria já existe com este nome.");
+      } else if (err.message?.includes('row level security policy')) {
+        showError("Permissão negada para atualizar categorias. Verifique RLS no Supabase.");
       } else {
         showError("Erro ao atualizar categoria.");
       }
@@ -112,11 +143,14 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
 
   const handleDeleteCategory = async (id: string) => {
     try {
+      console.log("Deleting category:", id);
       await deleteCategory(id);
+      console.log("Delete successful. Refreshing categories...");
+      await refreshCategories();
       showSuccess("Categoria removida com sucesso!");
       onCategorySelected?.(""); // Reset selection if needed
-    } catch (err) {
-      console.error("Delete category error:", err); // Debug log
+    } catch (err: any) {
+      console.error("Delete category error:", err);
       showError("Erro ao remover categoria.");
     }
   };
@@ -176,6 +210,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                 placeholder="Nome da categoria"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
+                disabled={adding}
               />
             </div>
             <div className="flex-1 space-y-2">
@@ -187,13 +222,14 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                 placeholder="Descrição da categoria"
                 value={newCategoryDesc}
                 onChange={(e) => setNewCategoryDesc(e.target.value)}
+                disabled={adding}
               />
             </div>
             <div className="flex items-end">
               <Button 
                 size="sm" 
                 onClick={handleAddCategory} 
-                disabled={!newCategoryName.trim()}
+                disabled={adding || !newCategoryName.trim()}
                 className="min-w-[100px]"
               >
                 <Plus className="h-4 w-4 mr-1" />
@@ -224,6 +260,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                             value={editingCategory.name}
                             onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
                             placeholder="Nome"
+                            disabled={adding}
                           />
                         </div>
                         <div className="flex-1 space-y-1">
@@ -235,19 +272,24 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                             value={editingCategory.description || ""}
                             onChange={(e) => setEditingCategory(prev => prev ? { ...prev, description: e.target.value } : null)}
                             placeholder="Descrição"
+                            disabled={adding}
                           />
                         </div>
                         <Button 
                           size="sm" 
                           onClick={handleSaveCategoryEdit} 
-                          disabled={!editingCategory.name.trim()}
+                          disabled={adding || !editingCategory.name.trim()}
                         >
                           Salvar
                         </Button>
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          onClick={() => setEditingCategory(null)}
+                          onClick={() => {
+                            setEditingCategory(null);
+                            console.log("Edit cancelled.");
+                          }}
+                          disabled={adding}
                         >
                           Cancelar
                         </Button>
@@ -271,6 +313,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                               size="sm" 
                               variant="outline" 
                               onClick={() => openEditCategory({ id: cat.id, name: cat.name, description: cat.description })}
+                              disabled={adding}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -284,7 +327,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                           <TooltipTrigger asChild>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
+                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={adding}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -292,16 +335,16 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Remover Categoria?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                  Materiais existentes não serão afetados, mas esta categoria será removida da lista. 
-                                  Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)}>
-                                  Remover
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
+                                    Materiais existentes não serão afetados, mas esta categoria será removida da lista. 
+                                    Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel disabled={adding}>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)} disabled={adding}>
+                                    Remover
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
                             </AlertDialogContent>
                             </AlertDialog>
                           </TooltipTrigger>
@@ -322,11 +365,11 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
 
         <DialogFooter>
           <Button 
-            onClick={() => { 
-              onOpenChange(false); 
-              setCategorySearch(""); 
-              setAddCategoryError(null); 
+            onClick={() => {
+              console.log("Fechando dialog via botão Fechar...");
+              onOpenChange(false);
             }}
+            disabled={adding}
           >
             Fechar
           </Button>
