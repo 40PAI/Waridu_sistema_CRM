@@ -12,15 +12,16 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { parseISO, isWithinInterval, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Event, EventStatus } from "@/types";
-import { Download, TrendingUp, TrendingDown, DollarSign, Calendar, PieChart as PieChartIcon } from "lucide-react";
+import { Download, TrendingUp, TrendingDown, DollarSign, Calendar as CalendarIcon, PieChart as PieChartIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { DateRange } from "react-day-picker";
 
 const Reports = () => {
   const { events, loading: eventsLoading } = useEvents();
   const { categories, loading: categoriesLoading } = useTechnicianCategories();
   const { employees, loading: employeesLoading } = useEmployees();
 
-  const [dateRange, setDateRange] = React.useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   const [statusFilter, setStatusFilter] = React.useState<EventStatus | "all">("all");
 
   const rateMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.dailyRate])), [categories]);
@@ -44,7 +45,7 @@ const Reports = () => {
   const filteredEvents = React.useMemo(() => {
     return events.filter(event => {
       const eventDate = parseISO(event.startDate);
-      const withinDateRange = !dateRange.from || !dateRange.to || isWithinInterval(eventDate, { start: dateRange.from, end: dateRange.to });
+      const withinDateRange = !dateRange?.from || !dateRange?.to || isWithinInterval(eventDate, { start: dateRange.from, end: dateRange.to });
       const matchesStatus = statusFilter === "all" || event.status === statusFilter;
       return withinDateRange && matchesStatus;
     });
@@ -162,7 +163,7 @@ const Reports = () => {
               <SelectItem value="Cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => { setDateRange({}); setStatusFilter("all"); }}>
+          <Button variant="outline" onClick={() => { setDateRange(undefined); setStatusFilter("all"); }}>
             Limpar Filtros
           </Button>
         </CardContent>

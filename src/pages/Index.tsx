@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Archive, CheckCircle, Calendar, DollarSign } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -10,52 +11,48 @@ import { parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, format
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
 
-// --- Helper Functions ---
 const getMaterialStatusVariant = (status: string) => {
-    switch (status) {
-      case 'Disponível': return 'default';
-      case 'Em uso': return 'secondary';
-      case 'Manutenção': return 'destructive';
-      default: return 'outline';
-    }
+  switch (status) {
+    case 'Disponível': return 'default';
+    case 'Em uso': return 'secondary';
+    case 'Manutenção': return 'destructive';
+    default: return 'outline';
+  }
 };
 
 const getEventStatusVariant = (status: string) => {
-    switch (status) {
-      case 'Concluído': return 'default';
-      case 'Cancelado': return 'destructive';
-      default: return 'secondary';
-    }
+  switch (status) {
+    case 'Concluído': return 'default';
+    case 'Cancelado': return 'destructive';
+    default: return 'secondary';
+  }
 };
 
-// --- Sub-components ---
 const MaterialStatusList = ({ materials }: { materials: any[] }) => {
-    const activeMaterials = useMemo(() => materials.filter(m => m.status !== 'Disponível'), [materials]);
-    return (
-        <div className="space-y-4">
-            {activeMaterials.length > 0 ? activeMaterials.map((item) => (
-                <div className="flex items-center" key={item.id}>
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium leading-none">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">{item.category}</p>
-                    </div>
-                    <div className="ml-auto font-medium">
-                        <Badge variant={getMaterialStatusVariant(item.status)}>{item.status}</Badge>
-                    </div>
-                </div>
-            )) : (
-                <p className="text-sm text-muted-foreground text-center">Todos os materiais estão disponíveis.</p>
-            )}
+  const activeMaterials = useMemo(() => materials.filter(m => m.status !== 'Disponível'), [materials]);
+  return (
+    <div className="space-y-4">
+      {activeMaterials.length > 0 ? activeMaterials.map((item) => (
+        <div className="flex items-center" key={item.id}>
+          <div className="space-y-1">
+            <p className="text-sm font-medium leading-none">{item.name}</p>
+            <p className="text-sm text-muted-foreground">{item.category}</p>
+          </div>
+          <div className="ml-auto font-medium">
+            <Badge variant={getMaterialStatusVariant(item.status)}>{item.status}</Badge>
+          </div>
         </div>
-    );
+      )) : (
+        <p className="text-sm text-muted-foreground text-center">Todos os materiais estão disponíveis.</p>
+      )}
+    </div>
+  );
 };
 
-// --- Main Dashboard Component ---
 const Dashboard = () => {
   const { events } = useEvents();
   const { materials: pageMaterials } = useMaterials();
 
-  // --- Data Processing ---
   const totalItems = useMemo(() => pageMaterials.reduce((sum, item) => sum + item.quantity, 0), [pageMaterials]);
   const availableItems = useMemo(() => pageMaterials.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0), [pageMaterials]);
 
@@ -63,25 +60,25 @@ const Dashboard = () => {
   const startOfThisMonth = startOfMonth(now);
   const endOfThisMonth = endOfMonth(now);
   const totalEventsThisMonth = useMemo(() => events.filter(event => {
-      const eventDate = parseISO(event.startDate);
-      return isWithinInterval(eventDate, { start: startOfThisMonth, end: endOfThisMonth });
+    const eventDate = parseISO(event.startDate);
+    return isWithinInterval(eventDate, { start: startOfThisMonth, end: endOfThisMonth });
   }).length, [events, startOfThisMonth, endOfThisMonth]);
 
   const lastFourMonths = useMemo(() => Array.from({ length: 4 }, (_, i) => subMonths(now, i)).reverse(), [now]);
   const financeData = useMemo(() => lastFourMonths.map(monthDate => {
-      const monthKey = format(monthDate, 'MMM', { locale: ptBR });
-      const start = startOfMonth(monthDate);
-      const end = endOfMonth(monthDate);
+    const monthKey = format(monthDate, 'MMM', { locale: ptBR });
+    const start = startOfMonth(monthDate);
+    const end = endOfMonth(monthDate);
 
-      const revenueForMonth = events
-          .filter(e => (e.status === 'Concluído') && isWithinInterval(parseISO(e.startDate), { start, end }))
-          .reduce((sum, e) => sum + (e.revenue || 0), 0);
-      
-      const expensesForMonth = events
-          .filter(e => (e.status === 'Concluído') && isWithinInterval(parseISO(e.startDate), { start, end }))
-          .reduce((sum, e) => sum + (e.expenses?.reduce((expSum, exp) => expSum + exp.amount, 0) || 0), 0);
+    const revenueForMonth = events
+      .filter(e => (e.status === 'Concluído') && isWithinInterval(parseISO(e.startDate), { start, end }))
+      .reduce((sum, e) => sum + (e.revenue || 0), 0);
+    
+    const expensesForMonth = events
+      .filter(e => (e.status === 'Concluído') && isWithinInterval(parseISO(e.startDate), { start, end }))
+      .reduce((sum, e) => sum + (e.expenses?.reduce((expSum, exp) => expSum + exp.amount, 0) || 0), 0);
 
-      return { name: monthKey, Receita: revenueForMonth, Despesa: expensesForMonth };
+    return { name: monthKey, Receita: revenueForMonth, Despesa: expensesForMonth };
   }), [events, lastFourMonths]);
 
   const totalRevenue = useMemo(() => financeData.reduce((sum, item) => sum + item.Receita, 0), [financeData]);
@@ -100,10 +97,10 @@ const Dashboard = () => {
     .sort((a, b) => parseISO(b.startDate).getTime() - parseISO(a.startDate).getTime())
     .slice(0, 4)
     .map(e => ({
-        id: e.id,
-        name: e.name,
-        date: format(parseISO(e.startDate), 'dd/MM/yyyy', { locale: ptBR }),
-        status: e.status
+      id: e.id,
+      name: e.name,
+      date: format(parseISO(e.startDate), 'dd/MM/yyyy', { locale: ptBR }),
+      status: e.status
     })), [events]);
 
   return (
@@ -130,65 +127,91 @@ const Dashboard = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row<dyad-write path="src/config/roles.ts" description="Adding hasPermission and hasActionPermission functions to config/roles.ts for role-based access control.">
-export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico';
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Eventos no Mês</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalEventsThisMonth}</div>
+            <p className="text-xs text-muted-foreground">Eventos agendados</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita (4 meses)</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">AOA {totalRevenue.toLocaleString('pt-AO')}</div>
+            <p className="text-xs text-muted-foreground">Receita de eventos concluídos</p>
+          </CardContent>
+        </Card>
+      </div>
 
-export const PAGE_PERMISSIONS: Record<Role, string[]> = {
-  Admin: [
-    '/', '/calendar', '/create-event', '/roster-management',
-    '/employees', '/roles', '/materials', '/material-requests',
-    '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
-    '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId',
-    '/notifications'
-  ],
-  Coordenador: [
-    '/', '/calendar', '/create-event', '/roster-management',
-    '/employees', '/roles', '/materials', '/invite-member', '/admin/members', '/admin/users',
-    '/notifications'
-  ],
-  'Gestor de Material': [
-    '/', '/calendar', '/roster-management', '/materials', '/material-requests',
-    '/notifications'
-  ],
-  Financeiro: [
-    '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
-    '/finance/profile', '/notifications'
-  ],
-  Técnico: [
-    '/technician/dashboard', '/technician/calendar', '/technician/events',
-    '/technician/events/:eventId', '/technician/tasks',
-    '/technician/tasks-kanban', '/technician/profile', '/technician/notifications', '/notifications'
-  ],
+      <Card>
+        <CardHeader>
+          <CardTitle>Receita vs. Despesa</CardTitle>
+          <CardDescription>Últimos 4 meses</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={financeData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="Receita" fill="#8884d8" />
+              <Bar dataKey="Despesa" fill="#82ca9d" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Eventos Recentes</CardTitle>
+          <CardDescription>Últimos eventos registrados</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Evento</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentEvents.map((e) => (
+                <TableRow key={e.id}>
+                  <TableCell className="font-medium">{e.name}</TableCell>
+                  <TableCell>{e.date}</TableCell>
+                  <TableCell>
+                    <Badge variant={getEventStatusVariant(e.status)}>{e.status}</Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {recentEvents.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center">Sem eventos</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Materiais em Uso</CardTitle>
+          <CardDescription>Itens não disponíveis</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MaterialStatusList materials={pageMaterials} />
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
 
-export const ACTION_PERMISSIONS: Record<Role, string[]> = {
-  Admin: [
-    'members:invite', 'members:promote', 'members:ban', 'members:delete',
-    'materials:write', 'employees:write', 'employees:assign_category', 'categories:manage'
-  ],
-  Coordenador: [
-    'members:invite', 'members:promote', 'employees:write'
-  ],
-  'Gestor de Material': [
-    'materials:write'
-  ],
-  Financeiro: [
-    'categories:manage'
-  ],
-  Técnico: []
-};
-
-export function hasPermission(role: Role | undefined, path: string): boolean {
-  if (!role) return false;
-  const permissions = PAGE_PERMISSIONS[role] || [];
-  return permissions.some(p => {
-    if (p.endsWith('/:roleId')) return path === '/roles' || path.startsWith('/roles/');
-    return path === p || (p.endsWith('*') && path.startsWith(p.slice(0, -1)));
-  });
-}
-
-export function hasActionPermission(role: Role | undefined, action: string): boolean {
-  if (!role) return false;
-  const permissions = ACTION_PERMISSIONS[role] || [];
-  return permissions.includes(action);
-}
+export default Dashboard;

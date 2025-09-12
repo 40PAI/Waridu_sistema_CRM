@@ -90,7 +90,7 @@ export const useMaterials = () => {
 
         if (error) throw error;
         showSuccess("Material atualizado com sucesso!");
-        return { id: materialData.id, ...materialData };
+        return { id: materialData.id, ...materialData, locations: {} };
       } else {
         // Create new material
         const { data, error } = await supabase

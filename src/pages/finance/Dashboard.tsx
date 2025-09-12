@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, Calendar, BarChart3 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, parseISO, differenceInDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEvents } from "@/hooks/useEvents";
 import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
@@ -18,22 +18,12 @@ const FinanceDashboard = () => {
   const { categories, loading: categoriesLoading } = useTechnicianCategories();
   const { user } = useAuth();
 
-  const rateMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.dailyRate])), [categories]);
-
+  // For simplicity, only consider recorded expenses on the event as costs.
+  // Technician category costs are handled in detailed pages.
   const calculateEventCosts = React.useCallback((event: Event) => {
-    let techCosts = 0;
-    if (event.roster?.teamMembers) {
-      const days = differenceInDays(parseISO(event.endDate), parseISO(event.startDate)) + 1;
-      event.roster.teamMembers.forEach((member: any) => {
-        const employee = events.find(e => e.id === member.id);
-        const categoryId = employee?.roster?.teamMembers.find(m => m.id === member.id)?.categoryId; // This logic might need adjustment based on your actual data structure
-        const rate = categoryId ? rateMap.get(categoryId) || 0 : 0;
-        techCosts += rate * days;
-      });
-    }
     const otherExpenses = event.expenses?.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0) || 0;
-    return techCosts + otherExpenses;
-  }, [rateMap, events]);
+    return otherExpenses;
+  }, []);
 
   const currentMonth = React.useMemo(() => {
     const now = new Date();
@@ -145,7 +135,7 @@ const FinanceDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">AOA {currentMonth.costs.toLocaleString("pt-AO")}</div>
-            <p className="text-xs text-muted-foreground">Custos de técnicos + despesas</p>
+            <p className="text-xs text-muted-foreground">Custos registrados nos eventos</p>
           </CardContent>
         </Card>
         <Card>
