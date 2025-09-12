@@ -90,7 +90,7 @@ export const useMaterials = () => {
 
         if (error) throw error;
         showSuccess("Material atualizado com sucesso!");
-        return { id: materialData.id, ...materialData, locations: {} };
+        return { id: materialData.id, ...materialData };
       } else {
         // Create new material
         const { data, error } = await supabase
@@ -211,9 +211,9 @@ export const useMaterials = () => {
             quantity: newQuantity
           });
 
-        if (insertError) {
-          console.error("Error inserting new entry:", insertError);
-          throw insertError;
+        if (error) {
+          console.error("Error inserting new entry:", error);
+          throw error;
         }
       }
 

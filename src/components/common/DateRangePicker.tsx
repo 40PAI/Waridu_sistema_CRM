@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/popover";
 
 interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
-  date?: { from?: Date; to?: Date };
-  onDateChange: (date: { from?: Date; to?: Date } | undefined) => void;
+  date?: DateRange;
+  onDateChange: (date: DateRange | undefined) => void;
 }
 
 export function DateRangePicker({
