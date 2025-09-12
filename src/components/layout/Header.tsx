@@ -2,14 +2,15 @@ import * as React from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Users, FileText, Settings, Home, Users2, Package, CalendarDays, Bell, KanbanSquare, CheckCircle, X } from "lucide-react";
+import { Menu, Users, FileText, Settings, Home, Users2, Package, CalendarDays, Bell, KanbanSquare, CheckCircle, X, LogOut } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/config/roles";
 import NotificationsBell from "@/components/notifications/NotificationsBell";
 
 const Header = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const role = user?.profile?.role;
 
   const getNavItems = () => {
@@ -18,7 +19,7 @@ const Header = () => {
     if (role === 'Admin' || role === 'Coordenador') {
       items.push(
         { to: "/", icon: <Home className="h-4 w-4 mr-2" />, label: "Dashboard" },
-        { to: "/calendar", icon: <CalendarDays className="h-4 w-4 mr-2" />, label: "Calendário" },
+        { to: "/calendar", icon: <Calendar className="h-4 w-4 mr-2" />, label: "Calendário" },
         { to: "/create-event", icon: <CalendarDays className="h-4 w-4 mr-2" />, label: "Criar Evento" },
         { to: "/roster-management", icon: <Users className="h-4 w-4 mr-2" />, label: "Escalações" },
         { to: "/employees", icon: <Users2 className="h-4 w-4 mr-2" />, label: "Funcionários" },
@@ -32,7 +33,7 @@ const Header = () => {
     } else if (role === 'Gestor de Material') {
       items.push(
         { to: "/", icon: <Home className="h-4 w-4 mr-2" />, label: "Dashboard" },
-        { to: "/calendar", icon: <CalendarDays className="h-4 w-4 mr-2" />, label: "Calendário" },
+        { to: "/calendar", icon: <Calendar className="h-4 w-4 mr-2" />, label: "Calendário" },
         { to: "/roster-management", icon: <Users className="h-4 w-4 mr-2" />, label: "Escalações" },
         { to: "/materials", icon: <Package className="h-4 w-4 mr-2" />, label: "Materiais" },
         { to: "/material-requests", icon: <Package className="h-4 w-4 mr-2" />, label: "Requisições" },
@@ -65,40 +66,73 @@ const Header = () => {
 
   const [open, setOpen] = React.useState(false);
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Abrir menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="p-0">
-        <div className="flex flex-col">
-          <div className="p-2 border-b">
-            <Link to="/" className="flex items-center gap-2">
-              <Home className="h-5 w-5" />
-              <span>Dashboard</span>
-            </Link>
-          </div>
-          <div className="p-2">
-            <div className="space-y-1">
-              {getNavItems().map((item) => (
-                <Link key={item.to} to={item.to} className="flex items-center gap-2 p-2 rounded hover:bg-accent">
-                  {item.icon}
-                  <span>{item.label}</span>
+    <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center gap-4">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Abrir menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="p-0">
+            <div className="flex flex-col">
+              <div className="p-2 border-b">
+                <Link to="/" className="flex items-center gap-2">
+                  <Home className="h-5 w-5" />
+                  <span>Dashboard</span>
                 </Link>
-              ))}
+              </div>
+              <div className="p-2">
+                <div className="space-y-1">
+                  {getNavItems().map((item) => (
+                    <Link key={item.to} to={item.to} className="flex items-center gap-2 p-2 rounded hover:bg-accent">
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </div>
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon">
+                <X className="h-5 w-5" />
+              </Button>
+            </SheetClose>
+          </SheetContent>
+        </Sheet>
+
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user?.profile?.avatar_url || undefined} />
+            <AvatarFallback>{user?.profile?.first_name?.[0] || user?.email?.[0]}</AvatarFallback>
+          </Avatar>
+          <div className="hidden md:block">
+            <p className="text-sm font-medium">
+              {user?.profile?.first_name} {user?.profile?.last_name}
+            </p>
+            <p className="text-xs text-muted-foreground">{user?.profile?.role}</p>
           </div>
         </div>
-        <SheetClose asChild>
-          <Button variant="ghost" size="icon">
-            <X className="h-5 w-5" />
-          </Button>
-        </SheetClose>
-      </SheetContent>
-    </Sheet>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <NotificationsBell />
+        <Button variant="outline" size="sm" onClick={handleLogout} className="flex items-center gap-2">
+          <LogOut className="h-4 w-4" />
+          <span className="hidden md:inline">Sair</span>
+        </Button>
+      </div>
+    </div>
   );
 };
 
