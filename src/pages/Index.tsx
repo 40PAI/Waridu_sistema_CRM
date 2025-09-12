@@ -130,65 +130,78 @@ const Dashboard = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row<dyad-write path="src/config/roles.ts" description="Adding hasPermission and hasActionPermission functions to config/roles.ts for role-based access control.">
-export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico';
-
-export const PAGE_PERMISSIONS: Record<Role, string[]> = {
-  Admin: [
-    '/', '/calendar', '/create-event', '/roster-management',
-    '/employees', '/roles', '/materials', '/material-requests',
-    '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
-    '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId',
-    '/notifications'
-  ],
-  Coordenador: [
-    '/', '/calendar', '/create-event', '/roster-management',
-    '/employees', '/roles', '/materials', '/invite-member', '/admin/members', '/admin/users',
-    '/notifications'
-  ],
-  'Gestor de Material': [
-    '/', '/calendar', '/roster-management', '/materials', '/material-requests',
-    '/notifications'
-  ],
-  Financeiro: [
-    '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
-    '/finance/profile', '/notifications'
-  ],
-  Técnico: [
-    '/technician/dashboard', '/technician/calendar', '/technician/events',
-    '/technician/events/:eventId', '/technician/tasks',
-    '/technician/tasks-kanban', '/technician/profile', '/technician/notifications', '/notifications'
-  ],
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Eventos Este Mês</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalEventsThisMonth}</div>
+            <p className="text-xs text-muted-foreground">Eventos agendados</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">AOA {totalRevenue.toLocaleString('pt-AO')}</div>
+            <p className="text-xs text-muted-foreground">Últimos 4 meses</p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Receita vs. Despesas</CardTitle>
+            <CardDescription>Comparação mensal dos últimos 4 meses.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={financeData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false}/>
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `AOA ${value/1000}k`}/>
+                <Tooltip formatter={(value) => [`AOA ${Number(value).toLocaleString('pt-AO')}`, ""]} />
+                <Legend />
+                <Bar dataKey="Receita" fill="#8884d8" name="Receita (AOA)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Despesa" fill="#82ca9d" name="Despesa (AOA)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Eventos Recentes</CardTitle>
+            <CardDescription>Últimos eventos criados.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Evento</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentEvents.map((event) => (
+                  <TableRow key={event.id}>
+                    <TableCell className="font-medium">{event.name}</TableCell>
+                    <TableCell>{event.date}</TableCell>
+                    <TableCell>
+                      <Badge variant={getEventStatusVariant(event.status)}>{event.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 };
 
-export const ACTION_PERMISSIONS: Record<Role, string[]> = {
-  Admin: [
-    'members:invite', 'members:promote', 'members:ban', 'members:delete',
-    'materials:write', 'employees:write', 'employees:assign_category', 'categories:manage'
-  ],
-  Coordenador: [
-    'members:invite', 'members:promote', 'employees:write'
-  ],
-  'Gestor de Material': [
-    'materials:write'
-  ],
-  Financeiro: [
-    'categories:manage'
-  ],
-  Técnico: []
-};
-
-export function hasPermission(role: Role | undefined, path: string): boolean {
-  if (!role) return false;
-  const permissions = PAGE_PERMISSIONS[role] || [];
-  return permissions.some(p => {
-    if (p.endsWith('/:roleId')) return path === '/roles' || path.startsWith('/roles/');
-    return path === p || (p.endsWith('*') && path.startsWith(p.slice(0, -1)));
-  });
-}
-
-export function hasActionPermission(role: Role | undefined, action: string): boolean {
-  if (!role) return false;
-  const permissions = ACTION_PERMISSIONS[role] || [];
-  return permissions.includes(action);
-}
+export default Dashboard;
