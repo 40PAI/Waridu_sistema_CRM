@@ -11,7 +11,7 @@ import type { MaterialRequest, Event } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 interface RequestDetailsDialogProps {
   open: boolean;
@@ -52,16 +52,16 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
-    
+
     // Título
     doc.setFontSize(18);
     doc.text(`Requisição #${request.id.slice(-6)}`, 14, 20);
-    
+
     // Informações gerais
     doc.setFontSize(12);
     doc.text(`Status: ${request.status}`, 14, 30);
     doc.text(`Data: ${format(new Date(request.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 37);
-    
+
     // Solicitante
     doc.setFontSize(14);
     doc.text("Solicitante", 14, 47);
@@ -69,7 +69,7 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
     doc.text(request.requestedBy.name, 14, 54);
     doc.text(request.requestedBy.email, 14, 61);
     doc.text(`Função: ${request.requestedBy.role}`, 14, 68);
-    
+
     // Evento
     doc.setFontSize(14);
     doc.text("Evento Relacionado", 14, 78);
@@ -78,41 +78,39 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
     doc.text(`Status: ${event.status}`, 14, 92);
     doc.text(`${format(new Date(event.startDate), "dd/MM/yyyy", { locale: ptBR })} ${event.startTime || ""}`, 14, 99);
     doc.text(event.location, 14, 106);
-    
+
     // Itens solicitados
     doc.setFontSize(14);
     doc.text(`Itens Solicitados (${request.items.length})`, 14, 116);
-    
+
     // Tabela de itens
     const tableData = request.items.map((item, index) => [
       index + 1,
       materialNameMap[item.materialId] || item.materialId,
-      item.quantity
+      item.quantity,
     ]);
-    
-    (doc as any).autoTable({
-      head: [['#', 'Material', 'Quantidade']],
+
+    autoTable(doc, {
+      head: [["#", "Material", "Quantidade"]],
       body: tableData,
       startY: 122,
-      styles: {
-        fontSize: 10
-      },
-      headStyles: {
-        fillColor: [66, 66, 66]
-      }
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [66, 66, 66] },
     });
-    
+
     // Motivo da rejeição (se aplicável)
+    const lastTableY = (doc as any).lastAutoTable?.finalY || 122;
     if (request.status === "Rejeitada" && request.reason) {
-      const finalY = (doc as any).lastAutoTable.finalY;
       doc.setFontSize(14);
       doc.setTextColor(255, 0, 0);
-      doc.text("Motivo da Rejeição", 14, finalY + 10);
+      doc.text("Motivo da Rejeição", 14, lastTableY + 10);
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text(request.reason, 14, finalY + 17);
+      // Quebra simples de linha se texto for longo
+      const lines = doc.splitTextToSize(request.reason, 180);
+      doc.text(lines, 14, lastTableY + 17);
     }
-    
+
     // Salvar PDF
     doc.save(`requisicao-${request.id.slice(-6)}.pdf`);
   };
@@ -131,7 +129,6 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Status da Requisição */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Status:</span>
@@ -144,7 +141,6 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
             </div>
           </div>
 
-          {/* Informações do Solicitante */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -152,6 +148,7 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
             </h4>
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
               <Avatar className="h-10 w-10">
+                <AvatarImage src={undefined} />
                 <AvatarFallback>
                   {request.requestedBy.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
@@ -166,7 +163,6 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
             </div>
           </div>
 
-          {/* Informações do Evento */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold flex items-center gap-2">
               <Calendar className="h-4 w-4" />
@@ -191,7 +187,6 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
             </div>
           </div>
 
-          {/* Itens Solicitados */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold flex items-center gap-2">
               <Package className="h-4 w-4" />
@@ -204,9 +199,7 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
                     <p className="font-medium">
                       {materialNameMap[item.materialId] || item.materialId}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      ID: {item.materialId}
-                    </p>
+                    <p className="text-sm text-muted-foreground">ID: {item.materialId}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">{item.quantity} unidade(s)</p>
@@ -216,7 +209,6 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
             </div>
           </div>
 
-          {/* Motivo da Rejeição (se aplicável) */}
           {request.status === "Rejeitada" && request.reason && (
             <>
               <Separator />
@@ -229,7 +221,6 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
             </>
           )}
 
-          {/* Data de Decisão */}
           {request.decidedAt && (
             <>
               <Separator />
