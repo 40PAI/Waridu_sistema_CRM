@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { Role as ConfigRole } from '@/config/roles';
 
 interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  role: string;
+  role: ConfigRole;
   technician_category_id?: string | null;
 }
 
@@ -34,6 +35,12 @@ export const useAuth = () => {
 
 interface AuthProviderProps {
   children: React.ReactNode;
+}
+
+const VALID_ROLES: ConfigRole[] = ['Admin', 'Coordenador', 'Gestor de Material', 'Financeiro', 'Técnico'];
+function mapRole(input: any): ConfigRole {
+  const val = String(input || '').trim();
+  return (VALID_ROLES as string[]).includes(val) ? (val as ConfigRole) : 'Técnico';
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
@@ -87,13 +94,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (profileError) {
         console.error("Load profile error:", profileError);
         setProfile(null);
-        // still merge null to keep shape
         setUser(prev => prev ? ({ ...prev, profile: null }) as AuthedUser : null);
         return;
       }
 
       let technician_category_id: string | null = null;
-      if (profileData?.role === 'Técnico') {
+      const roleMapped = mapRole(profileData?.role);
+
+      if (roleMapped === 'Técnico') {
         const { data: empData, error: empError } = await supabase
           .from('employees')
           .select('technician_category')
@@ -111,7 +119,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         first_name: profileData?.first_name ?? null,
         last_name: profileData?.last_name ?? null,
         avatar_url: profileData?.avatar_url ?? null,
-        role: profileData?.role || 'Técnico',
+        role: roleMapped,
         technician_category_id,
       };
 
