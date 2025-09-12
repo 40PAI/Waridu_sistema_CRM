@@ -5,22 +5,25 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/', '/calendar', '/create-event', '/roster-management',
     '/employees', '/roles', '/materials', '/material-requests',
     '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
-    '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId'
+    '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId',
+    '/notifications'
   ],
   Coordenador: [
     '/', '/calendar', '/create-event', '/roster-management',
-    '/employees', '/roles', '/materials', '/invite-member', '/admin/members', '/admin/users'
+    '/employees', '/roles', '/materials', '/invite-member', '/admin/members', '/admin/users',
+    '/notifications'
   ],
   'Gestor de Material': [
-    '/', '/calendar', '/roster-management', '/materials', '/material-requests'
+    '/', '/calendar', '/roster-management', '/materials', '/material-requests',
+    '/notifications'
   ],
   Financeiro: [
     '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
-    '/finance/profile'
+    '/finance/profile', '/notifications'
   ],
   Técnico: [
     '/technician/dashboard', '/technician/calendar', '/technician/events',
     '/technician/events/:eventId', '/technician/tasks',
-    '/technician/profile', '/technician/notifications'
+    '/technician/profile', '/technician/notifications', '/notifications'
   ],
 };

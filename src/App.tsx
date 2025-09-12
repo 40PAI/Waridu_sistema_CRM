@@ -39,6 +39,7 @@ import FinanceProfile from "@/pages/finance/Profile";
 import AdminProfile from "@/pages/AdminProfile";
 import AdminSettings from "@/pages/AdminSettings";
 import InviteMember from "@/pages/InviteMember";
+import NotificationsPage from "@/pages/Notifications";
 
 // Hooks for data
 import { useEvents } from "@/hooks/useEvents";
@@ -204,9 +205,12 @@ function AppShell() {
           }
         />
 
-        {/* User management (reusing InviteMember page) */}
+        {/* User management */}
         <Route path="/invite-member" element={<InviteMember />} />
         <Route path="/admin/users" element={<InviteMember />} />
+
+        {/* Notifications */}
+        <Route path="/notifications" element={<NotificationsPage />} />
 
         {/* Technician area */}
         <Route path="/technician/dashboard" element={<TechnicianDashboard />} />

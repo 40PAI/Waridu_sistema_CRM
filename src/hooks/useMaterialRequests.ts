@@ -114,6 +114,18 @@ export const useMaterialRequests = () => {
     }
   };
 
+  const sendNotification = async (targetUserId: string, title: string, description: string, type: 'material' | 'system' = 'material') => {
+    if (!targetUserId) return;
+    await supabase.from('notifications').insert({
+      title,
+      description,
+      type,
+      user_id: targetUserId,
+      read: false,
+      created_at: new Date().toISOString(),
+    });
+  };
+
   const approveMaterialRequest = async (requestId: string): Promise<ApproveResult> => {
     try {
       const { error } = await supabase
@@ -130,13 +142,28 @@ export const useMaterialRequests = () => {
         prev.map((r) => (r.id === requestId ? { ...r, status: "Aprovada", decidedAt: new Date().toISOString() } : r))
       );
 
+      // Buscar solicitante para notificar
+      const { data: reqData, error: reqErr } = await supabase
+        .from('material_requests')
+        .select('requested_by_id, event_id')
+        .eq('id', requestId)
+        .single();
+      if (!reqErr && reqData?.requested_by_id) {
+        await sendNotification(
+          reqData.requested_by_id,
+          "Requisição Aprovada",
+          `Sua requisição de materiais para o evento #${reqData.event_id} foi aprovada.`,
+          'material'
+        );
+      }
+
       showSuccess("Requisição aprovada e estoque atualizado.");
       return { ok: true };
     } catch (error) {
       console.error("Error approving request:", error);
       const errorMessage = error instanceof Error ? error.message : "Falha ao aprovar requisição.";
       showError(errorMessage);
-      return { ok: false, shortages: [] }; // Explicitly returning an empty array that matches the type
+      return { ok: false, shortages: [] }; // retorno consistente
     }
   };
 
@@ -158,6 +185,22 @@ export const useMaterialRequests = () => {
           r.id === requestId ? { ...r, status: "Rejeitada", reason, decidedAt: new Date().toISOString() } : r
         )
       );
+
+      // Buscar solicitante para notificar
+      const { data: reqData, error: reqErr } = await supabase
+        .from('material_requests')
+        .select('requested_by_id, event_id')
+        .eq('id', requestId)
+        .single();
+      if (!reqErr && reqData?.requested_by_id) {
+        await sendNotification(
+          reqData.requested_by_id,
+          "Requisição Rejeitada",
+          `Sua requisição de materiais para o evento #${reqData.event_id} foi rejeitada. Motivo: ${reason}`,
+          'material'
+        );
+      }
+
       showSuccess("Requisição rejeitada.");
     } catch (error) {
       console.error("Error rejecting request:", error);
