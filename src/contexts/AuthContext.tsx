@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               const { data: empData, error: empError } = await supabase
                 .from('employees')
                 .select('technician_category')
-                .eq('id', currentSession.user.id)
+                .eq('user_id', currentSession.user.id)
                 .single();
               if (empError) {
                 console.error("Load employee error:", empError);
@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const { data: empData, error: empError } = await supabase
               .from('employees')
               .select('technician_category')
-              .eq('id', nextSession.user.id)
+              .eq('user_id', nextSession.user.id)
               .single();
             if (empError) {
               console.error("Auth state employee error:", empError);

@@ -13,6 +13,7 @@ const Sidebar = () => {
   const allowed = userRole ? PAGE_PERMISSIONS[userRole] : [];
 
   const common = [
+    { to: "/", icon: Home, label: "Dashboard" },
     { to: "/calendar", icon: CalendarDays, label: "Calendário" },
     { to: "/create-event", icon: CalendarPlus, label: "Criar Evento" },
     { to: "/roster-management", icon: Users, label: "Gestão de Escalações" },
@@ -35,7 +36,17 @@ const Sidebar = () => {
     { to: "/finance/profile", icon: User, label: "Meu Perfil" },
   ];
 
-  const navItems = [...common, ...finance, ...admin].filter(i => allowed.includes(i.to));
+  const technician = [
+    { to: "/technician/dashboard", icon: Home, label: "Meu Dashboard" },
+    { to: "/technician/calendar", icon: CalendarDays, label: "Meu Calendário" },
+    { to: "/technician/events", icon: Briefcase, label: "Meus Eventos" },
+    { to: "/technician/tasks", icon: CheckCircle, label: "Minhas Tarefas" },
+    { to: "/technician/notifications", icon: Bell, label: "Notificações" },
+    { to: "/technician/profile", icon: User, label: "Meu Perfil" },
+  ];
+
+  const allNavItems = [...common, ...finance, ...admin, ...technician];
+  const navItems = allNavItems.filter(i => allowed.includes(i.to));
 
   return (
     <div className="hidden border-r bg-muted/40 md:block">
@@ -48,7 +59,7 @@ const Sidebar = () => {
         </div>
         <nav className="flex-1 px-2 py-4 space-y-1 text-sm font-medium" aria-label="Navegação principal">
           {navItems.map(item => (
-            <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/"} aria-label={`Ir para ${item.label}`}>
+            <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/" || item.to.endsWith("dashboard")} aria-label={`Ir para ${item.label}`}>
               <item.icon className="h-4 w-4" aria-hidden="true" />
               {item.label}
             </NavLink>

@@ -20,8 +20,6 @@ const Header = () => {
     }
   };
 
-  const isFinancePage = location.pathname.startsWith('/finance');
-
   const common = [
     { to: "/", icon: Home, label: "Dashboard" },
     { to: "/calendar", icon: CalendarDays, label: "Calendário" },
@@ -46,51 +44,64 @@ const Header = () => {
     { to: "/invite-member", icon: Package2, label: "Convidar" },
     { to: "/debug", icon: Bell, label: "Debug" },
   ];
+  
+  const technician = [
+    { to: "/technician/dashboard", icon: Home, label: "Meu Dashboard" },
+    { to: "/technician/calendar", icon: CalendarDays, label: "Meu Calendário" },
+    { to: "/technician/events", icon: Briefcase, label: "Meus Eventos" },
+    { to: "/technician/tasks", icon: CheckCircle, label: "Minhas Tarefas" },
+    { to: "/technician/notifications", icon: Bell, label: "Notificações" },
+    { to: "/technician/profile", icon: User, label: "Meu Perfil" },
+  ];
 
-  const navItems = [...common, ...finance, ...admin];
+  const allNavItems = [...common, ...finance, ...admin, ...technician];
   const userRole = user?.profile?.role;
   const allowed = userRole ? PAGE_PERMISSIONS[userRole] : [];
+  const navItems = allNavItems.filter(i => allowed.includes(i.to));
 
   const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 px-3 py-2 transition hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`;
 
   return (
     <header className="flex h-14 items-center border-b bg-muted/40 px-4">
-      {!isFinancePage && (
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" aria-label="Abrir menu de navegação">
-              <span className="sr-only">Abrir menu</span>
-              {/* Add hamburger icon here if needed */}
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <nav className="flex flex-col" aria-label="Navegação principal">
-              {navItems.filter(i => allowed.includes(i.to)).map(item => (
-                <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/"}>
-                  <item.icon className="h-5 w-5" aria-hidden="true" />
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-          </SheetContent>
-        </Sheet>
-      )}
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="icon" className="md:hidden" aria-label="Abrir menu de navegação">
+            <Package2 className="h-6 w-6" />
+            <span className="sr-only">Abrir menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left">
+          <nav className="flex flex-col gap-2 text-lg font-medium" aria-label="Navegação principal">
+            <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
+              <Package2 className="h-6 w-6" />
+              <span>Sua Empresa</span>
+            </NavLink>
+            {navItems.map(item => (
+              <NavLink key={item.to} to={item.to} className={navLinkClasses} end={item.to === "/" || item.to.endsWith("dashboard")}>
+                <item.icon className="h-5 w-5" aria-hidden="true" />
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </SheetContent>
+      </Sheet>
       <div className="flex-1" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="icon" aria-label="Menu do usuário">
-            <CircleUser aria-hidden="true" />
+          <Button variant="secondary" size="icon" className="rounded-full" aria-label="Menu do usuário">
+            <CircleUser className="h-5 w-5" />
+            <span className="sr-only">Toggle user menu</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>
             <p>{user?.profile?.first_name || user?.email}</p>
-            <p className="text-xs">{user?.email}</p>
+            <p className="text-xs font-normal text-muted-foreground">{user?.email}</p>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link to={userRole === 'Financeiro' ? "/finance/profile" : "/technician/profile"}>
+            <Link to={userRole === 'Financeiro' ? "/finance/profile" : userRole === 'Técnico' ? "/technician/profile" : "/admin/profile"}>
               Perfil
             </Link>
           </DropdownMenuItem>
