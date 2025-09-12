@@ -1,5 +1,16 @@
 export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico';
 
+const ALL_ROLES: Role[] = ['Admin', 'Coordenador', 'Gestor de Material', 'Financeiro', 'Técnico'];
+
+function isRole(value: any): value is Role {
+  return ALL_ROLES.includes(value as Role);
+}
+
+function normalizeRole(role: string | Role | undefined): Role | undefined {
+  if (!role) return undefined;
+  return isRole(role) ? role : undefined;
+}
+
 export const PAGE_PERMISSIONS: Record<Role, string[]> = {
   Admin: [
     '/', '/calendar', '/create-event', '/roster-management',
@@ -47,7 +58,8 @@ export const ACTION_PERMISSIONS: Record<Role, string[]> = {
   Técnico: []
 };
 
-export function hasPermission(role: Role | undefined, path: string): boolean {
+export function hasPermission(roleInput: string | Role | undefined, path: string): boolean {
+  const role = normalizeRole(roleInput);
   if (!role) return false;
   const permissions = PAGE_PERMISSIONS[role] || [];
   return permissions.some(p => {
@@ -56,7 +68,8 @@ export function hasPermission(role: Role | undefined, path: string): boolean {
   });
 }
 
-export function hasActionPermission(role: Role | undefined, action: string): boolean {
+export function hasActionPermission(roleInput: string | Role | undefined, action: string): boolean {
+  const role = normalizeRole(roleInput);
   if (!role) return false;
   const permissions = ACTION_PERMISSIONS[role] || [];
   return permissions.includes(action);
