@@ -2,20 +2,13 @@ import * as React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { parseISO, differenceInDays, format, isWithinInterval, startOfMonth, endOfMonth } from "date-fns";
+import { parseISO, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import type { Event, EventStatus } from "@/types";
-import type { TechnicianCategory } from "@/hooks/useTechnicianCategories";
+import type { EventStatus } from "@/types";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEvents } from "@/hooks/useEvents";
 import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface ProfitabilityProps {
-  events: Event[];
-  employees: { id: string; technicianCategoryId?: string }[];
-  categories: TechnicianCategory[];
-}
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-AO", { style: "currency", currency: "AOA", minimumFractionDigits: 2 });
@@ -24,9 +17,9 @@ const getStatusVariant = (status: EventStatus) =>
   status === "Concluído" ? "default" : status === "Cancelado" ? "destructive" : "secondary";
 
 export default function Profitability() {
-  const { employees } = useEmployees();
-  const { events } = useEvents();
-  const { categories } = useTechnicianCategories();
+  const { employees, loading: employeesLoading } = useEmployees();
+  const { events, loading: eventsLoading } = useEvents();
+  const { categories, loading: categoriesLoading } = useTechnicianCategories();
   
   // maps
   const rateMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.dailyRate])), [categories]);
@@ -43,14 +36,22 @@ export default function Profitability() {
           const emp=empMap.get(m.id);
           if(emp?.technicianCategoryId) pcost+=(rateMap.get(emp.technicianCategoryId)||0)*days;
         });
-        const oexp=e.expenses?.reduce((a,b)=>a+b.amount,0)||0;
+        const oexp=e.expenses?.reduce((a,b)=>a+(b.amount || 0),0)||0;
         const cost=pcost+oexp;
         const profit=(e.revenue||0)-cost;
-        return { id:e.id, name:e.name, date:format(parseISO(e.startDate),"dd/MM/yyyy",{locale:ptBR}), revenue:e.revenue||0, cost, profit, status:e.status };
+        return { 
+          id:e.id, 
+          name:e.name, 
+          date:format(parseISO(e.startDate),"dd/MM/yyyy",{locale:ptBR}), 
+          revenue:e.revenue||0, 
+          cost, 
+          profit, 
+          status:e.status 
+        };
       });
   },[events,empMap,rateMap]);
 
-  if (!employees || !events || !categories) {
+  if (employeesLoading || eventsLoading || categoriesLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-1/2" />
