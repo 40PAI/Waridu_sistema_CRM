@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { KanbanBoard, Task } from "@/components/kanban/KanbanBoard";
+import { KanbanBoard, type Task } from "@/components/kanban/KanbanBoard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { showSuccess, showError } from "@/utils/toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const TechnicianTasksKanban = () => {
   const { user } = useAuth();
@@ -174,11 +176,19 @@ const TechnicianTasksKanban = () => {
 
   return (
     <div className="space-y-6">
-      <KanbanBoard
-        tasks={tasks}
-        onTaskUpdate={handleTaskUpdate}
-        onTaskCreate={handleTaskCreate}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">Quadro Kanban de Tarefas</CardTitle>
+          <CardDescription>Visualize e gerencie suas tarefas arrastando entre as colunas.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <KanbanBoard
+            tasks={tasks}
+            onTaskUpdate={handleTaskUpdate}
+            onTaskCreate={handleTaskCreate}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };
