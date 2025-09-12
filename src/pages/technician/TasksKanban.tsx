@@ -16,7 +16,6 @@ const TechnicianTasksKanban = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = React.useState<Task[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [isCreating, setIsCreating] = React.useState(false);
 
   const role = user?.profile?.role;
   const canCreateTasks = role ? hasActionPermission(role, 'tasks:create') : false;
@@ -208,24 +207,17 @@ const TechnicianTasksKanban = () => {
         <CardContent>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Suas Tarefas</h3>
-            {canCreateTasks ? (
-              <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Nova Tarefa
-              </Button>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" disabled className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden md:inline">Nova Tarefa</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Como técnico, você não pode criar tarefas diretamente. Contate o coordenador para atribuir novas tarefas.</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden md:inline">Nova Tarefa</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Como técnico, você não pode criar tarefas diretamente. Contate o coordenador para atribuir novas tarefas.</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           <KanbanBoard
             tasks={tasks}

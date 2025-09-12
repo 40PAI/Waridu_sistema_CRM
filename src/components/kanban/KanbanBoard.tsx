@@ -51,10 +51,7 @@ const columns = [
 ];
 
 export function KanbanBoard({ tasks, onTaskUpdate, onTaskCreate }: KanbanBoardProps) {
-  const { user } = useAuth();
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
-  const [isCreating, setIsCreating] = React.useState(false);
-  const [newTaskTitle, setNewTaskTitle] = React.useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -122,20 +119,6 @@ export function KanbanBoard({ tasks, onTaskUpdate, onTaskCreate }: KanbanBoardPr
     }
   };
 
-  const handleCreateTask = () => {
-    if (!newTaskTitle.trim() || !user) return;
-
-    const newTask: Omit<Task, 'id' | 'created_at' | 'updated_at'> = {
-      title: newTaskTitle.trim(),
-      status: 'todo',
-      assigned_to: user.id,
-    };
-
-    onTaskCreate(newTask);
-    setNewTaskTitle("");
-    setIsCreating(false);
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -143,33 +126,7 @@ export function KanbanBoard({ tasks, onTaskUpdate, onTaskCreate }: KanbanBoardPr
           <h2 className="text-2xl font-bold">Quadro Kanban de Tarefas</h2>
           <p className="text-muted-foreground">Arraste e solte as tarefas entre as colunas</p>
         </div>
-        <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Nova Tarefa
-        </Button>
       </div>
-
-      {isCreating && (
-        <Card className="p-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Digite o título da tarefa..."
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateTask()}
-              className="flex-1 px-3 py-2 border rounded-md"
-              autoFocus
-            />
-            <Button onClick={handleCreateTask} disabled={!newTaskTitle.trim()}>
-              Criar
-            </Button>
-            <Button variant="outline" onClick={() => setIsCreating(false)}>
-              Cancelar
-            </Button>
-          </div>
-        </Card>
-      )}
 
       <DndContext
         sensors={sensors}
