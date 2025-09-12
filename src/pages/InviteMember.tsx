@@ -65,6 +65,17 @@ const InviteMember = () => {
     defaultValues: { employeeId: "", roleName: "Técnico" }, // Default para Técnico
   });
 
+  // Filtrar roles disponíveis baseado no role do usuário logado
+  const availableRoles = React.useMemo(() => {
+    return specificRoles.filter(role => {
+      // Apenas admins podem convidar/promover para Admin
+      if (userRole !== 'Admin' && role.value === 'Admin') {
+        return false;
+      }
+      return true;
+    });
+  }, [userRole]);
+
   // Filtrar apenas funcionários que ainda não têm usuário associado
   const availableEmployees = React.useMemo(() => {
     const employeesWithUsers = new Set(users.map(u => u.employee?.id).filter(Boolean));
@@ -230,8 +241,8 @@ const InviteMember = () => {
                               <SelectValue placeholder="Selecione o role (acesso a páginas específicas)" />
                             </SelectTrigger>
                             <SelectContent>
-                              {specificRoles.map(role => (
-                                <SelectItem key={role.value} value={role.label}>
+                              {availableRoles.map(role => (
+                                <SelectItem key={role.value} value={role.value}>
                                   {role.label}
                                 </SelectItem>
                               ))}
