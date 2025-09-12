@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { KanbanSquare } from "lucide-react";
 
-// In the finance array, add this item:
-{ to: "/finance/reports", icon: FileText, label: "Relatórios Detalhados" },
+// In the technician array, add this item:
+{ to: "/technician/tasks-kanban", icon: KanbanSquare, label: "Tarefas Kanban" },
