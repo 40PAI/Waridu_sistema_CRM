@@ -162,8 +162,8 @@ const FinanceCalendarWrapper = () => {
 };
 
 const CostManagementWrapper = () => {
-  const { events, updateEventDetails } = useEvents();
-  return <CostManagement events={events} onUpdateEventDetails={updateEventDetails} />;
+  // Removed unused hooks and props that don't match the component interface
+  return <CostManagement />;
 };
 
 const AppContent = () => {
