@@ -7,12 +7,20 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/config/roles";
 import NotificationsBell from "@/components/notifications/NotificationsBell";
+import { useEffect } from "react";
 
 const Header = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const role = user?.profile?.role;
+
+  // Ensure redirect to login if user is null (handles logout properly)
+  useEffect(() => {
+    if (!user) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, navigate]);
 
   const getNavItems = () => {
     const items: { to: string; icon: React.ReactNode; label: string }[] = [];
@@ -73,7 +81,6 @@ const Header = () => {
       navigate("/login", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
-      // Mesmo em caso de erro, redirecionar para login
       navigate("/login", { replace: true });
     }
   };
