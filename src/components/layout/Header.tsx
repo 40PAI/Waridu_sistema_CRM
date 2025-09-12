@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Users, FileText, Settings, Home, Users2, Package, CalendarDays, Bell, KanbanSquare, CheckCircle, X, LogOut, Calendar } from "lucide-react";
@@ -11,6 +11,7 @@ import NotificationsBell from "@/components/notifications/NotificationsBell";
 const Header = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const role = user?.profile?.role;
 
   const getNavItems = () => {
@@ -69,8 +70,11 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await logout();
+      navigate("/login", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
+      // Mesmo em caso de erro, redirecionar para login
+      navigate("/login", { replace: true });
     }
   };
 
