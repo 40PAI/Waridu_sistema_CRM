@@ -29,6 +29,7 @@ const SidebarNav = () => {
       { to: "/material-requests", icon: <Package className="h-4 w-4" />, label: "Requisições" },
       { to: "/invite-member", icon: <Users2 className="h-4 w-4" />, label: "Convidar Membros" },
       { to: "/admin-settings", icon: <Settings className="h-4 w-4" />, label: "Configurações" },
+      { to: "/admin/profile", icon: <Users className="h-4 w-4" />, label: "Meu Perfil" },
       { to: "/notifications", icon: <Bell className="h-4 w-4" />, label: "Notificações" }
     );
   } else if (role === 'Gestor de Material') {
@@ -44,7 +45,7 @@ const SidebarNav = () => {
     allItems.push(
       { to: "/finance/dashboard", icon: <Home className="h-4 w-4" />, label: "Dashboard" },
       { to: "/finance-profitability", icon: <FileText className="h-4 w-4" />, label: "Rentabilidade" },
-      { to: "/finance-calendar", icon: <Calendar className="h-4 w-4" />, label: "Calendário Financeiro" },
+      { to: "/finance-calendar", icon: <CalendarDays className="h-4 w-4" />, label: "Calendário Financeiro" },
       { to: "/finance-costs", icon: <Settings className="h-4 w-4" />, label: "Gestão de Custos" },
       { to: "/finance/reports", icon: <FileText className="h-4 w-4" />, label: "Relatórios Detalhados" },
       { to: "/finance/profile", icon: <Users className="h-4 w-4" />, label: "Meu Perfil" },
@@ -62,7 +63,7 @@ const SidebarNav = () => {
     );
   }
 
-  const navItems = allItems.filter(item => canAccess(item.to));
+  const navItems = allItems.filter(item => hasPermission(role, item.to));
 
   return (
     <Sidebar>
