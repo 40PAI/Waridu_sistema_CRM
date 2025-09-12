@@ -1,7 +1,9 @@
+"use client";
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { useMaterialCategories } from "@/hooks/useMaterialCategories";
 import { Plus, Search, Trash2, Edit } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
@@ -132,6 +134,15 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
     );
   }, [materialCategories, categorySearch]);
 
+  const handleClose = () => {
+    onOpenChange(false);
+    setCategorySearch("");
+    setAddCategoryError(null);
+    setEditingCategory(null);
+    setNewCategoryName("");
+    setNewCategoryDesc("");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
@@ -140,6 +151,12 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
           <DialogDescription>
             Adicione, edite ou remova categorias. As mudanças aparecem imediatamente no seletor de categorias.
           </DialogDescription>
+          <DialogClose asChild>
+            <Button variant="ghost" size="icon" className="absolute right-4 top-4">
+              <span className="sr-only">Fechar</span>
+              ×
+            </Button>
+          </DialogClose>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -322,11 +339,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
 
         <DialogFooter>
           <Button 
-            onClick={() => { 
-              onOpenChange(false); 
-              setCategorySearch(""); 
-              setAddCategoryError(null); 
-            }}
+            onClick={handleClose}
           >
             Fechar
           </Button>
