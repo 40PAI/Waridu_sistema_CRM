@@ -30,23 +30,22 @@ interface MaterialCategoryManagerProps {
   onCategorySelected?: (categoryName: string) => void;
 }
 
-export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected }: MaterialCategoryManagerProps) {
+export const MaterialCategoryManager = React.forwardRef<
+  HTMLDivElement,
+  MaterialCategoryManagerProps
+>(({ open, onOpenChange, onCategorySelected }, ref) => {
   const { categories: materialCategories, addCategory, updateCategory, deleteCategory } = useMaterialCategories();
-  
+
   const [editingCategory, setEditingCategory] = React.useState<{ id: string; name: string } | null>(null);
   const [newCategoryName, setNewCategoryName] = React.useState("");
   const [categorySearch, setCategorySearch] = React.useState("");
   const [addCategoryError, setAddCategoryError] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
 
-  // Memoize filtered categories to prevent unnecessary re-renders
   const filteredCategories = React.useMemo(() => {
     if (!categorySearch.trim()) return materialCategories;
-    
     const searchLower = categorySearch.toLowerCase();
-    return materialCategories.filter(cat => 
-      cat.name.toLowerCase().includes(searchLower)
-    );
+    return materialCategories.filter(cat => cat.name.toLowerCase().includes(searchLower));
   }, [materialCategories, categorySearch]);
 
   const handleAddCategory = React.useCallback(async () => {
@@ -115,7 +114,6 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
     }
   }, [deleteCategory, onCategorySelected]);
 
-  // Reset form when dialog closes
   React.useEffect(() => {
     if (!open) {
       setNewCategoryName("");
@@ -127,7 +125,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh]" ref={ref}>
         <DialogHeader>
           <DialogTitle>Gerenciar Categorias de Materiais</DialogTitle>
           <DialogDescription>
@@ -136,7 +134,6 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Search */}
           <div className="flex gap-2">
             <Label htmlFor="category-search" className="sr-only">Buscar categorias</Label>
             <Input
@@ -146,17 +143,16 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
               onChange={(e) => setCategorySearch(e.target.value)}
               className="flex-1"
             />
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={() => setCategorySearch("")} 
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCategorySearch("")}
               disabled={!categorySearch.trim()}
             >
               <Search className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* Add New Category */}
           <div className="flex gap-2 p-2 border rounded">
             <div className="flex-1 space-y-2">
               <Label htmlFor="new-category-name">Nome da nova categoria</Label>
@@ -170,9 +166,9 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
               />
             </div>
             <div className="flex items-end">
-              <Button 
-                size="sm" 
-                onClick={handleAddCategory} 
+              <Button
+                size="sm"
+                onClick={handleAddCategory}
                 disabled={adding || !newCategoryName.trim()}
                 className="min-w-[100px]"
               >
@@ -187,7 +183,6 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
             )}
           </div>
 
-          {/* Categories List */}
           <div className="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
             {filteredCategories.length > 0 ? (
               filteredCategories.map((cat) => (
@@ -205,16 +200,16 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                             disabled={adding}
                           />
                         </div>
-                        <Button 
-                          size="sm" 
-                          onClick={handleSaveCategoryEdit} 
+                        <Button
+                          size="sm"
+                          onClick={handleSaveCategoryEdit}
                           disabled={adding || !editingCategory.name.trim()}
                         >
                           Salvar
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => setEditingCategory(null)}
                           disabled={adding}
                         >
@@ -227,15 +222,15 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                       </div>
                     )}
                   </div>
-                  
+
                   {editingCategory?.id !== cat.id && (
                     <div className="flex gap-1 ml-2 flex-shrink-0">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => openEditCategory(cat)}
                               disabled={adding}
                             >
@@ -245,7 +240,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                           <TooltipContent>Editar</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      
+
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -259,7 +254,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Remover Categoria?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Materiais existentes não serão afetados, mas esta categoria será removida da lista. 
+                                    Materiais existentes não serão afetados, mas esta categoria será removida da lista.
                                     Esta ação não pode ser desfeita.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
@@ -288,7 +283,7 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
         </div>
 
         <DialogFooter>
-          <Button 
+          <Button
             onClick={() => onOpenChange(false)}
             disabled={adding}
           >
@@ -298,4 +293,6 @@ export function MaterialCategoryManager({ open, onOpenChange, onCategorySelected
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+MaterialCategoryManager.displayName = "MaterialCategoryManager";

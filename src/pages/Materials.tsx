@@ -65,6 +65,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onAddInitialStock
   const [viewMode, setViewMode] = React.useState<ViewMode>('table');
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = React.useState(false);
 
   const handleAddNew = () => {
     setEditingMaterial(null);
