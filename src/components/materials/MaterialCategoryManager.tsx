@@ -63,7 +63,7 @@ export const MaterialCategoryManager = React.forwardRef<
     setAddCategoryError(null);
 
     try {
-      const newCategory = await addCategory(trimmedName);
+      await addCategory(trimmedName);
       showSuccess("Categoria adicionada com sucesso!");
       onCategorySelected?.(trimmedName);
       setNewCategoryName("");
@@ -125,7 +125,7 @@ export const MaterialCategoryManager = React.forwardRef<
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh]" ref={ref}>
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>Gerenciar Categorias de Materiais</DialogTitle>
           <DialogDescription>
