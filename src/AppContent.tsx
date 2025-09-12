@@ -150,10 +150,7 @@ const AdminSettingsWrapper = () => {
 };
 
 const ProfitabilityWrapper = () => {
-  const { events } = useEvents();
-  const { employees } = useEmployees();
-  const { categories } = useTechnicianCategories();
-  return <Profitability events={events} employees={employees} categories={categories} />;
+  return <Profitability />;
 };
 
 const FinanceCalendarWrapper = () => {
