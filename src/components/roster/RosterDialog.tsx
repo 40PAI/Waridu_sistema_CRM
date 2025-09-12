@@ -14,6 +14,8 @@ import { Employee } from "../employees/EmployeeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 
+const EXPENSE_CATEGORIES = ["Transporte", "Alimentação", "Hospedagem", "Marketing", "Aluguel de Equipamento", "Outros"];
+
 interface RosterDialogProps {
   event: Event;
   employees: Employee[];
@@ -96,16 +98,22 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
   };
 
   const handleAddExpense = () => {
-    setExpenses([...expenses, { id: `exp-${Date.now()}`, description: "", amount: 0 }]);
+    setExpenses([...expenses, { id: `exp-${Date.now()}`, description: "", amount: 0, category: "Outros" }]);
   };
 
-  const handleUpdateExpense = (index: number, field: 'description' | 'amount', value: string | number) => {
+  const handleUpdateExpense = (index: number, field: 'description' | 'amount' | 'category', value: string | number) => {
     const newExpenses = [...expenses];
+    const expenseToUpdate = { ...newExpenses[index] };
+
     if (field === 'amount') {
-      newExpenses[index][field] = Number(value) || 0;
-    } else {
-      newExpenses[index][field] = String(value);
+      expenseToUpdate.amount = Number(value) || 0;
+    } else if (field === 'description') {
+      expenseToUpdate.description = String(value);
+    } else if (field === 'category') {
+      expenseToUpdate.category = String(value);
     }
+    
+    newExpenses[index] = expenseToUpdate;
     setExpenses(newExpenses);
   };
 
@@ -289,22 +297,30 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
                 <div className="space-y-4">
                 {expenses.length > 0 ? expenses.map((expense, index) => (
                     <div key={expense.id} className="flex items-center gap-2">
-                    <Input
-                        placeholder="Descrição (ex: Aluguel de equipamento)"
-                        value={expense.description}
-                        onChange={(e) => handleUpdateExpense(index, 'description', e.target.value)}
-                        className="flex-1"
-                    />
-                    <Input
-                        type="number"
-                        placeholder="Valor"
-                        value={expense.amount || ''}
-                        onChange={(e) => handleUpdateExpense(index, 'amount', e.target.value)}
-                        className="w-32"
-                    />
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveExpense(index)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                      <Input
+                          placeholder="Descrição"
+                          value={expense.description}
+                          onChange={(e) => handleUpdateExpense(index, 'description', e.target.value)}
+                          className="flex-1"
+                      />
+                      <Select value={expense.category || ''} onValueChange={(value) => handleUpdateExpense(index, 'category', value)}>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EXPENSE_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                          type="number"
+                          placeholder="Valor"
+                          value={expense.amount || ''}
+                          onChange={(e) => handleUpdateExpense(index, 'amount', e.target.value)}
+                          className="w-32"
+                      />
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveExpense(index)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                 )) : (
                     <p className="text-sm text-muted-foreground text-center py-4">Nenhuma despesa adicionada.</p>
