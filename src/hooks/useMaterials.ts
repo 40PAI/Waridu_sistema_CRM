@@ -311,6 +311,55 @@ export const useMaterials = () => {
     }
   };
 
+  // Helper function to decrement material from locations
+  const decrementMaterialFromLocations = async (materialId: string, quantityToDecrement: number) => {
+    let remainingToDecrement = quantityToDecrement;
+
+    // Fetch all locations for the material, ordered by quantity (descending)
+    const { data: materialLocations, error: fetchError } = await supabase
+        .from('material_locations')
+        .select('location_id, quantity')
+        .eq('material_id', materialId)
+        .order('quantity', { ascending: false }); // Prioritize locations with more stock
+
+    if (fetchError) throw fetchError;
+
+    for (const loc of materialLocations) {
+        if (remainingToDecrement <= 0) break;
+
+        const availableInLoc = loc.quantity;
+        const decrementAmount = Math.min(remainingToDecrement, availableInLoc);
+
+        if (decrementAmount > 0) {
+            const newQuantity = availableInLoc - decrementAmount;
+
+            if (newQuantity === 0) {
+                // Delete the entry if quantity becomes zero
+                const { error: deleteError } = await supabase
+                    .from('material_locations')
+                    .delete()
+                    .eq('material_id', materialId)
+                    .eq('location_id', loc.location_id);
+                if (deleteError) throw deleteError;
+            } else {
+                // Update the quantity
+                const { error: updateError } = await supabase
+                    .from('material_locations')
+                    .update({ quantity: newQuantity })
+                    .eq('material_id', materialId)
+                    .eq('location_id', loc.location_id);
+                if (updateError) throw updateError;
+            }
+            remainingToDecrement -= decrementAmount;
+        }
+    }
+
+    if (remainingToDecrement > 0) {
+        throw new Error(`Estoque insuficiente para o material ${materialId}. Ainda necessário: ${remainingToDecrement}`);
+    }
+  };
+
+
   const pageMaterials: PageMaterial[] = useMemo(() => materials.map(m => ({
     id: m.id,
     name: m.name,
@@ -330,6 +379,7 @@ export const useMaterials = () => {
     deleteMaterial,
     addInitialStock,
     transferMaterial,
+    decrementMaterialFromLocations, // Export the new function
     refreshMaterials: fetchMaterials
   };
 };
