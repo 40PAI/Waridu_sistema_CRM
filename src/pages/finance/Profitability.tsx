@@ -6,6 +6,10 @@ import { parseISO, differenceInDays, format, isWithinInterval, startOfMonth, end
 import { ptBR } from "date-fns/locale";
 import type { Event, EventStatus } from "@/types";
 import type { TechnicianCategory } from "@/hooks/useTechnicianCategories";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useEvents } from "@/hooks/useEvents";
+import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProfitabilityProps {
   events: Event[];
@@ -19,7 +23,11 @@ const formatCurrency = (v: number) =>
 const getStatusVariant = (status: EventStatus) =>
   status === "Concluído" ? "default" : status === "Cancelado" ? "destructive" : "secondary";
 
-export default function Profitability({ events, employees, categories }: ProfitabilityProps) {
+export default function Profitability() {
+  const { employees } = useEmployees();
+  const { events } = useEvents();
+  const { categories } = useTechnicianCategories();
+  
   // maps
   const rateMap = React.useMemo(() => new Map(categories.map(c => [c.id, c.dailyRate])), [categories]);
   const empMap = React.useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
@@ -41,6 +49,15 @@ export default function Profitability({ events, employees, categories }: Profita
         return { id:e.id, name:e.name, date:format(parseISO(e.startDate),"dd/MM/yyyy",{locale:ptBR}), revenue:e.revenue||0, cost, profit, status:e.status };
       });
   },[events,empMap,rateMap]);
+
+  if (!employees || !events || !categories) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
 
   return (
     <Card>
