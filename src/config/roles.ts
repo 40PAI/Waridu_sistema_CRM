@@ -31,10 +31,12 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
 export const ACTION_PERMISSIONS: Record<Role, string[]> = {
   Admin: [
     'members:invite', 'members:promote', 'members:ban', 'members:delete',
-    'materials:write', 'employees:write', 'employees:assign_category', 'categories:manage'
+    'materials:write', 'employees:write', 'employees:assign_category', 'categories:manage',
+    'tasks:create'
   ],
   Coordenador: [
-    'members:invite', 'members:promote', 'employees:write'
+    'members:invite', 'members:promote', 'employees:write',
+    'tasks:create'
   ],
   'Gestor de Material': [
     'materials:write'

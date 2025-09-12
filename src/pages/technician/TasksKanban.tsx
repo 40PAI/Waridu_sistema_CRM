@@ -4,15 +4,21 @@ import * as React from "react";
 import { KanbanBoard, type Task } from "@/components/kanban/KanbanBoard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { hasActionPermission } from "@/config/roles";
 import { showSuccess, showError } from "@/utils/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TechnicianTasksKanban = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = React.useState<Task[]>([]);
   const [loading, setLoading] = React.useState(true);
+
+  const role = user?.profile?.role;
+  const canCreateTasks = role ? hasActionPermission(role, 'tasks:create') : false;
 
   // Fetch tasks
   const fetchTasks = React.useCallback(async () => {
@@ -51,6 +57,12 @@ const TechnicianTasksKanban = () => {
   // Update task
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
     try {
+      // Permission check (redundant but safe for frontend)
+      if (!canCreateTasks) {
+        showError("Você não tem permissão para atualizar esta tarefa. Contate o coordenador.");
+        return;
+      }
+
       const dbUpdates: any = {};
       
       if (updates.status) {
@@ -78,8 +90,14 @@ const TechnicianTasksKanban = () => {
     }
   };
 
-  // Create task
+  // Create task (with permission check)
   const handleTaskCreate = async (taskData: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
+    // Frontend permission check
+    if (!canCreateTasks) {
+      showError("Você não tem permissão para criar tarefas. Contate o coordenador para atribuir novas tarefas.");
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('tasks')
@@ -106,7 +124,12 @@ const TechnicianTasksKanban = () => {
       showSuccess("Tarefa criada com sucesso!");
     } catch (error) {
       console.error("Error creating task:", error);
-      showError("Erro ao criar tarefa.");
+      // Specific handling for RLS errors
+      if ((error as any).code === '42501') {
+        showError("Permissão negada para criar tarefas. Como técnico, você pode sugerir tarefas ao coordenador. Contate o admin se precisar de mais autonomia.");
+      } else {
+        showError("Erro ao criar tarefa.");
+      }
     }
   };
 
@@ -182,6 +205,27 @@ const TechnicianTasksKanban = () => {
           <CardDescription>Visualize e gerencie suas tarefas arrastando entre as colunas.</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Suas Tarefas</h3>
+            {canCreateTasks ? (
+              <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Nova Tarefa
+              </Button>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" disabled className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden md:inline">Nova Tarefa</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Como técnico, você não pode criar tarefas diretamente. Contate o coordenador para atribuir novas tarefas.</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
           <KanbanBoard
             tasks={tasks}
             onTaskUpdate={handleTaskUpdate}
