@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { MaterialCategoryManager } from "@/components/materials/MaterialCategoryManager";
 
 interface Location {
   id: string;
@@ -189,12 +190,14 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onAddInitialStock
           </div>
           <TabsList className="hidden sm:flex">
             <TabsTrigger value="inventory">Inventário</TabsTrigger>
+            <TabsTrigger value="categories">Categorias</TabsTrigger>
             <TabsTrigger value="history">Histórico</TabsTrigger>
           </TabsList>
         </div>
 
         <TabsList className="flex sm:hidden mb-4">
           <TabsTrigger className="flex-1" value="inventory">Inventário</TabsTrigger>
+          <TabsTrigger className="flex-1" value="categories">Categorias</TabsTrigger>
           <TabsTrigger className="flex-1" value="history">Histórico</TabsTrigger>
         </TabsList>
 
@@ -340,6 +343,30 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onAddInitialStock
           </Card>
         </TabsContent>
 
+        <TabsContent value="categories">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gerenciar Categorias de Materiais</CardTitle>
+              <CardDescription>
+                Crie, edite ou remova categorias. Elas aparecerão automaticamente no dropdown ao adicionar materiais.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {canWrite ? (
+                <MaterialCategoryManager
+                  open={true}
+                  onOpenChange={() => {}} // Sempre aberto na aba
+                  onCategorySelected={() => {}} // Não precisa de callback específico aqui
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Você não possui permissão para gerenciar categorias.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="history">
           <Card>
             <CardHeader>
@@ -377,7 +404,7 @@ const MaterialsPage = ({ materials, locations, onSaveMaterial, onAddInitialStock
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center h-24">
+                      <TableCell colSpan={4} className="text-center">
                         Nenhum registro ainda.
                       </TableCell>
                     </TableRow>
