@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
-import { Bell, CircleUser, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList, CheckCircle, User, TrendingUp, Wallet } from "lucide-react";
+import { Bell, CircleUser, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList, CheckCircle, User, TrendingUp, Wallet, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -34,6 +34,7 @@ const Header = () => {
   ];
 
   const finance = [
+    { to: "/finance/dashboard", icon: BarChart3, label: "Dashboard Financeiro" },
     { to: "/finance-profitability", icon: TrendingUp, label: "Rentabilidade" },
     { to: "/finance-calendar", icon: CalendarDays, label: "Calendário Financeiro" },
     { to: "/finance-costs", icon: Wallet, label: "Gestão de Custos" },

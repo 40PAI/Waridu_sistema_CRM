@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList, CheckCircle, User, TrendingUp, Wallet, UserPlus } from "lucide-react";
+import { Bell, Home, LineChart, Package2, Settings, Users, CalendarDays, Archive, Users2, CalendarPlus, Briefcase, ClipboardList, CheckCircle, User, TrendingUp, Wallet, UserPlus, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { PAGE_PERMISSIONS } from "@/config/roles";
@@ -28,6 +28,7 @@ const Sidebar = () => {
   ];
 
   const finance = [
+    { to: "/finance/dashboard", icon: BarChart3, label: "Dashboard Financeiro" },
     { to: "/finance-profitability", icon: TrendingUp, label: "Rentabilidade" },
     { to: "/finance-calendar", icon: CalendarDays, label: "Calendário Financeiro" },
     { to: "/finance-costs", icon: Wallet, label: "Gestão de Custos" },
