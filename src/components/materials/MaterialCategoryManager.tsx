@@ -1,9 +1,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useMaterialCategories } from "@/hooks/useMaterialCategories";
-import { Plus, Search, Trash2, Edit } from "lucide-react";
+import { Plus, Search, Trash2, Edit, X } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import {
   AlertDialog,
@@ -125,173 +124,170 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
   }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>Gerenciar Categorias de Materiais</DialogTitle>
-          <DialogDescription>
-            Adicione, edite ou remova categorias. As mudanças aparecem imediatamente no seletor de categorias.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Label htmlFor="category-search" className="sr-only">Buscar categorias</Label>
+        <Input
+          id="category-search"
+          placeholder="Buscar categorias..."
+          value={categorySearch}
+          onChange={(e) => setCategorySearch(e.target.value)}
+          className="flex-1"
+        />
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setCategorySearch("")}
+          disabled={!categorySearch.trim()}
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+      </div>
 
-        <div className="space-y-4 py-4">
-          <div className="flex gap-2">
-            <Label htmlFor="category-search" className="sr-only">Buscar categorias</Label>
-            <Input
-              id="category-search"
-              placeholder="Buscar categorias..."
-              value={categorySearch}
-              onChange={(e) => setCategorySearch(e.target.value)}
-              className="flex-1"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCategorySearch("")}
-              disabled={!categorySearch.trim()}
-            >
-              <Search className="h-4 w-4" />
-            </Button>
+      <div className="flex gap-2 p-2 border rounded">
+        <div className="flex-1 space-y-2">
+          <Label htmlFor="new-category-name">Nome da nova categoria</Label>
+          <Input
+            id="new-category-name"
+            placeholder="Nome da categoria"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            disabled={adding}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+          />
+        </div>
+        <div className="flex items-end">
+          <Button
+            size="sm"
+            onClick={handleAddCategory}
+            disabled={adding || !newCategoryName.trim()}
+            className="min-w-[100px]"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Adicionar
+          </Button>
+        </div>
+        {addCategoryError && (
+          <div className="text-xs text-destructive mt-1 w-full">
+            {addCategoryError}
           </div>
+        )}
+      </div>
 
-          <div className="flex gap-2 p-2 border rounded">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="new-category-name">Nome da nova categoria</Label>
-              <Input
-                id="new-category-name"
-                placeholder="Nome da categoria"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                disabled={adding}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                size="sm"
-                onClick={handleAddCategory}
-                disabled={adding || !newCategoryName.trim()}
-                className="min-w-[100px]"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar
-              </Button>
-            </div>
-            {addCategoryError && (
-              <div className="text-xs text-destructive mt-1 w-full">
-                {addCategoryError}
+      <div className="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
+        {filteredCategories.length > 0 ? (
+          filteredCategories.map((cat) => (
+            <div key={cat.id} className="flex items-center justify-between p-2 border rounded">
+              <div className="flex-1 min-w-0">
+                {editingCategory?.id === cat.id ? (
+                  <div className="flex flex-wrap gap-2 items-end">
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor={`edit-category-name-${cat.id}`}>Nome</Label>
+                      <Input
+                        id={`edit-category-name-${cat.id}`}
+                        value={editingCategory.name}
+                        onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
+                        placeholder="Nome"
+                        disabled={adding}
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveCategoryEdit}
+                      disabled={adding || !editingCategory.name.trim()}
+                    >
+                      Salvar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingCategory(null)}
+                      disabled={adding}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="font-medium truncate">{cat.name}</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="space-y-2 max-h-48 overflow-y-auto border rounded p-2">
-            {filteredCategories.length > 0 ? (
-              filteredCategories.map((cat) => (
-                <div key={cat.id} className="flex items-center justify-between p-2 border rounded">
-                  <div className="flex-1 min-w-0">
-                    {editingCategory?.id === cat.id ? (
-                      <div className="flex flex-wrap gap-2 items-end">
-                        <div className="flex-1 space-y-1">
-                          <Label htmlFor={`edit-category-name-${cat.id}`}>Nome</Label>
-                          <Input
-                            id={`edit-category-name-${cat.id}`}
-                            value={editingCategory.name}
-                            onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
-                            placeholder="Nome"
-                            disabled={adding}
-                          />
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={handleSaveCategoryEdit}
-                          disabled={adding || !editingCategory.name.trim()}
-                        >
-                          Salvar
-                        </Button>
+              {editingCategory?.id !== cat.id && (
+                <div className="flex gap-1 ml-2 flex-shrink-0">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setEditingCategory(null)}
+                          onClick={() => openEditCategory(cat)}
                           disabled={adding}
                         >
-                          Cancelar
+                          <Edit className="h-4 w-4" />
                         </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <p className="font-medium truncate">{cat.name}</p>
-                      </div>
-                    )}
-                  </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Editar</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
 
-                  {editingCategory?.id !== cat.id && (
-                    <div className="flex gap-1 ml-2 flex-shrink-0">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditCategory(cat)}
-                              disabled={adding}
-                            >
-                              <Edit className="h-4 w-4" />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={adding}>
+                              <Trash2 className="h-4 w-4" />
                             </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Editar</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={adding}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Remover Categoria?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Materiais existentes não serão afetados, mas esta categoria será removida da lista.
-                                    Esta ação não pode ser desfeita.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel disabled={adding}>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)} disabled={adding}>
-                                    Remover
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TooltipTrigger>
-                          <TooltipContent>Remover</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  )}
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remover Categoria?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Materiais existentes não serão afetados, mas esta categoria será removida da lista.
+                                Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel disabled={adding}>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)} disabled={adding}>
+                                Remover
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TooltipTrigger>
+                      <TooltipContent>Remover</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                {categorySearch.trim() ? "Nenhuma categoria encontrada." : "Nenhuma categoria disponível. Adicione a primeira!"}
-              </p>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            {categorySearch.trim() ? "Nenhuma categoria encontrada." : "Nenhuma categoria disponível. Adicione a primeira!"}
+          </p>
+        )}
+      </div>
 
-        <DialogFooter>
-          <Button
-            onClick={() => onOpenChange(false)}
-            disabled={adding}
-          >
-            Fechar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <div className="flex justify-between pt-4">
+        <Button
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          disabled={adding}
+        >
+          Fechar
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          disabled={adding}
+        >
+          Fechar
+        </Button>
+      </div>
+    </div>
   );
 };
