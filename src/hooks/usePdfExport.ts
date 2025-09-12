@@ -3,6 +3,16 @@ import 'jspdf-autotable';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+// Declare jsPDF autoTable extension
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+    lastAutoTable: {
+      finalY: number;
+    };
+  }
+}
+
 export interface ExportData {
   title: string;
   events: Array<{
@@ -90,7 +100,7 @@ export const usePdfExport = () => {
         margin: { left: margin, right: margin }
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 15;
+      yPos = doc.lastAutoTable.finalY + 15;
 
       // Tabela de eventos
       const tableData = data.events.slice(0, 15).map(event => [
@@ -129,7 +139,7 @@ export const usePdfExport = () => {
         },
         didDrawPage: (data) => {
           // Footer em todas as páginas
-          const pageCount = doc.internal.getNumberOfPages();
+          const pageCount = (doc as any).internal.getNumberOfPages();
           doc.setFontSize(8);
           doc.setTextColor(128);
           doc.text(
