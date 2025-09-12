@@ -2,7 +2,7 @@ import * as React from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Users, FileText, Settings, Home, Users2, Package, CalendarDays, Bell, KanbanSquare, CheckCircle, X, LogOut } from "lucide-react";
+import { Menu, Users, FileText, Settings, Home, Users2, Package, CalendarDays, Bell, KanbanSquare, CheckCircle, X, LogOut, Calendar } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/config/roles";
@@ -95,7 +95,7 @@ const Header = () => {
               <div className="p-2">
                 <div className="space-y-1">
                   {getNavItems().map((item) => (
-                    <Link key={item.to} to={item.to} className="flex items-center gap-2 p-2 rounded hover:bg-accent">
+                    <Link key={item.to} to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
                       {item.icon}
                       <span>{item.label}</span>
                     </Link>
@@ -117,7 +117,7 @@ const Header = () => {
             <AvatarFallback>{user?.profile?.first_name?.[0] || user?.email?.[0]}</AvatarFallback>
           </Avatar>
           <div className="hidden md:block">
-            <p className="text-sm font-medium">
+            <p className="text-sm font-medium leading-none">
               {user?.profile?.first_name} {user?.profile?.last_name}
             </p>
             <p className="text-xs text-muted-foreground">{user?.profile?.role}</p>

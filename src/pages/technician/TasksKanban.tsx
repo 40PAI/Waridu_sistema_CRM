@@ -9,13 +9,14 @@ import { showSuccess, showError } from "@/utils/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Plus } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TechnicianTasksKanban = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = React.useState<Task[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [isCreating, setIsCreating] = React.useState(false);
 
   const role = user?.profile?.role;
   const canCreateTasks = role ? hasActionPermission(role, 'tasks:create') : false;
