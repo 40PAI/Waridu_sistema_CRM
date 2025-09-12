@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, User, Package, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Calendar, User, Package, Clock, CheckCircle, XCircle, AlertCircle, Download } from "lucide-react";
 import type { MaterialRequest, Event } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 interface RequestDetailsDialogProps {
   open: boolean;
@@ -46,6 +48,73 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.text(`Requisição #${request.id.slice(-6)}`, 14, 20);
+    
+    // Informações gerais
+    doc.setFontSize(12);
+    doc.text(`Status: ${request.status}`, 14, 30);
+    doc.text(`Data: ${format(new Date(request.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 37);
+    
+    // Solicitante
+    doc.setFontSize(14);
+    doc.text("Solicitante", 14, 47);
+    doc.setFontSize(12);
+    doc.text(request.requestedBy.name, 14, 54);
+    doc.text(request.requestedBy.email, 14, 61);
+    doc.text(`Função: ${request.requestedBy.role}`, 14, 68);
+    
+    // Evento
+    doc.setFontSize(14);
+    doc.text("Evento Relacionado", 14, 78);
+    doc.setFontSize(12);
+    doc.text(event.name, 14, 85);
+    doc.text(`Status: ${event.status}`, 14, 92);
+    doc.text(`${format(new Date(event.startDate), "dd/MM/yyyy", { locale: ptBR })} ${event.startTime || ""}`, 14, 99);
+    doc.text(event.location, 14, 106);
+    
+    // Itens solicitados
+    doc.setFontSize(14);
+    doc.text(`Itens Solicitados (${request.items.length})`, 14, 116);
+    
+    // Tabela de itens
+    const tableData = request.items.map((item, index) => [
+      index + 1,
+      materialNameMap[item.materialId] || item.materialId,
+      item.quantity
+    ]);
+    
+    (doc as any).autoTable({
+      head: [['#', 'Material', 'Quantidade']],
+      body: tableData,
+      startY: 122,
+      styles: {
+        fontSize: 10
+      },
+      headStyles: {
+        fillColor: [66, 66, 66]
+      }
+    });
+    
+    // Motivo da rejeição (se aplicável)
+    if (request.status === "Rejeitada" && request.reason) {
+      const finalY = (doc as any).lastAutoTable.finalY;
+      doc.setFontSize(14);
+      doc.setTextColor(255, 0, 0);
+      doc.text("Motivo da Rejeição", 14, finalY + 10);
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text(request.reason, 14, finalY + 17);
+    }
+    
+    // Salvar PDF
+    doc.save(`requisicao-${request.id.slice(-6)}.pdf`);
   };
 
   return (
@@ -171,7 +240,11 @@ export function RequestDetailsDialog({ open, onOpenChange, request, event, mater
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex justify-between">
+          <Button variant="outline" onClick={handleExportPDF} className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Exportar PDF
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
