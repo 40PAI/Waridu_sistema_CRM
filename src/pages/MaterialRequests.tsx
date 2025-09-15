@@ -12,8 +12,10 @@ import type { Event, MaterialRequest, ApproveResult } from "@/types";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
-import { Eye } from "lucide-react";
+import { Eye, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 interface MaterialRequestsPageProps {
   requests: MaterialRequest[];
@@ -58,6 +60,7 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
   // State for request details dialog
   const [viewRequestOpen, setViewRequestOpen] = React.useState(false);
   const [selectedRequest, setSelectedRequest] = React.useState<MaterialRequest | null>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
 
   const eventsMap = React.useMemo(() => {
     const map: Record<number, string> = {};
@@ -126,6 +129,61 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
   const closeRequestDetails = () => {
     setViewRequestOpen(false);
     setSelectedRequest(null);
+  };
+
+  const exportToPDF = async () => {
+    if (!selectedRequest) return;
+    
+    setIsExporting(true);
+    
+    try {
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(20);
+      doc.text("Requisição de Materiais", 105, 20, { align: "center" });
+      
+      // Informações gerais
+      doc.setFontSize(12);
+      doc.text(`Solicitante: ${selectedRequest.requestedBy.name}`, 20, 40);
+      doc.text(`Email: ${selectedRequest.requestedBy.email}`, 20, 50);
+      doc.text(`Evento: ${eventsMap[selectedRequest.eventId] || "Evento não encontrado"}`, 20, 60);
+      doc.text(`Data da Solicitação: ${new Date(selectedRequest.createdAt).toLocaleString("pt-BR")}`, 20, 70);
+      doc.text(`Status: ${selectedRequest.status}`, 20, 80);
+      
+      if (selectedRequest.reason) {
+        doc.text(`Motivo: ${selectedRequest.reason}`, 20, 90);
+      }
+      
+      if (selectedRequest.decidedAt) {
+        doc.text(`Data de Decisão: ${new Date(selectedRequest.decidedAt).toLocaleString("pt-BR")}`, 20, 100);
+      }
+      
+      // Tabela de itens
+      const tableData = selectedRequest.items.map((item, index) => [
+        index + 1,
+        materialNameMap[item.materialId] || item.materialId,
+        item.quantity.toString()
+      ]);
+      
+      (doc as any).autoTable({
+        head: [['#", "Material", "Quantidade']],
+        body: tableData,
+        startY: 110,
+        theme: 'grid',
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [22, 160, 133] },
+      });
+      
+      // Salvar PDF
+      doc.save(`requisicao-${selectedRequest.id}.pdf`);
+      showSuccess("PDF exportado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      showError("Erro ao exportar PDF. Tente novamente.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -333,7 +391,13 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="flex justify-between">
+            {selectedRequest && (
+              <Button onClick={exportToPDF} disabled={isExporting}>
+                <FileDown className="h-4 w-4 mr-2" />
+                {isExporting ? "Exportando..." : "Exportar PDF"}
+              </Button>
+            )}
             <Button variant="outline" onClick={closeRequestDetails}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
