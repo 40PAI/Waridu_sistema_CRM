@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
+import ResetPasswordPage from "@/pages/ResetPassword";
 import CreateEvent from "@/pages/CreateEvent";
 import Calendar from "@/pages/Calendar";
 import RosterManagement from "@/pages/RosterManagement";
@@ -175,6 +176,7 @@ const AppContent = () => {
       <div className="min-h-screen bg-background">
         <Routes>
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/health-check" element={<HealthCheck />} />
           <Route path="/debug" element={<Debug />} />
 
