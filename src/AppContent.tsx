@@ -46,6 +46,9 @@ import { useMaterials } from "@/hooks/useMaterials";
 import { useMaterialRequests } from "@/hooks/useMaterialRequests";
 import { useAllocationHistory } from "@/hooks/useAllocationHistory";
 
+// Toaster for notifications
+import { Toaster } from "sonner";
+
 const AppContent = () => {
   const { user } = useAuth();
   const { events, addEvent, updateEvent, updateEventDetails } = useEvents();
@@ -75,104 +78,107 @@ const AppContent = () => {
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/health" element={<HealthCheck />} />
-        <Route path="/debug" element={<Debug />} />
+    <>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/health" element={<HealthCheck />} />
+          <Route path="/debug" element={<Debug />} />
 
-        {/* Rotas protegidas */}
-        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-          {/* Rotas comuns (Admin/Coordenador/Gestor) */}
-          <Route path="/" element={<Index />} />
-          <Route path="/calendar" element={<Calendar events={events} />} />
-          <Route path="/create-event" element={<CreateEvent onAddEvent={addEvent} />} />
-          <Route
-            path="/roster-management"
-            element={
-              <RosterManagement
-                events={events}
-                employees={employees}
-                onUpdateEventDetails={updateEventDetails}
-                onUpdateEvent={updateEvent}
-                onCreateMaterialRequest={createMaterialRequest}
-                pendingRequests={materialRequests.filter((r) => r.status === "Pendente")}
-                materials={materials}
-              />
-            }
-          />
-          <Route path="/employees" element={<Employees roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
-          <Route path="/roles" element={<Roles roles={roles} employees={employees} events={events} />} />
-          <Route path="/roles/:roleId" element={<RoleDetail roles={roles} employees={employees} events={events} />} />
-          <Route
-            path="/materials"
-            element={
-              <Materials
-                materials={materials}
-                locations={locations}
-                onSaveMaterial={saveMaterial}
-                onAddInitialStock={addInitialStock}
-                onTransferMaterial={transferMaterial}
-                onDeleteMaterial={deleteMaterial}
-                history={history}
-                pendingRequests={materialRequests.filter((r) => r.status === "Pendente")}
-              />
-            }
-          />
-          <Route
-            path="/material-requests"
-            element={
-              <MaterialRequests
-                requests={materialRequests}
-                events={events}
-                materialNameMap={materialNameMap}
-                onApproveRequest={approveMaterialRequest}
-                onRejectRequest={rejectMaterialRequest}
-              />
-            }
-          />
-          <Route path="/notifications" element={<Notifications />} />
+          {/* Rotas protegidas */}
+          <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            {/* Rotas comuns (Admin/Coordenador/Gestor) */}
+            <Route path="/" element={<Index />} />
+            <Route path="/calendar" element={<Calendar events={events} />} />
+            <Route path="/create-event" element={<CreateEvent onAddEvent={addEvent} />} />
+            <Route
+              path="/roster-management"
+              element={
+                <RosterManagement
+                  events={events}
+                  employees={employees}
+                  onUpdateEventDetails={updateEventDetails}
+                  onUpdateEvent={updateEvent}
+                  onCreateMaterialRequest={createMaterialRequest}
+                  pendingRequests={materialRequests.filter((r) => r.status === "Pendente")}
+                  materials={materials}
+                />
+              }
+            />
+            <Route path="/employees" element={<Employees roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
+            <Route path="/roles" element={<Roles roles={roles} employees={employees} events={events} />} />
+            <Route path="/roles/:roleId" element={<RoleDetail roles={roles} employees={employees} events={events} />} />
+            <Route
+              path="/materials"
+              element={
+                <Materials
+                  materials={materials}
+                  locations={locations}
+                  onSaveMaterial={saveMaterial}
+                  onAddInitialStock={addInitialStock}
+                  onTransferMaterial={transferMaterial}
+                  onDeleteMaterial={deleteMaterial}
+                  history={history}
+                  pendingRequests={materialRequests.filter((r) => r.status === "Pendente")}
+                />
+              }
+            />
+            <Route
+              path="/material-requests"
+              element={
+                <MaterialRequests
+                  requests={materialRequests}
+                  events={events}
+                  materialNameMap={materialNameMap}
+                  onApproveRequest={approveMaterialRequest}
+                  onRejectRequest={rejectMaterialRequest}
+                />
+              }
+            />
+            <Route path="/notifications" element={<Notifications />} />
 
-          {/* Admin/Coordenador */}
-          <Route path="/admin-settings" element={<AdminSettings
-            roles={roles}
-            onAddRole={addRole}
-            onUpdateRole={updateRole}
-            onDeleteRole={deleteRole}
-            locations={locations}
-            onAddLocation={addLocation}
-            onUpdateLocation={updateLocation}
-            onDeleteLocation={deleteLocation}
-          />} />
-          <Route path="/invite-member" element={<InviteMember />} />
-          <Route path="/admin/profile" element={<AdminProfile />} />
+            {/* Admin/Coordenador */}
+            <Route path="/admin-settings" element={<AdminSettings
+              roles={roles}
+              onAddRole={addRole}
+              onUpdateRole={updateRole}
+              onDeleteRole={deleteRole}
+              locations={locations}
+              onAddLocation={addLocation}
+              onUpdateLocation={updateLocation}
+              onDeleteLocation={deleteLocation}
+            />} />
+            <Route path="/invite-member" element={<InviteMember />} />
+            <Route path="/admin/profile" element={<AdminProfile />} />
 
-          {/* Financeiro */}
-          <Route path="/finance/dashboard" element={<FinanceDashboard />} />
-          <Route path="/finance-profitability" element={<FinanceProfitability />} />
-          <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
-          <Route path="/finance-costs" element={<FinanceCosts />} />
-          <Route path="/finance/reports" element={<FinanceReports />} />
-          <Route path="/finance/profile" element={<FinanceProfile />} />
+            {/* Financeiro */}
+            <Route path="/finance/dashboard" element={<FinanceDashboard />} />
+            <Route path="/finance-profitability" element={<FinanceProfitability />} />
+            <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
+            <Route path="/finance-costs" element={<FinanceCosts />} />
+            <Route path="/finance/reports" element={<FinanceReports />} />
+            <Route path="/finance/profile" element={<FinanceProfile />} />
 
-          {/* Técnico */}
-          <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
-          <Route path="/technician/calendar" element={<TechnicianCalendar />} />
-          <Route path="/technician/events" element={<TechnicianEvents />} />
-          <Route path="/technician/events/:eventId" element={<TechnicianEventDetail />} />
-          <Route path="/technician/tasks" element={<TechnicianTasks />} />
-          <Route path="/technician/tasks-kanban" element={<TechnicianTasksKanban />} />
-          <Route path="/technician/profile" element={<TechnicianProfile />} />
-          <Route path="/technician/notifications" element={<TechnicianNotifications />} />
+            {/* Técnico */}
+            <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
+            <Route path="/technician/calendar" element={<TechnicianCalendar />} />
+            <Route path="/technician/events" element={<TechnicianEvents />} />
+            <Route path="/technician/events/:eventId" element={<TechnicianEventDetail />} />
+            <Route path="/technician/tasks" element={<TechnicianTasks />} />
+            <Route path="/technician/tasks-kanban" element={<TechnicianTasksKanban />} />
+            <Route path="/technician/profile" element={<TechnicianProfile />} />
+            <Route path="/technician/notifications" element={<TechnicianNotifications />} />
 
-          {/* Nova rota de boas-vindas */}
-          <Route path="/welcome" element={<Welcome />} />
-        </Route>
+            {/* Nova rota de boas-vindas */}
+            <Route path="/welcome" element={<Welcome />} />
+          </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+      <Toaster />
+    </>
   );
 };
 
