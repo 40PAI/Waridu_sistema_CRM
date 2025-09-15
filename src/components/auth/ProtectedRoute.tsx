@@ -1,40 +1,42 @@
-import * as React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { hasPermission } from "@/config/roles";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { hasPermission, PAGE_PERMISSIONS } from "@/config/roles";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { session, user } = useAuth();
+const ProtectedRoute = () => {
+  const { session, user, loading } = useAuth();
   const location = useLocation();
 
-  // Se não tem sessão ou usuário, redireciona para login
-  if (!session || !user) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center gap-4">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <Skeleton className="h-4 w-[250px]" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!session || !user || !user.profile) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Se tem sessão mas não tem role definido, redireciona para welcome
-  if (!user.profile?.role) {
-    return <Navigate to="/welcome" replace />;
+  const userRole = user.profile.role;
+  const canAccess = hasPermission(userRole, location.pathname);
+
+  if (!canAccess) {
+    // Redirect to the first page allowed for the user's role
+    const fallbackRoute = PAGE_PERMISSIONS[userRole]?.[0] || '/';
+    return <Navigate to={fallbackRoute} replace />;
   }
 
-  // Verifica se o usuário tem permissão para acessar a rota atual
-  const hasAccess = hasPermission(user.profile.role, location.pathname);
-  
-  if (!hasAccess) {
-    // Redireciona para o dashboard principal do role
-    const rolePaths: Record<string, string> = {
-      "Técnico": "/technician/dashboard",
-      "Financeiro": "/finance/dashboard",
-      "Gestor de Material": "/",
-      "Admin": "/",
-      "Coordenador": "/"
-    };
-    
-    const fallbackPath = rolePaths[user.profile.role] || "/";
-    return <Navigate to={fallbackPath} replace />;
-  }
-
-  return <>{children}</>;
+  return (
+    <DashboardLayout>
+      <Outlet />
+    </DashboardLayout>
+  );
 };
 
 export default ProtectedRoute;

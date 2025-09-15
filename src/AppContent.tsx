@@ -1,13 +1,15 @@
-import * as React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/contexts/AuthContext";
-import DashboardLayout from "@/components/layout/DashboardLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import LoginPage from "@/pages/Login";
-import NotFound from "@/pages/NotFound";
+
+// Pages
 import Index from "@/pages/Index";
-import Calendar from "@/pages/Calendar";
+import NotFound from "@/pages/NotFound";
+import Login from "@/pages/Login";
 import CreateEvent from "@/pages/CreateEvent";
+import Calendar from "@/pages/Calendar";
 import RosterManagement from "@/pages/RosterManagement";
 import Employees from "@/pages/Employees";
 import Roles from "@/pages/Roles";
@@ -16,151 +18,180 @@ import Materials from "@/pages/Materials";
 import MaterialRequests from "@/pages/MaterialRequests";
 import AdminSettings from "@/pages/AdminSettings";
 import InviteMember from "@/pages/InviteMember";
-import Notifications from "@/pages/Notifications";
-import FinanceDashboard from "@/pages/finance/Dashboard";
-import FinanceProfitability from "@/pages/finance/Profitability";
-import FinanceCalendar from "@/pages/finance/Calendar";
-import FinanceCosts from "@/pages/finance/CostManagement";
-import FinanceReports from "@/pages/finance/Reports";
-import FinanceProfile from "@/pages/finance/Profile";
+import HealthCheck from "@/pages/HealthCheck";
+import Debug from "@/pages/Debug";
+import AdminProfile from "@/pages/AdminProfile";
 import TechnicianDashboard from "@/pages/technician/Dashboard";
 import TechnicianCalendar from "@/pages/technician/Calendar";
 import TechnicianEvents from "@/pages/technician/Events";
 import TechnicianEventDetail from "@/pages/technician/EventDetail";
 import TechnicianTasks from "@/pages/technician/Tasks";
-import TechnicianTasksKanban from "@/pages/technician/TasksKanban";
 import TechnicianProfile from "@/pages/technician/Profile";
 import TechnicianNotifications from "@/pages/technician/Notifications";
-import AdminProfile from "@/pages/AdminProfile";
-import HealthCheck from "@/pages/HealthCheck";
-import Debug from "@/pages/Debug";
-import Welcome from "@/pages/Welcome";
-import AuthCallback from "@/pages/AuthCallback";
+import TechnicianTasksKanban from "@/pages/technician/TasksKanban";
+import FinanceDashboard from "@/pages/finance/Dashboard";
+import FinanceProfile from "@/pages/finance/Profile";
+import Profitability from "@/pages/finance/Profitability";
+import FinanceCalendar from "@/pages/finance/Calendar";
+import CostManagement from "@/pages/finance/CostManagement";
+import Reports from "@/pages/finance/Reports";
+import Notifications from "@/pages/Notifications";
 
-// Hooks
+// Hooks for wrappers
 import { useEvents } from "@/hooks/useEvents";
-import { useRoles } from "@/hooks/useRoles";
-import { useLocations } from "@/hooks/useLocations";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useLocations } from "@/hooks/useLocations";
 import { useMaterials } from "@/hooks/useMaterials";
 import { useMaterialRequests } from "@/hooks/useMaterialRequests";
-import { useAllocationHistory } from "@/hooks/useAllocationHistory";
+import { useRoles } from "@/hooks/useRoles";
+import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 
-// Toaster for notifications
-import { Toaster } from "sonner";
+// Wrappers to provide required props
+const CreateEventWrapper = () => {
+  const { addEvent } = useEvents();
+  return <CreateEvent onAddEvent={addEvent} />;
+};
 
-const AppContent = () => {
-  const { user } = useAuth();
-  const { events, addEvent, updateEvent, updateEventDetails } = useEvents();
+const CalendarWrapper = () => {
+  const { events } = useEvents();
+  return <Calendar events={events} />;
+};
+
+const RosterManagementWrapper = () => {
+  const { events, updateEventDetails, updateEvent } = useEvents();
+  const { employees } = useEmployees();
+  const { materials: invMaterials } = useMaterials();
+  const { pendingRequests, createMaterialRequest } = useMaterialRequests();
+  return (
+    <RosterManagement
+      events={events}
+      employees={employees}
+      onUpdateEventDetails={updateEventDetails}
+      onUpdateEvent={updateEvent}
+      onCreateMaterialRequest={createMaterialRequest}
+      pendingRequests={pendingRequests}
+      materials={invMaterials}
+    />
+  );
+};
+
+const EmployeesWrapper = () => {
+  const { roles } = useRoles();
+  const { employees, saveEmployee } = useEmployees();
+  return <Employees roles={roles} employees={employees} onSaveEmployee={saveEmployee} />;
+};
+
+const RolesWrapper = () => {
+  const { roles } = useRoles();
+  const { employees } = useEmployees();
+  const { events } = useEvents();
+  return <Roles roles={roles} employees={employees} events={events} />;
+};
+
+const RoleDetailWrapper = () => {
+  const { roles } = useRoles();
+  const { employees } = useEmployees();
+  const { events } = useEvents();
+  return <RoleDetail roles={roles} employees={employees} events={events} />;
+};
+
+const MaterialsWrapper = () => {
+  const { materials, addInitialStock, saveMaterial, transferMaterial, deleteMaterial } = useMaterials();
+  const { locations } = useLocations();
+  const { pendingRequests } = useMaterialRequests();
+  return (
+    <Materials
+      materials={materials}
+      locations={locations}
+      onSaveMaterial={saveMaterial}
+      onAddInitialStock={addInitialStock}
+      onTransferMaterial={transferMaterial}
+      onDeleteMaterial={deleteMaterial}
+      history={[]}
+      pendingRequests={pendingRequests}
+    />
+  );
+};
+
+const MaterialRequestsWrapper = () => {
+  const { materialRequests, approveMaterialRequest, rejectMaterialRequest } = useMaterialRequests();
+  const { events } = useEvents();
+  const { materials } = useMaterials();
+  const materialNameMap = React.useMemo(
+    () => materials.reduce<Record<string, string>>((acc, m) => { acc[m.id] = m.name; return acc; }, {}),
+    [materials]
+  );
+  return (
+    <MaterialRequests
+      requests={materialRequests}
+      events={events}
+      materialNameMap={materialNameMap}
+      onApproveRequest={approveMaterialRequest}
+      onRejectRequest={rejectMaterialRequest}
+    />
+  );
+};
+
+const AdminSettingsWrapper = () => {
   const { roles, addRole, updateRole, deleteRole } = useRoles();
   const { locations, addLocation, updateLocation, deleteLocation } = useLocations();
-  const { employees, saveEmployee } = useEmployees();
-  const { materials, saveMaterial, deleteMaterial, addInitialStock, transferMaterial } = useMaterials();
-  const { materialRequests, createMaterialRequest, approveMaterialRequest, rejectMaterialRequest } = useMaterialRequests();
-  const { history } = useAllocationHistory(events);
+  return (
+    <AdminSettings
+      roles={roles}
+      onAddRole={addRole}
+      onUpdateRole={updateRole}
+      onDeleteRole={deleteRole}
+      locations={locations}
+      onAddLocation={addLocation}
+      onUpdateLocation={updateLocation}
+      onDeleteLocation={deleteLocation}
+    />
+  );
+};
 
-  const materialNameMap = React.useMemo(() => {
-    const map: Record<string, string> = {};
-    materials.forEach((m) => (map[m.id] = m.name));
-    return map;
-  }, [materials]);
+const ProfitabilityWrapper = () => {
+  return <Profitability />;
+};
 
-  if (!user) {
-    return (
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Router>
-    );
+const FinanceCalendarWrapper = () => {
+  const { events } = useEvents();
+  return <FinanceCalendar events={events} />;
+};
+
+const CostManagementWrapper = () => {
+  // Removed unused hooks and props that don't match the component interface
+  return <CostManagement />;
+};
+
+const AppContent = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
   return (
-    <>
-      <Router>
+    <Router>
+      <div className="min-h-screen bg-background">
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/health" element={<HealthCheck />} />
+          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+          <Route path="/health-check" element={<HealthCheck />} />
           <Route path="/debug" element={<Debug />} />
 
-          {/* Rotas protegidas */}
-          <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-            {/* Rotas comuns (Admin/Coordenador/Gestor) */}
+          <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Index />} />
-            <Route path="/calendar" element={<Calendar events={events} />} />
-            <Route path="/create-event" element={<CreateEvent onAddEvent={addEvent} />} />
-            <Route
-              path="/roster-management"
-              element={
-                <RosterManagement
-                  events={events}
-                  employees={employees}
-                  onUpdateEventDetails={updateEventDetails}
-                  onUpdateEvent={updateEvent}
-                  onCreateMaterialRequest={createMaterialRequest}
-                  pendingRequests={materialRequests.filter((r) => r.status === "Pendente")}
-                  materials={materials}
-                />
-              }
-            />
-            <Route path="/employees" element={<Employees roles={roles} employees={employees} onSaveEmployee={saveEmployee} />} />
-            <Route path="/roles" element={<Roles roles={roles} employees={employees} events={events} />} />
-            <Route path="/roles/:roleId" element={<RoleDetail roles={roles} employees={employees} events={events} />} />
-            <Route
-              path="/materials"
-              element={
-                <Materials
-                  materials={materials}
-                  locations={locations}
-                  onSaveMaterial={saveMaterial}
-                  onAddInitialStock={addInitialStock}
-                  onTransferMaterial={transferMaterial}
-                  onDeleteMaterial={deleteMaterial}
-                  history={history}
-                  pendingRequests={materialRequests.filter((r) => r.status === "Pendente")}
-                />
-              }
-            />
-            <Route
-              path="/material-requests"
-              element={
-                <MaterialRequests
-                  requests={materialRequests}
-                  events={events}
-                  materialNameMap={materialNameMap}
-                  onApproveRequest={approveMaterialRequest}
-                  onRejectRequest={rejectMaterialRequest}
-                />
-              }
-            />
-            <Route path="/notifications" element={<Notifications />} />
-
-            {/* Admin/Coordenador */}
-            <Route path="/admin-settings" element={<AdminSettings
-              roles={roles}
-              onAddRole={addRole}
-              onUpdateRole={updateRole}
-              onDeleteRole={deleteRole}
-              locations={locations}
-              onAddLocation={addLocation}
-              onUpdateLocation={updateLocation}
-              onDeleteLocation={deleteLocation}
-            />} />
+            <Route path="/create-event" element={<CreateEventWrapper />} />
+            <Route path="/calendar" element={<CalendarWrapper />} />
+            <Route path="/roster-management" element={<RosterManagementWrapper />} />
+            <Route path="/employees" element={<EmployeesWrapper />} />
+            <Route path="/roles" element={<RolesWrapper />} />
+            <Route path="/roles/:roleId" element={<RoleDetailWrapper />} />
+            <Route path="/materials" element={<MaterialsWrapper />} />
+            <Route path="/material-requests" element={<MaterialRequestsWrapper />} />
+            <Route path="/admin-settings" element={<AdminSettingsWrapper />} />
             <Route path="/invite-member" element={<InviteMember />} />
-            <Route path="/admin/profile" element={<AdminProfile />} />
 
-            {/* Financeiro */}
-            <Route path="/finance/dashboard" element={<FinanceDashboard />} />
-            <Route path="/finance-profitability" element={<FinanceProfitability />} />
-            <Route path="/finance-calendar" element={<FinanceCalendar events={events} />} />
-            <Route path="/finance-costs" element={<FinanceCosts />} />
-            <Route path="/finance/reports" element={<FinanceReports />} />
-            <Route path="/finance/profile" element={<FinanceProfile />} />
-
-            {/* Técnico */}
+            {/* Technician */}
             <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
             <Route path="/technician/calendar" element={<TechnicianCalendar />} />
             <Route path="/technician/events" element={<TechnicianEvents />} />
@@ -170,15 +201,24 @@ const AppContent = () => {
             <Route path="/technician/profile" element={<TechnicianProfile />} />
             <Route path="/technician/notifications" element={<TechnicianNotifications />} />
 
-            {/* Nova rota de boas-vindas */}
-            <Route path="/welcome" element={<Welcome />} />
+            {/* Finance */}
+            <Route path="/finance/dashboard" element={<FinanceDashboard />} />
+            <Route path="/finance/profile" element={<FinanceProfile />} />
+            <Route path="/finance-profitability" element={<ProfitabilityWrapper />} />
+            <Route path="/finance-calendar" element={<FinanceCalendarWrapper />} />
+            <Route path="/finance-costs" element={<CostManagementWrapper />} />
+            <Route path="/finance/reports" element={<Reports />} />
+
+            {/* Shared */}
+            <Route path="/admin/profile" element={<AdminProfile />} />
+            <Route path="/notifications" element={<Notifications />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </Router>
-      <Toaster />
-    </>
+        <Toaster />
+      </div>
+    </Router>
   );
 };
 

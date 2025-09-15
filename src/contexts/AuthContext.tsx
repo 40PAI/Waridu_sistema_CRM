@@ -1,119 +1,196 @@
 import * as React from "react";
+import { createContext, useState, useContext, ReactNode, useEffect, useMemo } from "react";
+import { Role } from "@/config/roles";
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { Session, User as SupabaseUser } from "@supabase/supabase-js";
 
-interface AuthContextType {
-  user: (User & { profile: { id: string; first_name: string | null; last_name: string | null; avatar_url: string | null; role: string } | null }) | null;
-  session: any;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  setUser: React.Dispatch<React.SetStateAction<(User & { profile: { id: string; first_name: string | null; last_name: string | null; avatar_url: string | null; role: string } | null }) | null>>;
+interface UserProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  role: Role;
+  technician_category_id: string | null;
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+interface User extends SupabaseUser {
+  profile: UserProfile | null;
+}
 
-export const useAuth = () => {
-  const context = React.useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+interface AuthContextType {
+  session: Session | null;
+  user: User | null;
+  logout: () => void;
+  loading: boolean;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+}
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = React.useState<AuthContextType["user"]>(null);
-  const [session, setSession] = React.useState<any>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-  const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Valida e normaliza dados do perfil para evitar estados inválidos
+  const normalizeProfile = (raw: any, userId: string): UserProfile | null => {
+    if (!raw || typeof raw !== "object") return null;
+    if (raw.id !== userId) return null;
+    if (typeof raw.role !== "string" || !raw.role) return null;
+    return {
+      id: userId,
+      first_name: typeof raw.first_name === "string" ? raw.first_name : null,
+      last_name: typeof raw.last_name === "string" ? raw.last_name : null,
+      avatar_url: typeof raw.avatar_url === "string" ? raw.avatar_url : null,
+      role: raw.role as Role,
+      technician_category_id: raw.technician_category_id || null,
+    };
+    // Nota: Caso precise, podemos adicionar um fallback de role padrão.
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    window.location.href = "/login";
-  };
+  useEffect(() => {
+    let mounted = true;
 
-  React.useEffect(() => {
-    const fetchSessionAndProfile = async () => {
-      const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error("Initial session error:", sessionError);
-        return;
-      }
-
-      if (initialSession?.user) {
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name, avatar_url, role")
-          .eq("id", initialSession.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Auth state profile error:", profileError);
-        }
-
-        // Se não tem role, redireciona para welcome
-        if (!profileData?.role) {
-          window.location.href = "/welcome";
-          setUser({ ...initialSession.user, profile: null });
+    const getInitialSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Auth getSession error:", error);
+          if (!mounted) return;
+          setError(error.message);
+          setSession(null);
+          setUser(null);
           return;
         }
 
-        setUser({
-          ...initialSession.user,
-          profile: profileData,
-        });
-        setSession(initialSession);
-      } else {
-        setUser(null);
+        const currentSession = data?.session ?? null;
+        if (!mounted) return;
+        setSession(currentSession);
+
+        if (currentSession?.user) {
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from("profiles")
+              .select("id, first_name, last_name, avatar_url, role")
+              .eq("id", currentSession.user.id)
+              .single();
+            if (profileError) {
+              console.error("Load profile error:", profileError);
+            }
+
+            let technician_category_id: string | null = null;
+            if (profileData?.role === 'Técnico') {
+              const { data: empData, error: empError } = await supabase
+                .from('employees')
+                .select('technician_category')
+                .eq('user_id', currentSession.user.id)
+                .single();
+              if (empError) {
+                console.error("Load employee error:", empError);
+              } else {
+                technician_category_id = empData?.technician_category || null;
+              }
+            }
+
+            const normalized = normalizeProfile({ ...profileData, technician_category_id }, currentSession.user.id);
+            setUser({ ...currentSession.user, profile: normalized });
+          } catch (innerErr) {
+            console.error("Unexpected error loading profile:", innerErr);
+            setUser({ ...currentSession.user, profile: null });
+          }
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Unexpected error in getInitialSession:", err);
+        if (!mounted) return;
+        setError(err instanceof Error ? err.message : "Erro inesperado.");
         setSession(null);
+        setUser(null);
+      } finally {
+        if (mounted) setLoading(false);
       }
     };
 
-    fetchSessionAndProfile();
+    getInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
-      if (event === "SIGNED_IN" && nextSession?.user) {
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name, avatar_url, role")
-          .eq("id", nextSession.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Auth state profile error:", profileError);
-        }
-
-        // Se não tem role, redireciona para welcome
-        if (!profileData?.role) {
-          window.location.href = "/welcome";
-          setUser({ ...nextSession.user, profile: null });
-          return;
-        }
-
-        setUser({
-          ...nextSession.user,
-          profile: profileData,
-        });
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      try {
+        if (!mounted) return;
         setSession(nextSession);
-      } else if (event === "SIGNED_OUT") {
+        if (nextSession?.user) {
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, avatar_url, role")
+            .eq("id", nextSession.user.id)
+            .single();
+
+          if (profileError) {
+            console.error("Auth state profile error:", profileError);
+          }
+
+          let technician_category_id: string | null = null;
+          if (profileData?.role === 'Técnico') {
+            const { data: empData, error: empError } = await supabase
+              .from('employees')
+              .select('technician_category')
+              .eq('user_id', nextSession.user.id)
+              .single();
+            if (empError) {
+              console.error("Auth state employee error:", empError);
+            } else {
+              technician_category_id = empData?.technician_category || null;
+            }
+          }
+
+          const normalized = normalizeProfile({ ...profileData, technician_category_id }, nextSession.user.id);
+          setUser({ ...nextSession.user, profile: normalized });
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Unexpected error in onAuthStateChange:", err);
         setUser(null);
-        setSession(null);
-        window.location.href = "/login";
       }
     });
 
     return () => {
-      subscription.unsubscribe();
+      mounted = false;
+      listener.subscription.unsubscribe();
     };
   }, []);
 
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Logout error:", error);
+      }
+    } catch (err) {
+      console.error("Unexpected logout error:", err);
+    }
+  };
+
+  const value = useMemo(() => ({
+    session,
+    user,
+    logout,
+    loading,
+    setUser,
+  }), [session, user, loading]);
+
   return (
-    <AuthContext.Provider value={{ user, session, login, logout, setUser }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };
