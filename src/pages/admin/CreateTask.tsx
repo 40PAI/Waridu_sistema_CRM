@@ -13,7 +13,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { Employee } from "@/components/employees/EmployeeDialog";
 import { ArrowLeft } from "lucide-react";
 
-const CreateTaskPage = () => {
+const CreateTask = () => {
   const navigate = useNavigate();
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
