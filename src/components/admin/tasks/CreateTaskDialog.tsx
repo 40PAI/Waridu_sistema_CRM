@@ -19,13 +19,13 @@ export const CreateTaskDialog = ({ open, onOpenChange, onCreate, technicians, ev
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [assignedTo, setAssignedTo] = React.useState("");
-  const [eventId, setEventId] = React.useState("");
+  const [eventId, setEventId] = React.useState("none");
 
   const resetForm = () => {
     setTitle("");
     setDescription("");
     setAssignedTo("");
-    setEventId("");
+    setEventId("none");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,7 +39,7 @@ export const CreateTaskDialog = ({ open, onOpenChange, onCreate, technicians, ev
       title: title.trim(),
       description: description.trim() || undefined,
       assigned_to: assignedTo,
-      event_id: eventId ? Number(eventId) : undefined,
+      event_id: eventId === "none" ? undefined : Number(eventId),
     });
   };
 
@@ -97,7 +97,7 @@ export const CreateTaskDialog = ({ open, onOpenChange, onCreate, technicians, ev
                   <SelectValue placeholder="Selecione um evento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem evento específico</SelectItem>
+                  <SelectItem value="none">Sem evento específico</SelectItem>
                   {events.map((event) => (
                     <SelectItem key={event.id} value={String(event.id)}>
                       {event.name}

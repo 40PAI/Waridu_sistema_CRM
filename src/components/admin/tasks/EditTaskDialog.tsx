@@ -20,14 +20,14 @@ export const EditTaskDialog = ({ open, onOpenChange, task, onUpdate, technicians
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [assignedTo, setAssignedTo] = React.useState("");
-  const [eventId, setEventId] = React.useState("");
+  const [eventId, setEventId] = React.useState("none");
 
   React.useEffect(() => {
     if (task) {
       setTitle(task.title);
       setDescription(task.description || "");
       setAssignedTo(task.assigned_to);
-      setEventId(task.event_id ? String(task.event_id) : "");
+      setEventId(task.event_id ? String(task.event_id) : "none");
     }
   }, [task]);
 
@@ -42,7 +42,7 @@ export const EditTaskDialog = ({ open, onOpenChange, task, onUpdate, technicians
       title: title.trim(),
       description: description.trim() || undefined,
       assigned_to: assignedTo,
-      event_id: eventId ? Number(eventId) : undefined,
+      event_id: eventId === "none" ? undefined : Number(eventId),
     });
   };
 
@@ -100,7 +100,7 @@ export const EditTaskDialog = ({ open, onOpenChange, task, onUpdate, technicians
                 <SelectValue placeholder="Selecione um evento" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sem evento específico</SelectItem>
+                <SelectItem value="none">Sem evento específico</SelectItem>
                 {events.map((event) => (
                   <SelectItem key={event.id} value={String(event.id)}>
                     {event.name}
