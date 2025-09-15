@@ -21,22 +21,31 @@ export const PasswordRecoveryForm = ({ onBackToLogin }: { onBackToLogin: () => v
     setLoading(true);
 
     try {
+      // Garante que o redirectTo aponta para a página correta da sua app
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      console.log("Enviando email de recuperação para:", email, "com redirectTo:", redirectUrl);
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectUrl,  // URL completa para sua página de reset
       });
 
       if (error) {
+        console.error("Erro no resetPasswordForEmail:", error);
         if (error.message.includes('User not found')) {
-          showError("Nenhum usuário encontrado com este email.");
+          showError("Nenhum usuário encontrado com este email. Verifique e tente novamente.");
+        } else if (error.message.includes('Email rate limit')) {
+          showError("Muitos pedidos de reset. Aguarde 1 hora e tente outro email.");
         } else {
           showError(error.message);
         }
         return;
       }
 
-      showSuccess("Email de recuperação enviado! Verifique sua caixa de entrada.");
+      console.log("Email de recuperação enviado com sucesso!");
+      showSuccess("Email de recuperação enviado! Verifique sua caixa de entrada (e spam).");
       setStep('sent');
     } catch (error: any) {
+      console.error("Erro inesperado ao enviar email de recuperação:", error);
       showError("Erro ao enviar email de recuperação. Tente novamente.");
     } finally {
       setLoading(false);
@@ -44,7 +53,14 @@ export const PasswordRecoveryForm = ({ onBackToLogin }: { onBackToLogin: () => v
   };
 
   const handleBackToLogin = () => {
-    navigate("/login");
+    console.log("Botão 'Voltar ao Login' clicado - redirecionando para /login");
+    navigate('/login', { replace: true });
+  };
+
+  const handleSendAnother = () => {
+    console.log("Botão 'Enviar outro email' clicado - voltando para step 'request'");
+    setStep('request');
+    setEmail("");  // Limpa o campo para novo envio
   };
 
   if (step === 'sent') {
@@ -52,7 +68,7 @@ export const PasswordRecoveryForm = ({ onBackToLogin }: { onBackToLogin: () => v
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <Mail className="h-8 w-8 mx-auto mb-4 text-primary" />
-          <CardTitle className="text-2xl">Email Enviado</CardTitle>
+          <CardTitle className="text-xl">Email Enviado</CardTitle>
           <CardDescription>
             Verifique sua caixa de entrada (e pasta de spam) para o link de recuperação de senha.
           </CardDescription>
@@ -64,7 +80,7 @@ export const PasswordRecoveryForm = ({ onBackToLogin }: { onBackToLogin: () => v
           </Button>
           <Button 
             variant="link" 
-            onClick={() => setStep('request')}
+            onClick={handleSendAnother}
             className="w-full justify-start"
           >
             Enviar outro email
@@ -78,7 +94,7 @@ export const PasswordRecoveryForm = ({ onBackToLogin }: { onBackToLogin: () => v
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
         <Mail className="h-8 w-8 mx-auto mb-4 text-primary" />
-        <CardTitle className="text-2xl">Recuperar Senha</CardTitle>
+        <CardTitle className="text-xl">Recuperar Senha</CardTitle>
         <CardDescription>
           Digite seu email para receber instruções de recuperação.
         </CardDescription>
