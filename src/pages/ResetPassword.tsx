@@ -24,40 +24,34 @@ const ResetPasswordPage = () => {
   const type = searchParams.get("type");
   const next = searchParams.get("next") || window.location.origin;
 
-  // Lógica para deslogar temporariamente durante o reset
+  // Debug logs - Mantenha estes para sempre ou remova após resolver
   useEffect(() => {
-    const clearSessionForReset = async () => {
-      try {
-        // Tenta fazer logout primeiro para evitar conflitos de sessão
-        const { error: logoutError } = await supabase.auth.signOut();
-        if (logoutError) {
-          console.warn("Warning: logout during reset failed:", logoutError);
-          // Fallback: limpa localStorage
-          localStorage.removeItem('sb-access-token');
-          localStorage.removeItem('sb-refresh-token');
-        }
-        console.log("Session cleared for password reset");
-      } catch (err) {
-        console.error("Error clearing session:", err);
-      }
-    };
-
-    clearSessionForReset();
+    console.log("=== DEBUG RESET PASSWORD LOADED ===");
+    console.log("URL completa:", window.location.href);
+    console.log("Parâmetros extraídos:");
+    console.log("- token_hash:", tokenHash ? "PRESENTE" : "AUSENTE");
+    console.log("- type:", type || "VAZIO");
+    console.log("- next:", next);
   }, []);
 
   useEffect(() => {
     // Verificar se o link é válido para recuperação de senha
     if (type !== 'recovery') {
+      console.log("Validação falhou: type !== 'recovery'. Type recebido:", type);
       setStep('error');
-      setErrorMessage("Link inválido. Este não é um link de recuperação de senha.");
+      setErrorMessage(`Link inválido. Type recebido: "${type || 'vazio'}" (esperado: "recovery"). Verifique o email ou solicite um novo link.`);
       return;
     }
 
     if (!tokenHash) {
+      console.log("Validação falhou: token_hash ausente na URL.");
       setStep('error');
-      setErrorMessage("Link de recuperação inválido. O token está ausente.");
+      setErrorMessage("Link de recuperação inválido. O token está ausente. Solicite um novo email de recuperação.");
       return;
     }
+
+    console.log("Validação OK. Token e type corretos. Carregando formulário.");
+    // Se chegou aqui, mostra o form (sem erros)
   }, [tokenHash, type]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,7 +72,9 @@ const ResetPasswordPage = () => {
     }
 
     try {
-      // Usar updateUser para atualizar a senha (mais direto para recovery)
+      console.log("Enviando updateUser com nova senha. Token:", tokenHash ? "PRESENTE" : "AUSENTE");
+      
+      // Tenta updateUser primeiro (mais direto para recovery)
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -87,12 +83,15 @@ const ResetPasswordPage = () => {
         console.error("Supabase updateUser error:", error);
         if (error.message.includes('Invalid token') || error.message.includes('Token has expired')) {
           setErrorMessage("O link de recuperação expirou ou já foi usado. Solicite um novo.");
+        } else if (error.message.includes('Invalid password')) {
+          setErrorMessage("Senha inválida. Digite uma senha com pelo menos 6 caracteres.");
         } else {
           setErrorMessage(error.message);
         }
         return;
       }
 
+      console.log("Senha atualizada com sucesso! Redirecionando...");
       showSuccess("Senha atualizada com sucesso! Você será redirecionado para o login.");
       setStep('success');
       
@@ -102,7 +101,7 @@ const ResetPasswordPage = () => {
       }, 2000);
     } catch (error: any) {
       console.error("Unexpected error updating password:", error);
-      setErrorMessage("Erro ao atualizar senha. Tente novamente.");
+      setErrorMessage("Erro ao atualizar senha. Tente novamente ou solicite um novo link.");
     } finally {
       setLoading(false);
     }
@@ -112,10 +111,16 @@ const ResetPasswordPage = () => {
     navigate('/login');
   };
 
+  // Se ainda der erro, mostra o form mesmo assim para testes (TEMPORÁRIO - remova após resolver)
+  const showFormAnyway = () => {
+    console.log("MODO DEBUG: Mostrando form mesmo com validação falhando (para testes).");
+    return true;
+  };
+
   if (step === 'error') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
-        <Card className="w-full max-w-sm">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <Lock className="h-8 w-8 mx-auto mb-4 text-destructive" />
             <CardTitle className="text-xl">Erro na Recuperação</CardTitle>
@@ -142,7 +147,7 @@ const ResetPasswordPage = () => {
   if (step === 'success') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
-        <Card className="w-full max-w-sm">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <Lock className="h-8 w-8 mx-auto mb-4 text-green-600" />
             <CardTitle className="text-xl">Senha Atualizada</CardTitle>
@@ -160,6 +165,7 @@ const ResetPasswordPage = () => {
     );
   }
 
+  // Formulário principal (com bypass temporário se necessário)
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
