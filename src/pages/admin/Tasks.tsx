@@ -318,57 +318,82 @@ const AdminTasks = () => {
             <DialogTitle>Criar Nova Tarefa</DialogTitle>
             <DialogDescription>Atribua uma tarefa a um técnico específico.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="task-title">Título da Tarefa</Label>
-              <Input
-                id="task-title"
-                placeholder="Ex: Verificar som do evento"
-                required
-              />
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const title = formData.get('task-title') as string;
+            const description = formData.get('task-description') as string;
+            const assignedTo = formData.get('task-assigned-to') as string;
+            const eventId = formData.get('task-event') as string;
+            
+            if (!title.trim() || !assignedTo) {
+              showError("Título e técnico atribuído são obrigatórios.");
+              return;
+            }
+
+            createTask({
+              title: title.trim(),
+              description: description.trim() || undefined,
+              assigned_to: assignedTo,
+              event_id: eventId ? Number(eventId) : undefined,
+            });
+          }}>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="task-title">Título da Tarefa</Label>
+                <Input
+                  id="task-title"
+                  name="task-title"
+                  placeholder="Ex: Verificar som do evento"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-description">Descrição</Label>
+                <Textarea
+                  id="task-description"
+                  name="task-description"
+                  placeholder="Detalhes da tarefa..."
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-assigned-to">Atribuir a</Label>
+                <Select name="task-assigned-to">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o técnico" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.filter(e => e.role === 'Técnico').map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-event">Evento Relacionado (Opcional)</Label>
+                <Select name="task-event">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o evento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem evento específico</SelectItem>
+                    {events.map(event => (
+                      <SelectItem key={event.id} value={String(event.id)}>
+                        {event.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-description">Descrição</Label>
-              <Textarea
-                id="task-description"
-                placeholder="Detalhes da tarefa..."
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-assigned-to">Atribuir a</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o técnico" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.filter(e => e.role === 'Técnico').map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-event">Evento Relacionado (Opcional)</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o evento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {events.map(event => (
-                    <SelectItem key={event.id} value={String(event.id)}>
-                      {event.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline">Cancelar</Button>
-            <Button type="submit">Criar Tarefa</Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline">Cancelar</Button>
+              <Button type="submit">Criar Tarefa</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -379,59 +404,86 @@ const AdminTasks = () => {
             <DialogTitle>Editar Tarefa</DialogTitle>
             <DialogDescription>Atualize os detalhes da tarefa.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-task-title">Título</Label>
-              <Input
-                id="edit-task-title"
-                placeholder="Título da tarefa"
-                defaultValue={editingTask?.title}
-              />
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (!editingTask) return;
+            
+            const formData = new FormData(e.currentTarget);
+            const title = formData.get('edit-task-title') as string;
+            const description = formData.get('edit-task-description') as string;
+            const assignedTo = formData.get('edit-task-assigned-to') as string;
+            const eventId = formData.get('edit-task-event') as string;
+            
+            if (!title.trim() || !assignedTo) {
+              showError("Título e técnico atribuído são obrigatórios.");
+              return;
+            }
+
+            updateTask(editingTask.id, {
+              title: title.trim(),
+              description: description.trim() || undefined,
+              assigned_to: assignedTo,
+              event_id: eventId ? Number(eventId) : undefined,
+            });
+          }}>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-task-title">Título</Label>
+                <Input
+                  id="edit-task-title"
+                  name="edit-task-title"
+                  placeholder="Título da tarefa"
+                  defaultValue={editingTask?.title}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-task-description">Descrição</Label>
+                <Textarea
+                  id="edit-task-description"
+                  name="edit-task-description"
+                  placeholder="Detalhes da tarefa..."
+                  defaultValue={editingTask?.description}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-task-assigned-to">Atribuir a</Label>
+                <Select name="edit-task-assigned-to" defaultValue={editingTask?.assigned_to}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o técnico" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.filter(e => e.role === 'Técnico').map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-task-event">Evento Relacionado (Opcional)</Label>
+                <Select name="edit-task-event" defaultValue={editingTask?.event_id?.toString()}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o evento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem evento específico</SelectItem>
+                    {events.map(event => (
+                      <SelectItem key={event.id} value={String(event.id)}>
+                        {event.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-task-description">Descrição</Label>
-              <Textarea
-                id="edit-task-description"
-                placeholder="Detalhes da tarefa..."
-                defaultValue={editingTask?.description}
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-task-assigned-to">Atribuir a</Label>
-              <Select defaultValue={editingTask?.assigned_to}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o técnico" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.filter(e => e.role === 'Técnico').map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-task-event">Evento Relacionado (Opcional)</Label>
-              <Select defaultValue={editingTask?.event_id?.toString()}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o evento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {events.map(event => (
-                    <SelectItem key={event.id} value={String(event.id)}>
-                      {event.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline">Cancelar</Button>
-            <Button type="submit">Atualizar Tarefa</Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline">Cancelar</Button>
+              <Button type="submit">Atualizar Tarefa</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
