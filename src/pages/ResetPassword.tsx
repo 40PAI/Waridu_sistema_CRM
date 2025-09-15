@@ -24,6 +24,27 @@ const ResetPasswordPage = () => {
   const type = searchParams.get("type");
   const next = searchParams.get("next") || window.location.origin;
 
+  // Lógica para deslogar temporariamente durante o reset
+  useEffect(() => {
+    const clearSessionForReset = async () => {
+      try {
+        // Tenta fazer logout primeiro para evitar conflitos de sessão
+        const { error: logoutError } = await supabase.auth.signOut();
+        if (logoutError) {
+          console.warn("Warning: logout during reset failed:", logoutError);
+          // Fallback: limpa localStorage
+          localStorage.removeItem('sb-access-token');
+          localStorage.removeItem('sb-refresh-token');
+        }
+        console.log("Session cleared for password reset");
+      } catch (err) {
+        console.error("Error clearing session:", err);
+      }
+    };
+
+    clearSessionForReset();
+  }, []);
+
   useEffect(() => {
     // Verificar se o link é válido para recuperação de senha
     if (type !== 'recovery') {
@@ -57,14 +78,14 @@ const ResetPasswordPage = () => {
     }
 
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash!,
-        type: 'recovery',
-        next,
+      // Usar updateUser para atualizar a senha (mais direto para recovery)
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
       });
 
       if (error) {
-        if (error.message.includes('Invalid token')) {
+        console.error("Supabase updateUser error:", error);
+        if (error.message.includes('Invalid token') || error.message.includes('Token has expired')) {
           setErrorMessage("O link de recuperação expirou ou já foi usado. Solicite um novo.");
         } else {
           setErrorMessage(error.message);
@@ -75,11 +96,12 @@ const ResetPasswordPage = () => {
       showSuccess("Senha atualizada com sucesso! Você será redirecionado para o login.");
       setStep('success');
       
-      // Redirect after 2 seconds
+      // Redirecionar após 2 segundos
       setTimeout(() => {
         navigate('/login', { replace: true });
       }, 2000);
     } catch (error: any) {
+      console.error("Unexpected error updating password:", error);
       setErrorMessage("Erro ao atualizar senha. Tente novamente.");
     } finally {
       setLoading(false);

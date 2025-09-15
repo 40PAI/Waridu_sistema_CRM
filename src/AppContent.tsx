@@ -160,7 +160,6 @@ const FinanceCalendarWrapper = () => {
 };
 
 const CostManagementWrapper = () => {
-  // Removed unused hooks and props that don't match the component interface
   return <CostManagement />;
 };
 
@@ -175,11 +174,13 @@ const AppContent = () => {
     <Router>
       <div className="min-h-screen bg-background">
         <Routes>
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+          {/* Rotas públicas - SEM autenticação */}
+          <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/health-check" element={<HealthCheck />} />
           <Route path="/debug" element={<Debug />} />
 
+          {/* Rotas protegidas - COM autenticação */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Index />} />
             <Route path="/create-event" element={<CreateEventWrapper />} />
@@ -193,7 +194,7 @@ const AppContent = () => {
             <Route path="/admin-settings" element={<AdminSettingsWrapper />} />
             <Route path="/invite-member" element={<InviteMember />} />
 
-            {/* Technician */}
+            {/* Técnico */}
             <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
             <Route path="/technician/calendar" element={<TechnicianCalendar />} />
             <Route path="/technician/events" element={<TechnicianEvents />} />
@@ -203,7 +204,7 @@ const AppContent = () => {
             <Route path="/technician/profile" element={<TechnicianProfile />} />
             <Route path="/technician/notifications" element={<TechnicianNotifications />} />
 
-            {/* Finance */}
+            {/* Financeiro */}
             <Route path="/finance/dashboard" element={<FinanceDashboard />} />
             <Route path="/finance/profile" element={<FinanceProfile />} />
             <Route path="/finance-profitability" element={<ProfitabilityWrapper />} />
@@ -211,7 +212,7 @@ const AppContent = () => {
             <Route path="/finance-costs" element={<CostManagementWrapper />} />
             <Route path="/finance/reports" element={<Reports />} />
 
-            {/* Shared */}
+            {/* Compartilhado */}
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/notifications" element={<Notifications />} />
           </Route>
