@@ -41,8 +41,6 @@ export const CreateTaskDialog = ({ open, onOpenChange, onCreate, technicians, ev
       assigned_to: assignedTo,
       event_id: eventId ? Number(eventId) : undefined,
     });
-    
-    resetForm();
   };
 
   return (
