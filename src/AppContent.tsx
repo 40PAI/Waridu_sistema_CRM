@@ -37,6 +37,9 @@ import FinanceCalendar from "@/pages/finance/Calendar";
 import CostManagement from "@/pages/finance/CostManagement";
 import Reports from "@/pages/finance/Reports";
 import Notifications from "@/pages/Notifications";
+import MaterialManagerProfile from "@/pages/material-manager/Profile";
+import AdminTasks from "@/pages/admin/Tasks"; // New import for admin tasks page
+import CreateTask from "@/pages/admin/CreateTask"; // New import for create task page
 
 // Hooks for wrappers
 import { useEvents } from "@/hooks/useEvents";
@@ -212,8 +215,13 @@ const AppContent = () => {
             <Route path="/finance-costs" element={<CostManagementWrapper />} />
             <Route path="/finance/reports" element={<Reports />} />
 
-            {/* Compartilhado */}
+            {/* Gestor de Material */}
+            <Route path="/material-manager/profile" element={<MaterialManagerProfile />} />
+
+            {/* Admin */}
             <Route path="/admin/profile" element={<AdminProfile />} />
+            <Route path="/admin/tasks" element={<AdminTasks />} />
+            <Route path="/admin/create-task" element={<CreateTask />} />
             <Route path="/notifications" element={<Notifications />} />
           </Route>
 

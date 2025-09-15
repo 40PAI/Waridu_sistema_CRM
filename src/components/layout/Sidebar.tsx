@@ -29,6 +29,7 @@ const SidebarNav = () => {
       { to: "/material-requests", icon: <Package className="h-4 w-4" />, label: "Requisições" },
       { to: "/invite-member", icon: <Users2 className="h-4 w-4" />, label: "Convidar Membros" },
       { to: "/admin-settings", icon: <Settings className="h-4 w-4" />, label: "Configurações" },
+      { to: "/admin/tasks", icon: <CheckCircle className="h-4 w-4" />, label: "Gerenciar Tarefas" },
       { to: "/admin/profile", icon: <Users className="h-4 w-4" />, label: "Meu Perfil" },
       { to: "/notifications", icon: <Bell className="h-4 w-4" />, label: "Notificações" }
     );
@@ -39,6 +40,7 @@ const SidebarNav = () => {
       { to: "/roster-management", icon: <Users className="h-4 w-4" />, label: "Escalações" },
       { to: "/materials", icon: <Package className="h-4 w-4" />, label: "Materiais" },
       { to: "/material-requests", icon: <Package className="h-4 w-4" />, label: "Requisições" },
+      { to: "/material-manager/profile", icon: <Users className="h-4 w-4" />, label: "Meu Perfil" },
       { to: "/notifications", icon: <Bell className="h-4 w-4" />, label: "Notificações" }
     );
   } else if (role === 'Financeiro') {

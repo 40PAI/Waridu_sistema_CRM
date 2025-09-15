@@ -4,18 +4,20 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
   Admin: [
     '/', '/calendar', '/create-event', '/roster-management',
     '/employees', '/roles', '/materials', '/material-requests',
+    '/admin/tasks', '/admin/create-task',
     '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
     '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId',
-    '/notifications'
+    '/notifications', '/material-manager/profile'
   ],
   Coordenador: [
     '/', '/calendar', '/create-event', '/roster-management',
-    '/employees', '/roles', '/materials', '/invite-member', '/admin/members', '/admin/users',
+    '/employees', '/roles', '/materials', '/admin/tasks', '/admin/create-task',
+    '/invite-member', '/admin/members', '/admin/users',
     '/notifications'
   ],
   'Gestor de Material': [
     '/', '/calendar', '/roster-management', '/materials', '/material-requests',
-    '/notifications'
+    '/material-manager/profile', '/notifications'
   ],
   Financeiro: [
     '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
