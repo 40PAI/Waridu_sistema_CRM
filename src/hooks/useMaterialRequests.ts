@@ -2,13 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { MaterialRequest, MaterialRequestItem, MaterialRequestStatus, ApproveResult } from "@/types"; // Import ApproveResult
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
-import { useMaterials } from "./useMaterials"; // Import useMaterials to use decrementMaterialFromLocations
 
 export const useMaterialRequests = () => {
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { decrementMaterialFromLocations, refreshMaterials } = useMaterials(); // Use the new function
 
   useEffect(() => {
     fetchRequests();
@@ -77,7 +75,6 @@ export const useMaterialRequests = () => {
           requested_by_details: requestedBy,
           status: 'Pendente',
           created_at: new Date().toISOString(),
-          requested_by_id: requestedBy.id // Ensure requested_by_id is set
         })
         .select()
         .single();
@@ -131,109 +128,42 @@ export const useMaterialRequests = () => {
 
   const approveMaterialRequest = async (requestId: string): Promise<ApproveResult> => {
     try {
-      // 1. Fetch the request and its items
-      const { data: requestData, error: fetchRequestError } = await supabase
-          .from('material_requests')
-          .select(`
-              id,
-              event_id,
-              requested_by_id,
-              material_request_items(material_id, quantity)
-          `)
-          .eq('id', requestId)
-          .single();
+      const { error } = await supabase
+        .from('material_requests')
+        .update({ 
+          status: 'Aprovada', 
+          decided_at: new Date().toISOString() 
+        })
+        .eq('id', requestId);
 
-      if (fetchRequestError || !requestData) throw fetchRequestError || new Error("Requisição não encontrada.");
+      if (error) throw error;
 
-      const eventId = requestData.event_id;
-      const requestedItems = requestData.material_request_items;
-
-      // 2. Check for stock availability (doing it here for safety before decrementing)
-      const shortages: { materialId: string; needed: number; available: number }[] = [];
-      for (const item of requestedItems) {
-          const { data: materialLocations, error: locError } = await supabase
-              .from('material_locations')
-              .select('quantity')
-              .eq('material_id', item.material_id);
-
-          if (locError) throw locError;
-
-          const totalAvailable = materialLocations.reduce((sum, loc) => sum + loc.quantity, 0);
-          if (totalAvailable < item.quantity) {
-              shortages.push({ materialId: item.material_id, needed: item.quantity, available: totalAvailable });
-          }
-      }
-
-      if (shortages.length > 0) {
-          return { ok: false, shortages };
-      }
-
-      // 3. Decrement inventory and update event roster
-      const { data: eventData, error: fetchEventError } = await supabase
-          .from('events')
-          .select('roster')
-          .eq('id', eventId)
-          .single();
-
-      if (fetchEventError || !eventData) throw fetchEventError || new Error("Evento não encontrado.");
-
-      let currentRoster = eventData.roster || { teamLead: null, teamMembers: [], materials: {} };
-      let updatedMaterialsInRoster = { ...currentRoster.materials };
-
-      for (const item of requestedItems) {
-          // Decrement from material_locations using the helper function
-          await decrementMaterialFromLocations(item.material_id, item.quantity);
-
-          // Update event roster
-          updatedMaterialsInRoster[item.material_id] = (updatedMaterialsInRoster[item.material_id] || 0) + item.quantity;
-      }
-
-      // 4. Update the event with the new roster materials
-      const { error: updateEventError } = await supabase
-          .from('events')
-          .update({ roster: { ...currentRoster, materials: updatedMaterialsInRoster } })
-          .eq('id', eventId);
-
-      if (updateEventError) throw updateEventError;
-
-      // 5. Update the request status
-      const { error: updateRequestError } = await supabase
-          .from('material_requests')
-          .update({
-              status: 'Aprovada',
-              decided_at: new Date().toISOString()
-          })
-          .eq('id', requestId);
-
-      if (updateRequestError) throw updateRequestError;
-
-      // 6. Update local state and notify
       setMaterialRequests((prev) =>
-          prev.map((r) => (r.id === requestId ? { ...r, status: "Aprovada", decidedAt: new Date().toISOString() } : r))
+        prev.map((r) => (r.id === requestId ? { ...r, status: "Aprovada", decidedAt: new Date().toISOString() } : r))
       );
 
+      // Buscar solicitante para notificar
       const { data: reqData, error: reqErr } = await supabase
-          .from('material_requests')
-          .select('requested_by_id, event_id')
-          .eq('id', requestId)
-          .single();
+        .from('material_requests')
+        .select('requested_by_id, event_id')
+        .eq('id', requestId)
+        .single();
       if (!reqErr && reqData?.requested_by_id) {
-          await sendNotification(
-              reqData.requested_by_id,
-              "Requisição Aprovada",
-              `Sua requisição de materiais para o evento #${reqData.event_id} foi aprovada.`,
-              'material'
-          );
+        await sendNotification(
+          reqData.requested_by_id,
+          "Requisição Aprovada",
+          `Sua requisição de materiais para o evento #${reqData.event_id} foi aprovada.`,
+          'material'
+        );
       }
-      
-      refreshMaterials(); // Refresh materials to reflect inventory changes
+
       showSuccess("Requisição aprovada e estoque atualizado.");
       return { ok: true };
     } catch (error) {
       console.error("Error approving request:", error);
       const errorMessage = error instanceof Error ? error.message : "Falha ao aprovar requisição.";
       showError(errorMessage);
-      return { ok: false, shortages: [] };
+      return { ok: false, shortages: [] }; // retorno consistente
     }
   };
 

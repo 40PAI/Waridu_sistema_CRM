@@ -20,7 +20,7 @@ interface RosterDialogProps {
   event: Event;
   employees: Employee[];
   onSaveDetails: (eventId: number, details: { roster: Roster; expenses: Expense[] }) => void;
-  onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string; id: string }) => void;
+  onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => void;
   materials: InventoryMaterial[];
   onRequestsChange?: () => void;
 }
@@ -37,13 +37,10 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
   
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
   const [isSaving, setIsSaving] = React.useState(false);
-  const [isRequesting, setIsRequesting] = React.useState(false);
 
   const { user } = useAuth();
   const userRole = user?.profile?.role;
-  // The canAllocateMaterials permission is now only for direct inventory management on the Materials page,
-  // not for bypassing the request system from this dialog.
-  // const canAllocateMaterials = !!userRole && hasActionPermission(userRole, 'materials:write');
+  const canAllocateMaterials = !!userRole && hasActionPermission(userRole, 'materials:write');
 
   const activeEmployees = React.useMemo(() => employees.filter(e => e.status === 'Ativo'), [employees]);
 
@@ -54,10 +51,7 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
         .map(member => activeEmployees.find(e => e.id === member.id))
         .filter(Boolean) as Employee[];
       setSelectedEmployees(fullTeamMembers || []);
-      // When opening, materials should reflect what's already in the roster,
-      // but the user will be selecting new materials for a *new request*.
-      // So, clear selectedMaterials for a fresh request.
-      setSelectedMaterials({}); 
+      setSelectedMaterials(event.roster?.materials || {});
       setExpenses(event.expenses || []);
     } else {
       setTeamLead("");
@@ -68,7 +62,6 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
       setRoleFilter("all");
       setMaterialFilter("");
       setIsSaving(false);
-      setIsRequesting(false);
     }
   }, [open, event, activeEmployees]);
 
@@ -94,10 +87,8 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
   const handleDeselectEmployee = (employee: Employee) => setSelectedEmployees(prev => prev.filter(e => e.id !== employee.id));
 
   const handleQuantityChange = (materialId: string, quantity: number, maxQuantity: number) => {
-    if (quantity < 0) quantity = 0; // Prevent negative quantities
-    if (quantity > maxQuantity) quantity = maxQuantity; // Cap at available stock
-
-    if (quantity === 0) {
+    if (quantity > maxQuantity) quantity = maxQuantity;
+    if (quantity <= 0) {
         const newSelection = { ...selectedMaterials };
         delete newSelection[materialId];
         setSelectedMaterials(newSelection);
@@ -131,53 +122,67 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
     setExpenses(newExpenses);
   };
 
-  const handleSaveTeamAndExpenses = async () => {
+  const handleSave = async () => {
     if (isSaving) return;
     setIsSaving(true);
 
     const rosterData: Roster = {
       teamLead,
       teamMembers: selectedEmployees.map(e => ({ id: e.id, name: e.name, role: e.role })),
-      materials: event.roster?.materials || {}, // Materials are not managed here anymore
+      materials: canAllocateMaterials ? selectedMaterials : (event.roster?.materials || {}),
     };
     const details = {
       roster: rosterData,
       expenses: expenses,
     };
 
+    if (!canAllocateMaterials) {
+      const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
+      if (hasRequestedItems) {
+        if (!user || !user.email || !user.profile) {
+          showError("Sessão inválida. Faça login novamente.");
+          setIsSaving(false);
+          return;
+        }
+        await onCreateMaterialRequest(event.id, selectedMaterials, {
+          name: user.profile.first_name || user.email,
+          email: user.email,
+          role: user.profile.role,
+        });
+        showSuccess("Requisição de materiais enviada para aprovação.");
+        if (onRequestsChange) {
+          onRequestsChange();
+        }
+      }
+    }
+
     onSaveDetails(event.id, details);
-    showSuccess("Equipe e despesas do evento salvas com sucesso!");
+    if (canAllocateMaterials || Object.values(selectedMaterials).some(qty => qty > 0)) {
+      showSuccess("Detalhes do evento salvos com sucesso!");
+    }
     setOpen(false);
     setIsSaving(false);
   };
 
-  const handleSendMaterialRequest = async () => {
-    if (isRequesting) return;
-    setIsRequesting(true);
-
-    if (!user || !user.email || !user.profile || !user.id) {
+  const handleSendRequest = async () => {
+    if (!user || !user.email || !user.profile) {
       showError("Sessão inválida. Faça login novamente.");
-      setIsRequesting(false);
       return;
     }
     const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
     if (!hasRequestedItems) {
       showError("Selecione pelo menos um material para requisitar.");
-      setIsRequesting(false);
       return;
     }
     await onCreateMaterialRequest(event.id, selectedMaterials, {
       name: user.profile.first_name || user.email,
       email: user.email,
       role: user.profile.role,
-      id: user.id, // Pass user ID for RLS
     });
     showSuccess("Requisição de materiais enviada para o gestor de materiais.");
     if (onRequestsChange) {
       onRequestsChange();
     }
-    setOpen(false); // Close dialog after sending request
-    setIsRequesting(false);
   };
 
   return (
@@ -252,9 +257,6 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
             </div>
           </TabsContent>
           <TabsContent value="materiais" className="space-y-4 mt-4">
-            <p className="text-sm text-muted-foreground">
-              Selecione os materiais necessários para este evento. Uma requisição será enviada para aprovação do gestor de materiais.
-            </p>
             <Input placeholder="Buscar material..." value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value)} />
             <ScrollArea className="h-80 rounded-md border p-4">
               <div className="space-y-3">
@@ -262,7 +264,7 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
                   <div key={material.id} className="flex items-center justify-between gap-2">
                     <div className="flex items-center space-x-2 flex-shrink min-w-0">
                       <Label htmlFor={`mat-${material.id}`} className="truncate" title={material.name}>
-                        {material.name} <span className="text-xs text-muted-foreground">({Object.values(material.locations).reduce((a, b) => a + b, 0)} disponíveis)</span>
+                        {material.name} <span className="text-xs text-muted-foreground">({Object.values(material.locations).reduce((a, b) => a + b, 0)})</span>
                       </Label>
                     </div>
                     <Input 
@@ -278,6 +280,11 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
                 ))}
               </div>
             </ScrollArea>
+            {!canAllocateMaterials && (
+              <p className="text-xs text-muted-foreground">
+                Você não possui permissão para alocar diretamente. Um pedido será enviado para aprovação.
+              </p>
+            )}
           </TabsContent>
           <TabsContent value="despesas" className="space-y-4 mt-4">
             <div className="flex justify-between items-center">
@@ -323,11 +330,11 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
           </TabsContent>
         </Tabs>
         <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleSendMaterialRequest} disabled={isRequesting || !Object.values(selectedMaterials).some(qty => qty > 0)}>
-            {isRequesting ? "Enviando Requisição..." : "Enviar Requisição"}
+          <Button variant="outline" onClick={handleSendRequest} disabled={!Object.values(selectedMaterials).some(qty => qty > 0)}>
+            Enviar Requisição
           </Button>
-          <Button type="button" onClick={handleSaveTeamAndExpenses} disabled={isSaving}>
-            {isSaving ? "Salvando..." : "Salvar Equipe e Despesas"}
+          <Button type="button" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Salvando..." : "Salvar Detalhes"}
           </Button>
         </DialogFooter>
       </DialogContent>

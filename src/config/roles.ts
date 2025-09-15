@@ -6,7 +6,7 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/employees', '/roles', '/materials', '/material-requests',
     '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
     '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId',
-    '/notifications', '/admin/profile'
+    '/notifications'
   ],
   Coordenador: [
     '/', '/calendar', '/create-event', '/roster-management',
