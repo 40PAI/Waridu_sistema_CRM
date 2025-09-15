@@ -38,8 +38,8 @@ import CostManagement from "@/pages/finance/CostManagement";
 import Reports from "@/pages/finance/Reports";
 import Notifications from "@/pages/Notifications";
 import MaterialManagerProfile from "@/pages/material-manager/Profile";
-import AdminTasks from "@/pages/admin/Tasks"; // New import for admin tasks page
-import CreateTask from "@/pages/admin/CreateTask"; // New import for create task page
+import AdminTasks from "@/pages/admin/Tasks";
+import CreateTask from "@/pages/admin/CreateTask";
 
 // Hooks for wrappers
 import { useEvents } from "@/hooks/useEvents";
