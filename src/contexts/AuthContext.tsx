@@ -1,6 +1,5 @@
 import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useLocation } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -24,8 +23,6 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = React.useState<AuthContextType["user"]>(null);
   const [session, setSession] = React.useState<any>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -36,7 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-    navigate("/login");
+    window.location.href = "/login";
   };
 
   React.useEffect(() => {
@@ -60,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Se não tem role, redireciona para welcome
         if (!profileData?.role) {
-          navigate("/welcome");
+          window.location.href = "/welcome";
           setUser({ ...initialSession.user, profile: null });
           return;
         }
@@ -92,7 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Se não tem role, redireciona para welcome
         if (!profileData?.role) {
-          navigate("/welcome");
+          window.location.href = "/welcome";
           setUser({ ...nextSession.user, profile: null });
           return;
         }
@@ -105,14 +102,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else if (event === "SIGNED_OUT") {
         setUser(null);
         setSession(null);
-        navigate("/login");
+        window.location.href = "/login";
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, session, login, logout, setUser }}>
