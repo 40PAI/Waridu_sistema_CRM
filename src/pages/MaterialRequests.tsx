@@ -55,6 +55,10 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
   const [rejectReason, setRejectReason] = React.useState("");
   const [processingId, setProcessingId] = React.useState<string | null>(null);
 
+  // State for request details dialog
+  const [viewRequestOpen, setViewRequestOpen] = React.useState(false);
+  const [selectedRequest, setSelectedRequest] = React.useState<MaterialRequest | null>(null);
+
   const eventsMap = React.useMemo(() => {
     const map: Record<number, string> = {};
     events.forEach((e) => (map[e.id] = e.name));
@@ -112,6 +116,16 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
     setRejectOpen(false);
     setRejectId(null);
     setProcessingId(null);
+  };
+
+  const openRequestDetails = (request: MaterialRequest) => {
+    setSelectedRequest(request);
+    setViewRequestOpen(true);
+  };
+
+  const closeRequestDetails = () => {
+    setViewRequestOpen(false);
+    setSelectedRequest(null);
   };
 
   return (
@@ -212,11 +226,9 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
                           </Button>
                         </>
                       )}
-                      <Button variant="outline" size="icon" asChild>
-                        <a href={`/events/${request.eventId}`}>
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">Ver Evento</span>
-                        </a>
+                      <Button variant="outline" size="icon" onClick={() => openRequestDetails(request)}>
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">Ver Detalhes</span>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -251,6 +263,78 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancelar</Button>
             <Button onClick={confirmReject} disabled={!rejectReason.trim()}>Confirmar Rejeição</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para visualizar detalhes da requisição */}
+      <Dialog open={viewRequestOpen} onOpenChange={closeRequestDetails}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Requisição</DialogTitle>
+            <DialogDescription>
+              Informações completas sobre a requisição de materiais
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold text-sm mb-1">Solicitante</h4>
+                  <p className="text-sm">{selectedRequest.requestedBy.name}</p>
+                  <p className="text-sm text-muted-foreground">{selectedRequest.requestedBy.email}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm mb-1">Evento</h4>
+                  <p className="text-sm">{eventsMap[selectedRequest.eventId] || "Evento não encontrado"}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm mb-1">Data da Solicitação</h4>
+                  <p className="text-sm">{new Date(selectedRequest.createdAt).toLocaleString("pt-BR")}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm mb-1">Status</h4>
+                  <Badge variant={statusVariant(selectedRequest.status)}>{selectedRequest.status}</Badge>
+                </div>
+                {selectedRequest.reason && (
+                  <div className="md:col-span-2">
+                    <h4 className="font-semibold text-sm mb-1">Motivo</h4>
+                    <p className="text-sm">{selectedRequest.reason}</p>
+                  </div>
+                )}
+                {selectedRequest.decidedAt && (
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Data de Decisão</h4>
+                    <p className="text-sm">{new Date(selectedRequest.decidedAt).toLocaleString("pt-BR")}</p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Itens Solicitados</h4>
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Material</TableHead>
+                        <TableHead className="text-right">Quantidade</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedRequest.items.map((item, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>{materialNameMap[item.materialId] || item.materialId}</TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={closeRequestDetails}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
