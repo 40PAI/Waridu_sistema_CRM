@@ -15,7 +15,7 @@ import { hasActionPermission } from "@/config/roles";
 import { Eye, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 interface MaterialRequestsPageProps {
   requests: MaterialRequest[];
@@ -166,7 +166,7 @@ const MaterialRequestsPage = ({ requests, events, materialNameMap, onApproveRequ
         item.quantity.toString()
       ]);
       
-      (doc as any).autoTable({
+      autoTable(doc, {
         head: [['#", "Material", "Quantidade']],
         body: tableData,
         startY: 110,
