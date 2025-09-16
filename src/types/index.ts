@@ -5,8 +5,21 @@
  * Keep these definitions lightweight and aligned with how data is read/written to Supabase (mostly `string` fields and optional fields).
  */
 
-/* Roles used in the app */
-export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico' | 'Comercial';
+/* Role name union (use where only the canonical role string is needed) */
+export type RoleName =
+  | 'Admin'
+  | 'Coordenador'
+  | 'Gestor de Material'
+  | 'Financeiro'
+  | 'Técnico'
+  | 'Comercial';
+
+/* Role record as stored in DB / returned by API (id + name).
+   Some parts of the app expect Role objects with id/name, so export this interface. */
+export interface Role {
+  id: string;
+  name: RoleName | string;
+}
 
 /* Event statuses (operational) */
 export type EventStatus = 'Planejado' | 'Em Andamento' | 'Concluído' | 'Cancelado';
@@ -59,6 +72,10 @@ export interface Event {
   tags?: string[] | null;
   follow_ups?: any[] | null;
   updated_at?: string | null;
+
+  // helpful counters used in some components (optional)
+  follow_ups_count?: number;
+  follow_ups_completed?: number;
 }
 
 /* Material related types */
@@ -70,7 +87,7 @@ export interface InventoryMaterial {
   category?: string;
   description?: string | null;
   status: MaterialStatus;
-  // map of locationId -> quantity
+  // map of locationId -> quantity (numbers)
   locations: Record<string, number>;
 }
 
@@ -112,10 +129,10 @@ export type ApproveResult =
   | { ok: true }
   | { ok: false; shortages: { materialId: string; needed: number; available: number }[] };
 
-/* Utility exports that some modules expect (aliases) */
-export { Expense as EventExpense };
+/* Export a type alias for Expense if other modules expect EventExpense */
+export type { Expense as EventExpense };
 
-/* Export any additional small helpers if needed later (placeholders) */
+/* Small helper type for technician categories */
 export type TechnicianCategory = {
   id: string;
   categoryName: string;
