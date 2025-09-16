@@ -8,6 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Edit } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
 
@@ -15,8 +25,12 @@ interface ProjectCardData {
   id: number;
   name: string;
   startDate: string;
+  endDate?: string;
   pipeline_status?: PipelineStatus;
   tags?: string[];
+  location?: string;
+  status?: string;
+  description?: string;
 }
 
 interface SortableProjectCardProps {
@@ -39,7 +53,7 @@ const statusBadgeClass = (status?: PipelineStatus) => {
   }
 };
 
-export default function SortableProjectCard({ project, onEditClick }: SortableProjectCardProps) {
+export default function SortableProjectCard({ project }: SortableProjectCardProps) {
   const {
     attributes,
     listeners,
@@ -49,56 +63,108 @@ export default function SortableProjectCard({ project, onEditClick }: SortablePr
     isDragging,
   } = useSortable({ id: project.id });
 
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: transition || "transform 200ms ease, opacity 150ms ease",
     zIndex: isDragging ? 50 : undefined,
   };
 
+  const handleOpenDialog = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDialogOpen(true);
+  };
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`cursor-grab active:cursor-grabbing ${isDragging ? "opacity-70" : "opacity-100"} transition-shadow`}
-      {...attributes}
-      {...listeners}
-    >
-      <Card className="bg-white rounded-md shadow-sm hover:shadow-md">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center justify-between text-sm font-medium">
-            <div className="min-w-0">
-              <div className="truncate" title={project.name}>{project.name}</div>
-              {project.startDate && (
-                <div className="text-xs text-muted-foreground">
-                  {format(parseISO(project.startDate), "dd/MM/yyyy", { locale: ptBR })}
-                </div>
-              )}
+    <>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`cursor-grab active:cursor-grabbing ${isDragging ? "opacity-70" : "opacity-100"} transition-shadow`}
+        {...attributes}
+        {...listeners}
+      >
+        <Card className="bg-white rounded-md shadow-sm hover:shadow-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between text-sm font-medium">
+              <div className="min-w-0">
+                <div className="truncate" title={project.name}>{project.name}</div>
+                {project.startDate && (
+                  <div className="text-xs text-muted-foreground">
+                    {format(parseISO(project.startDate), "dd/MM/yyyy", { locale: ptBR })}
+                    {project.endDate && project.endDate !== project.startDate ? ` - ${format(parseISO(project.endDate), "dd/MM/yyyy", { locale: ptBR })}` : ""}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2 ml-2">
+                <Badge className={statusBadgeClass(project.pipeline_status)}>{project.pipeline_status || "—"}</Badge>
+                <button
+                  aria-label={`Detalhes de ${project.name}`}
+                  onClick={handleOpenDialog}
+                  className="text-muted-foreground hover:text-foreground"
+                  type="button"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {project.tags && project.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {project.tags.map((t: string) => (
+                  <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-lg max-w-full">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Projeto</DialogTitle>
+            <DialogDescription>
+              Informações detalhadas do projeto selecionado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <strong>Nome:</strong> {project.name}
             </div>
-            <div className="flex items-center gap-2 ml-2">
-              <Badge className={statusBadgeClass(project.pipeline_status)}>{project.pipeline_status || "—"}</Badge>
-              <button
-                aria-label={`Editar ${project.name}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEditClick?.(project);
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Edit className="h-4 w-4" />
-              </button>
+            <div>
+              <strong>Período:</strong> {project.startDate} {project.endDate && project.endDate !== project.startDate ? `- ${project.endDate}` : ""}
             </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {project.tags && project.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {project.tags.map((t: string) => (
-                <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            {project.location && (
+              <div>
+                <strong>Localização:</strong> {project.location}
+              </div>
+            )}
+            {project.status && (
+              <div>
+                <strong>Status:</strong> {project.status}
+              </div>
+            )}
+            {project.description && (
+              <div>
+                <strong>Descrição:</strong> {project.description}
+              </div>
+            )}
+            {project.tags && project.tags.length > 0 && (
+              <div>
+                <strong>Tags:</strong> {project.tags.join(", ")}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button>Fechar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
