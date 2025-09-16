@@ -180,7 +180,6 @@ const CRMDashboard = () => {
             {Object.entries(pipelineStats).map(([status, count]) => (
               <div key={status} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-<dyad-write path="src/pages/crm/Dashboard.tsx" description="Completar a página do dashboard do CRM.">
                   <Badge className={getStatusColor(status)}>{status}</Badge>
                 </div>
                 <span className="font-semibold">{count}</span>
