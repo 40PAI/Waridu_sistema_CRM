@@ -47,7 +47,6 @@ interface PipelineKanbanProps {
   onUpdateProject: (updatedProject: Project) => Promise<void>;
   clients?: { id: string; name: string }[];
   services?: { id: string; name: string }[];
-  onCreateProject?: (projectData: any) => Promise<void>; // New prop for creation
 }
 
 const columns = [
@@ -67,7 +66,7 @@ const getStatusBadge = (status: Project['pipeline_status']) => {
   }
 };
 
-export const PipelineKanban = ({ projects, onUpdateProject, clients = [], services = [], onCreateProject }: PipelineKanbanProps) => {
+export const PipelineKanban = ({ projects, onUpdateProject, clients = [], services = [] }: PipelineKanbanProps) => {
   const [activeProjectId, setActiveProjectId] = React.useState<number | null>(null);
   const [draggingProject, setDraggingProject] = React.useState<Project | null>(null);
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
@@ -148,11 +147,6 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
     setEditDialogOpen(true);
   };
 
-  const handleCreateClick = () => {
-    setEditingProject(null);
-    setEditDialogOpen(true);
-  };
-
   const handleSaveProject = async (updatedProject: Project) => {
     try {
       await onUpdateProject(updatedProject);
@@ -165,26 +159,11 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
     }
   };
 
-  const handleCreateProject = async (projectData: any) => {
-    try {
-      await onCreateProject?.(projectData);
-      setEditDialogOpen(false);
-      showSuccess("Projeto criado com sucesso!");
-    } catch (error) {
-      console.error("Erro ao criar projeto:", error);
-      showError("Erro ao criar projeto.");
-    }
-  };
-
   return (
     <>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Pipeline de Projetos</h2>
-          <Button onClick={handleCreateClick}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Projeto
-          </Button>
         </div>
 
         <DndContext
@@ -269,8 +248,6 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
         onSave={handleSaveProject}
         clients={clients}
         services={services}
-        onCreateProject={handleCreateProject}
-        isCreating={editingProject === null}
       />
     </>
   );

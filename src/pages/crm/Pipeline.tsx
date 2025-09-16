@@ -28,7 +28,7 @@ interface Project {
 }
 
 const PipelinePage = () => {
-  const { events, addEvent, updateEvent, refreshEvents } = useEvents();
+  const { events, addEvent, updateEvent } = useEvents();
   const { clients } = useClients();
   const { services } = useServices();
 
@@ -62,35 +62,44 @@ const PipelinePage = () => {
         status: updatedProject.status || "Planejado",
       };
       await updateEvent(fullProject);
-      await refreshEvents(); // Refresh to see changes
     } catch (error) {
       console.error("Erro ao atualizar projeto:", error);
       showError("Erro ao atualizar status do projeto.");
     }
   };
 
-  const handleCreateProject = async (projectData: any) => {
-    try {
-      const newProjectData = {
-        ...projectData,
-        pipeline_status: "1º Contato" as const, // Start in first column
-        status: "Planejado",
-        notes: projectData.notes || "",
-      };
-      await addEvent(newProjectData);
-      await refreshEvents(); // Refresh to see the new project
-      showSuccess("Projeto criado e adicionado ao pipeline!");
-    } catch (error) {
-      console.error("Erro ao criar projeto:", error);
-      showError("Erro ao criar projeto. Verifique as permissões.");
-    }
+  const handleCreateProject = () => {
+    // Simplified: Create a new event with pipeline_status set
+    const newProjectData = {
+      name: "Novo Projeto",
+      startDate: format(new Date(), "yyyy-MM-dd"),
+      endDate: format(new Date(), "yyyy-MM-dd"),
+      location: "",
+      startTime: "",
+      endTime: "",
+      revenue: undefined,
+      description: "Projeto criado via Pipeline",
+      pipeline_status: "1º Contato" as const, // Start in first column
+      estimated_value: 0,
+      service_ids: [],
+      client_id: undefined,
+      notes: "",
+    };
+    addEvent(newProjectData)
+      .then(() => {
+        showSuccess("Projeto criado e adicionado ao pipeline!");
+      })
+      .catch((error) => {
+        console.error("Erro ao criar projeto:", error);
+        showError("Erro ao criar projeto. Verifique as permissões.");
+      });
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Pipeline de Projetos</h1>
-        <Button onClick={() => { /* Open dialog for new project */ }}>
+        <Button onClick={handleCreateProject}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Projeto
         </Button>
@@ -101,7 +110,6 @@ const PipelinePage = () => {
         onUpdateProject={handleUpdateProject} 
         clients={clients} 
         services={services} 
-        onCreateProject={handleCreateProject}
       />
     </div>
   );
