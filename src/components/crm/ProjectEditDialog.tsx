@@ -5,9 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { showError, showSuccess } from "@/utils/toast";
@@ -24,7 +25,7 @@ interface Project {
   id: number;
   name: string;
   client_id?: string;
-  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
+  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Em andamento' | 'Cancelado' | 'Follow-up';
   service_ids: string[];
   estimated_value?: number;
   startDate: string;
@@ -139,12 +140,8 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
       showError("Nome do projeto é obrigatório.");
       return;
     }
-    if (!startDate) {
-      showError("Data de início é obrigatória.");
-      return;
-    }
-    if (!endDate) {
-      showError("Data de fim é obrigatória.");
+    if (!startDate || !endDate) {
+      showError("Datas de início e fim são obrigatórias.");
       return;
     }
     if (!location.trim()) {
@@ -206,16 +203,11 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="project-name">Nome *</Label>
-                <Input
-                  id="project-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoFocus
-                />
+                <Input id="project-name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="project-client">Cliente</Label>
-                <Select value={clientId} onValueChange={(v) => setClientId(v)}>
+                <Select value={clientId} onValueChange={setClientId}>
                   <SelectTrigger id="project-client">
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
@@ -238,6 +230,9 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
                     <SelectItem value="Orçamento">Orçamento</SelectItem>
                     <SelectItem value="Negociação">Negociação</SelectItem>
                     <SelectItem value="Confirmado">Confirmado</SelectItem>
+                    <SelectItem value="Em andamento">Em andamento</SelectItem>
+                    <SelectItem value="Cancelado">Cancelado</SelectItem>
+                    <SelectItem value="Follow-up">Follow-up</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -253,56 +248,38 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
               </div>
               <div className="space-y-2">
                 <Label htmlFor="start-date">Data de Início *</Label>
-                <Input
-                  id="start-date"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+                <Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="end-date">Data de Fim *</Label>
-                <Input
-                  id="end-date"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
+                <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="location">Localização *</Label>
-                <Input
-                  id="location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                />
+                <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status *</Label>
-                <Input
-                  id="status"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                />
+                <Input id="status" value={status} onChange={(e) => setStatus(e.target.value)} />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label>Tags</Label>
+                <Label>Tags (para destacar urgências ou informativos)</Label>
                 <div className="flex flex-wrap gap-2">
                   {tags.map(tag => (
-                    <div key={tag} className="flex items-center gap-1 bg-muted rounded px-2 py-1 text-sm">
-                      <span>{tag}</span>
+                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                      {tag}
                       <button type="button" onClick={() => handleRemoveTag(tag)} className="text-destructive font-bold leading-none">×</button>
-                    </div>
+                    </Badge>
                   ))}
-                  <input
-                    type="text"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
-                    placeholder="Adicionar tag"
-                    className="border border-border rounded px-2 py-1 text-sm"
-                  />
-                  <Button size="sm" onClick={handleAddTag}>Adicionar</Button>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      placeholder="Ex: urgente, follow-up pendente"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
+                    />
+                    <Button size="sm" onClick={handleAddTag}>Adicionar</Button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -28,7 +28,7 @@ interface Project {
   id: number;
   name: string;
   client_id?: string;
-  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
+  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Em andamento' | 'Cancelado' | 'Follow-up';
   service_ids: string[];
   estimated_value?: number;
   startDate: string;
@@ -52,18 +52,10 @@ const columns = [
   { id: 'Orçamento', title: 'Orçamento', color: 'bg-blue-100 border-blue-200' },
   { id: 'Negociação', title: 'Negociação', color: 'bg-yellow-100 border-yellow-200' },
   { id: 'Confirmado', title: 'Confirmado', color: 'bg-green-100 border-green-200' },
+  { id: 'Em andamento', title: 'Em andamento', color: 'bg-green-200 border-green-300' },
+  { id: 'Cancelado', title: 'Cancelado', color: 'bg-red-100 border-red-200' },
+  { id: 'Follow-up', title: 'Follow-up', color: 'bg-purple-100 border-purple-200' },
 ];
-
-// Badge visual
-const getStatusBadge = (status: Project['pipeline_status']) => {
-  switch (status) {
-    case '1º Contato': return 'bg-gray-100 text-gray-800';
-    case 'Orçamento': return 'bg-blue-100 text-blue-800';
-    case 'Negociação': return 'bg-yellow-100 text-yellow-800';
-    case 'Confirmado': return 'bg-green-100 text-green-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
 
 // 🔹 Componente coluna droppable
 function DroppableColumn({
@@ -124,6 +116,9 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       'Orçamento': [],
       'Negociação': [],
       'Confirmado': [],
+      'Em andamento': [],
+      'Cancelado': [],
+      'Follow-up': [],
     };
     localProjects.forEach(project => {
       if (grouped[project.pipeline_status]) {
@@ -211,7 +206,7 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
           onDragEnd={handleDragEnd}
         >
           <div
-            className="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto whitespace-nowrap px-2"
+            className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-6 overflow-x-auto whitespace-nowrap px-2"
             style={{ minHeight: 600 }}
           >
             {columns.map((column) => (
@@ -261,7 +256,15 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
                   <div className="text-xs text-muted-foreground">
                     Início: {format(new Date(draggingProject.startDate), "dd/MM/yyyy", { locale: ptBR })}
                   </div>
-                  <Badge className={getStatusBadge(draggingProject.pipeline_status)}>{draggingProject.pipeline_status}</Badge>
+                  <Badge className={cn(
+                    draggingProject.pipeline_status === '1º Contato' ? 'bg-gray-100 text-gray-800' :
+                    draggingProject.pipeline_status === 'Orçamento' ? 'bg-blue-100 text-blue-800' :
+                    draggingProject.pipeline_status === 'Negociação' ? 'bg-yellow-100 text-yellow-800' :
+                    draggingProject.pipeline_status === 'Confirmado' ? 'bg-green-100 text-green-800' :
+                    draggingProject.pipeline_status === 'Em andamento' ? 'bg-green-200 text-green-900' :
+                    draggingProject.pipeline_status === 'Cancelado' ? 'bg-red-100 text-red-800' :
+                    'bg-purple-100 text-purple-800'
+                  )}>{draggingProject.pipeline_status}</Badge>
                 </CardContent>
               </Card>
             ) : null}

@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { showError, showSuccess } from "@/utils/toast";
-import { cn } from "@/lib/utils"; // <-- imported cn for className helper
+import { cn } from "@/lib/utils";
 
-type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
+type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Em andamento' | 'Cancelado' | 'Follow-up';
 
 interface Client { id: string; name: string; }
 interface Service { id: string; name: string; }
@@ -32,6 +33,7 @@ interface Props {
     endDate: string;
     location?: string;
     notes?: string;
+    tags?: string[];
   }) => Promise<void>;
 }
 
@@ -45,6 +47,8 @@ const CreateProjectDialog: React.FC<Props> = ({ open, onOpenChange, clients = []
   const [endDate, setEndDate] = React.useState<string>(() => format(new Date(), "yyyy-MM-dd"));
   const [location, setLocation] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [tags, setTags] = React.useState<string[]>([]);
+  const [newTag, setNewTag] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
@@ -58,12 +62,26 @@ const CreateProjectDialog: React.FC<Props> = ({ open, onOpenChange, clients = []
       setEndDate(format(new Date(), "yyyy-MM-dd"));
       setLocation("");
       setNotes("");
+      setTags([]);
+      setNewTag("");
       setSubmitting(false);
     }
   }, [open]);
 
   const toggleService = (id: string) => {
     setServiceIds(prev => (prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]));
+  };
+
+  const addTag = () => {
+    const trimmed = newTag.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setNewTag("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(t => t !== tagToRemove));
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -88,6 +106,7 @@ const CreateProjectDialog: React.FC<Props> = ({ open, onOpenChange, clients = []
         endDate,
         location: location || undefined,
         notes: notes || undefined,
+        tags,
       });
       showSuccess("Projeto criado com sucesso!");
       onOpenChange(false);
@@ -109,15 +128,15 @@ const CreateProjectDialog: React.FC<Props> = ({ open, onOpenChange, clients = []
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="proj-name">Nome *</Label>
-              <Input id="proj-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Label htmlFor="proj-name">Nome do Projeto *</Label>
+              <Input id="proj-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Evento Corporativo XYZ" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="proj-client">Cliente</Label>
               <Select value={clientId} onValueChange={setClientId}>
                 <SelectTrigger id="proj-client">
-                  <SelectValue placeholder="Nenhum" />
+                  <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Nenhum</SelectItem>
@@ -135,6 +154,9 @@ const CreateProjectDialog: React.FC<Props> = ({ open, onOpenChange, clients = []
                   <SelectItem value="Orçamento">Orçamento</SelectItem>
                   <SelectItem value="Negociação">Negociação</SelectItem>
                   <SelectItem value="Confirmado">Confirmado</SelectItem>
+                  <SelectItem value="Em andamento">Em andamento</SelectItem>
+                  <SelectItem value="Cancelado">Cancelado</SelectItem>
+                  <SelectItem value="Follow-up">Follow-up</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -147,16 +169,17 @@ const CreateProjectDialog: React.FC<Props> = ({ open, onOpenChange, clients = []
                 min={0}
                 value={estimatedValue}
                 onChange={(e) => setEstimatedValue(e.target.value === "" ? "" : Number(e.target.value))}
+                placeholder="Ex: 50000"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="start-date">Data de Início</Label>
+              <Label htmlFor="start-date">Data de Início *</Label>
               <Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="end-date">Data de Fim</Label>
+              <Label htmlFor="end-date">Data de Fim *</Label>
               <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
 
@@ -184,13 +207,34 @@ const CreateProjectDialog: React.FC<Props> = ({ open, onOpenChange, clients = []
             </div>
 
             <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="location">Local</Label>
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
+              <Label htmlFor="location">Localização</Label>
+              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ex: Centro de Convenções" />
+            </div>
+
+            <div className="md:col-span-2 space-y-2">
+              <Label>Tags (para destacar urgências ou informativos)</Label>
+              <div className="flex flex-wrap gap-2">
+                {tags.map(tag => (
+                  <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                    {tag}
+                    <button type="button" onClick={() => removeTag(tag)} className="text-destructive font-bold leading-none">×</button>
+                  </Badge>
+                ))}
+                <div className="flex gap-2">
+                  <Input
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    placeholder="Ex: urgente, follow-up pendente"
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                  />
+                  <Button type="button" onClick={addTag}>Adicionar</Button>
+                </div>
+              </div>
             </div>
 
             <div className="md:col-span-2 space-y-2">
               <Label htmlFor="notes">Notas</Label>
-              <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
+              <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Observações sobre o projeto..." />
             </div>
           </div>
 
