@@ -9,6 +9,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -21,7 +22,6 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { ProjectEditDialog } from "./ProjectEditDialog";
 import SortableProjectCard from "./SortableProjectCard";
-import type { Event } from "@/types";
 import { showError, showSuccess } from "@/utils/toast";
 
 interface Project {
@@ -54,6 +54,7 @@ const columns = [
   { id: 'Confirmado', title: 'Confirmado', color: 'bg-green-100 border-green-200' },
 ];
 
+// Badge visual
 const getStatusBadge = (status: Project['pipeline_status']) => {
   switch (status) {
     case '1º Contato': return 'bg-gray-100 text-gray-800';
@@ -64,6 +65,41 @@ const getStatusBadge = (status: Project['pipeline_status']) => {
   }
 };
 
+// 🔹 Componente coluna droppable
+function DroppableColumn({
+  column,
+  children,
+  disabled,
+}: {
+  column: { id: string; title: string; color: string };
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+
+  return (
+    <Card
+      ref={setNodeRef}
+      className={cn(
+        "min-h-[600px] flex flex-col transition-all duration-200",
+        column.color,
+        isOver ? "ring-4 ring-primary shadow-2xl scale-105 bg-primary/10" : "",
+        disabled ? "opacity-50 pointer-events-none" : ""
+      )}
+      style={{ minWidth: 280 }}
+    >
+      {children}
+    </Card>
+  );
+}
+
+// 🔹 Função auxiliar: qual coluna está embaixo?
+const getOverColumnId = (over: DragOverEvent["over"]) => {
+  if (!over) return null;
+  if (columns.some(c => c.id === over.id)) return String(over.id);
+  return over.data?.current?.sortable?.containerId ?? null;
+};
+
 export const PipelineKanban = ({ projects, onUpdateProject, clients = [], services = [] }: PipelineKanbanProps) => {
   const [activeProjectId, setActiveProjectId] = React.useState<number | null>(null);
   const [draggingProject, setDraggingProject] = React.useState<Project | null>(null);
@@ -71,15 +107,17 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
   const [editingProject, setEditingProject] = React.useState<Project | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
   const [updating, setUpdating] = React.useState(false);
+  const [localProjects, setLocalProjects] = React.useState<Project[]>(projects);
+
+  React.useEffect(() => setLocalProjects(projects), [projects]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     })
   );
 
+  // Agrupa projetos por coluna
   const projectsByColumn = React.useMemo(() => {
     const grouped: Record<string, Project[]> = {
       '1º Contato': [],
@@ -87,32 +125,24 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       'Negociação': [],
       'Confirmado': [],
     };
-    projects.forEach(project => {
+    localProjects.forEach(project => {
       if (grouped[project.pipeline_status]) {
         grouped[project.pipeline_status].push(project);
       }
     });
     return grouped;
-  }, [projects]);
+  }, [localProjects]);
 
   const handleDragStart = (event: any) => {
     const { active } = event;
-    const project = projects.find(p => p.id === active.id);
+    const project = localProjects.find(p => p.id === active.id);
     setActiveProjectId(active.id);
     setDraggingProject(project || null);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    if (!over) {
-      setDragOverColumn(null);
-      return;
-    }
-    if (columns.some(col => col.id === over.id)) {
-      setDragOverColumn(over.id);
-    } else {
-      setDragOverColumn(null);
-    }
+    const colId = getOverColumnId(event.over);
+    setDragOverColumn(colId);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -121,26 +151,30 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
     setDraggingProject(null);
     setDragOverColumn(null);
 
-    if (!over) return;
-    if (updating) return; // evita múltiplas atualizações simultâneas
+    if (!over || updating) return;
 
-    const activeId = active.id as number;
-    const overId = over.id as string;
+    const targetColumnId = getOverColumnId(over);
+    if (!targetColumnId) return;
 
-    if (!columns.some(col => col.id === overId)) return;
-
-    const project = projects.find(p => p.id === activeId);
+    const project = localProjects.find(p => p.id === Number(active.id));
     if (!project) return;
 
-    // Removido: if (project.pipeline_status === overId) return; para permitir movimento mesmo se status for o mesmo (embora improvável)
+    // 🔹 Atualização otimista no UI
+    setLocalProjects(prev =>
+      prev.map(p =>
+        p.id === project.id ? { ...p, pipeline_status: targetColumnId as Project['pipeline_status'] } : p
+      )
+    );
 
     try {
       setUpdating(true);
-      await onUpdateProject({ ...project, pipeline_status: overId as Project['pipeline_status'] });
-      showSuccess(`Projeto "${project.name}" movido para "${overId}".`);
+      await onUpdateProject({ ...project, pipeline_status: targetColumnId as Project['pipeline_status'] });
+      showSuccess(`Projeto "${project.name}" movido para "${targetColumnId}".`);
     } catch (error) {
       console.error("Erro ao atualizar status do projeto:", error);
       showError("Erro ao atualizar status do projeto. Tente novamente.");
+      // 🔹 Rollback se falhar
+      setLocalProjects(prev => [...projects]);
     } finally {
       setUpdating(false);
     }
@@ -181,15 +215,10 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
             style={{ minHeight: 600 }}
           >
             {columns.map((column) => (
-              <Card
+              <DroppableColumn
                 key={column.id}
-                className={cn(
-                  "min-h-[600px] flex flex-col inline-block align-top transition-all duration-200",
-                  column.color,
-                  dragOverColumn === column.id ? "ring-4 ring-primary shadow-2xl scale-105 bg-primary/10" : "",
-                  updating ? "opacity-50 pointer-events-none" : ""
-                )}
-                style={{ minWidth: 280 }}
+                column={column}
+                disabled={updating}
               >
                 <CardHeader className="pb-3 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-border">
                   <CardTitle className="flex items-center justify-between text-sm font-medium">
@@ -213,13 +242,14 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
                       </div>
                     ))}
                   </SortableContext>
+
                   {projectsByColumn[column.id].length === 0 && dragOverColumn === column.id && (
-                    <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium">
+                    <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium bg-primary/5">
                       Solte aqui
                     </div>
                   )}
                 </CardContent>
-              </Card>
+              </DroppableColumn>
             ))}
           </div>
 
