@@ -41,6 +41,10 @@ export interface Event {
   follow_ups_completed?: number;
   updated_at?: string;
   tags?: string[];
+
+  // follow_ups is used in multiple places as an array of follow-up records
+  // keep as any[] to remain flexible; components may expect different shapes
+  follow_ups?: any[];
 }
 
 export interface Role {
