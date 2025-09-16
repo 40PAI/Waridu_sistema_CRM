@@ -9,17 +9,18 @@ import { DateRangePicker } from "@/components/common/DateRangePicker";
 import { useEvents } from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
-import { format } from "date-fns";
+import { parseISO, isWithinInterval, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Event } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DateRange } from "react-day-picker";
-import { Download, TrendingUp, TrendingDown, DollarSign, Calendar as CalendarIcon, PieChart as PieChartIcon, FileText, FileDown } from "lucide-react";
+import { Download, TrendingUp, TrendingDown, DollarSign, Calendar as CalendarIcon, PieChart as PieChartIcon, FileText, FileDown, Users, Target, BarChart3 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Link } from "react-router-dom";
 
-const CRMReports = () => {
+const Reports = () => {
   const { events, loading: eventsLoading } = useEvents();
   const { clients, loading: clientsLoading } = useClients();
   const { services, loading: servicesLoading } = useServices();
@@ -28,15 +29,12 @@ const CRMReports = () => {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [isExportingPDF, setIsExportingPDF] = React.useState(false);
 
-  // Filter projects (events with pipeline_status)
-  const projects = React.useMemo(() => {
-    return events.filter(event => event.pipeline_status);
-  }, [events]);
+  const projects = React.useMemo(() => events.filter((event) => !!event.pipeline_status), [events]);
 
   // Filter by date range
   const filteredProjects = React.useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) return projects;
-    return projects.filter(project => {
+    return projects.filter((project) => {
       const projectDate = parseISO(project.startDate);
       return isWithinInterval(projectDate, { start: dateRange.from!, end: dateRange.to! });
     });
@@ -49,16 +47,24 @@ const CRMReports = () => {
       'Orçamento': 0,
       'Negociação': 0,
       'Confirmado': 0
-    };
+    } as Record<string, number>;
 
     filteredProjects.forEach(project => {
-      if (project.pipeline_status && stats[project.pipeline_status as keyof typeof stats] !== undefined) {
-        stats[project.pipeline_status as keyof typeof stats]++;
+      if (project.pipeline_status && stats[project.pipeline_status] !== undefined) {
+        stats[project.pipeline_status] = (stats[project.pipeline_status] || 0) + 1;
       }
     });
 
     return stats;
   }, [filteredProjects]);
+
+  const pipelineData = React.useMemo(() => {
+    return Object.entries(pipelineStats).map(([name, value]) => ({
+      name,
+      value,
+      percentage: projects.length > 0 ? ((value / projects.length) * 100).toFixed(1) : '0'
+    }));
+  }, [pipelineStats, projects.length]);
 
   // Financial metrics for CRM (estimated values)
   const financialMetrics = React.useMemo(() => {
@@ -73,7 +79,7 @@ const CRMReports = () => {
   // Clients by status or activity
   const clientStats = React.useMemo(() => {
     const totalClients = clients.length;
-    const activeClients = clients.filter(c => c.updated_at > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()).length; // Last 30 days
+    const activeClients = clients.filter(c => c.updated_at && new Date(c.updated_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length;
     const highValueClients = clients.filter(c => c.notes?.includes('alto valor') || false).length;
 
     return { totalClients, activeClients, highValueClients };
@@ -135,9 +141,9 @@ const CRMReports = () => {
 
   const handleExportPDF = async () => {
     if (isExportingPDF || recentProjects.length === 0) return;
-    
+
     setIsExportingPDF(true);
-    
+
     try {
       const doc = new jsPDF({
         orientation: 'landscape',
@@ -159,15 +165,15 @@ const CRMReports = () => {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       let yPos = 40;
-      
+
       doc.text("Filtros aplicados:", margin, yPos);
       yPos += 8;
-      
+
       if (dateRange) {
         doc.text(`Período: ${format(dateRange.from!, "dd/MM/yyyy", { locale: ptBR })} - ${format(dateRange.to!, "dd/MM/yyyy", { locale: ptBR })}`, margin, yPos);
         yPos += 6;
       }
-      
+
       doc.text(`Status: ${statusFilter === "all" ? "Todos" : statusFilter}`, margin, yPos);
       yPos += 15;
 
@@ -186,9 +192,9 @@ const CRMReports = () => {
         head: [['Métrica', 'Valor']],
         body: metrics.map(m => [m.label, m.value]),
         theme: 'grid',
-        styles: { 
-          fontSize: 9, 
-          cellPadding: 4, 
+        styles: {
+          fontSize: 9,
+          cellPadding: 4,
           halign: 'left',
           overflow: 'linebreak'
         },
@@ -221,9 +227,9 @@ const CRMReports = () => {
         head: [['Projeto', 'Cliente', 'Status', 'Serviços', 'Valor Estimado', 'Data Início']],
         body: tableData,
         theme: 'striped',
-        styles: { 
-          fontSize: 8, 
-          cellPadding: 3, 
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
           halign: 'left',
           overflow: 'ellipsize'
         },
@@ -242,19 +248,17 @@ const CRMReports = () => {
           5: { cellWidth: 25, halign: 'center' }
         },
         didDrawPage: (data: any) => {
-          // Footer em todas as páginas
           const pageCount = (doc as any).internal.getNumberOfPages();
           doc.setFontSize(8);
           doc.setTextColor(128);
           doc.text(
-            `Página ${data.pageNumber} de ${pageCount} | Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}`, 
-            margin, 
+            `Página ${data.pageNumber} de ${pageCount} | Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}`,
+            margin,
             doc.internal.pageSize.height - 10
           );
         }
       });
 
-      // Salvar arquivo
       const fileName = `relatorio-crm-${format(new Date(), "yyyy-MM-dd")}.pdf`;
       doc.save(fileName);
 
@@ -264,6 +268,16 @@ const CRMReports = () => {
       showError("Falha ao gerar relatório CRM PDF. Tente novamente.");
     } finally {
       setIsExportingPDF(false);
+    }
+  };
+
+  const getStatusBadge = (status?: string) => {
+    switch (status) {
+      case '1º Contato': return <Badge className="bg-gray-100 text-gray-800">1º Contato</Badge>;
+      case 'Orçamento': return <Badge className="bg-blue-100 text-blue-800">Orçamento</Badge>;
+      case 'Negociação': return <Badge className="bg-yellow-100 text-yellow-800">Negociação</Badge>;
+      case 'Confirmado': return <Badge className="bg-green-100 text-green-800">Confirmado</Badge>;
+      default: return <Badge className="bg-gray-100 text-gray-800">1º Contato</Badge>;
     }
   };
 
@@ -297,9 +311,9 @@ const CRMReports = () => {
             <Download className="mr-2 h-4 w-4" />
             Exportar CSV
           </Button>
-          <Button 
-            onClick={handleExportPDF} 
-            variant="outline" 
+          <Button
+            onClick={handleExportPDF}
+            variant="outline"
             disabled={isExportingPDF || recentProjects.length === 0}
           >
             {isExportingPDF ? (
@@ -317,7 +331,6 @@ const CRMReports = () => {
         </div>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle>Filtros</CardTitle>
@@ -327,7 +340,7 @@ const CRMReports = () => {
           <div className="flex-1 min-w-[200px]">
             <DateRangePicker date={dateRange} onDateChange={setDateRange} />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as string)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>
@@ -345,7 +358,6 @@ const CRMReports = () => {
         </CardContent>
       </Card>
 
-      {/* Consolidated Metrics */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -373,14 +385,15 @@ const CRMReports = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">AOA {financialMetrics.confirmedValue.toLocaleString("pt-AO")}</div>
+            <div className={`text-2xl font-bold ${financialMetrics.confirmedValue >= 0 ? "text-green-600" : "text-red-600"}`}>
+              AOA {financialMetrics.confirmedValue.toLocaleString("pt-AO")}
+            </div>
             <p className="text-xs text-muted-foreground">Projetos confirmados</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Pipeline Overview */}
         <Card>
           <CardHeader>
             <CardTitle>Distribuição do Pipeline</CardTitle>
@@ -404,23 +417,20 @@ const CRMReports = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`${value} projetos`, "Quantidade"]} />
+                  <Tooltip formatter={(value: number) => [`${value} projetos`, "Quantidade"]} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <PieChartIcon className="h-12 w-12 mx-auto mb-4 opacity-40" />
-                  <p>Nenhum projeto no pipeline ainda.</p>
-                  <p className="text-sm mt-2">Comece criando seu primeiro projeto!</p>
-                </div>
+                <PieChartIcon className="h-12 w-12 mx-auto mb-4 opacity-40" />
+                <p>Nenhum projeto no pipeline ainda.</p>
+                <p className="text-sm mt-2">Comece criando seu primeiro projeto!</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Services Distribution */}
         <Card>
           <CardHeader>
             <CardTitle>Serviços Mais Solicitados</CardTitle>
@@ -440,18 +450,15 @@ const CRMReports = () => {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-40" />
-                  <p>Nenhum serviço solicitado ainda.</p>
-                  <p className="text-sm mt-2">Adicione serviços aos projetos.</p>
-                </div>
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-40" />
+                <p>Nenhum serviço solicitado ainda.</p>
+                <p className="text-sm mt-2">Adicione serviços aos projetos.</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Projects */}
       <Card>
         <CardHeader>
           <CardTitle>Projetos Recentes</CardTitle>
@@ -464,7 +471,7 @@ const CRMReports = () => {
                 <div className="space-y-1">
                   <p className="font-medium">{project.name}</p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
+                    <CalendarIcon className="h-3 w-3" />
                     {format(new Date(project.startDate), 'dd/MM/yyyy', { locale: ptBR })}
                   </div>
                 </div>
@@ -479,7 +486,7 @@ const CRMReports = () => {
               </div>
             )) : (
               <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-40" />
+                <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-40" />
                 <p>Nenhum projeto recente.</p>
                 <p className="text-sm mt-2">Comece criando seu primeiro projeto!</p>
               </div>
@@ -488,7 +495,6 @@ const CRMReports = () => {
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
@@ -537,4 +543,4 @@ const CRMReports = () => {
   );
 };
 
-export default CRMReports;
+export default Reports;

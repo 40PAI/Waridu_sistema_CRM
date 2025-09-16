@@ -6,12 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useEvents } from "@/hooks/useEvents";
-import { useClients, Client } from "@/hooks/useClients";
-import { useServices, Service } from "@/hooks/useServices";
+import { useClients } from "@/hooks/useClients";
+import { useServices } from "@/hooks/useServices";
 import { showError, showSuccess } from "@/utils/toast";
 import { Plus, Edit, Trash2, Calendar, DollarSign } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -55,9 +53,8 @@ const ProjectsPage = () => {
     endDate: ''
   });
 
-  // Filter projects (events with pipeline_status)
   const projects = React.useMemo(() => {
-    return events.filter(event => event.pipeline_status).map(event => ({
+    return events.filter((event) => !!event.pipeline_status).map((event) => ({
       id: event.id,
       name: event.name,
       client_id: event.client_id,
@@ -71,14 +68,14 @@ const ProjectsPage = () => {
   }, [events]);
 
   const clientMap = React.useMemo(() => {
-    return clients.reduce<Record<string, Client>>((acc, client) => {
+    return clients.reduce<Record<string, any>>((acc, client) => {
       acc[client.id] = client;
       return acc;
     }, {});
   }, [clients]);
 
   const serviceMap = React.useMemo(() => {
-    return services.reduce<Record<string, Service>>((acc, service) => {
+    return services.reduce<Record<string, any>>((acc, service) => {
       acc[service.id] = service;
       return acc;
     }, {});
@@ -125,11 +122,11 @@ const ProjectsPage = () => {
     }
 
     try {
-      const projectData = {
+      const projectData: any = {
         name: formData.name.trim(),
         startDate: formData.startDate,
         endDate: formData.endDate,
-        location: 'A definir', // Default for projects
+        location: 'A definir', // default location
         client_id: formData.client_id || undefined,
         pipeline_status: formData.pipeline_status,
         service_ids: formData.service_ids,
@@ -138,7 +135,20 @@ const ProjectsPage = () => {
       };
 
       if (editingProject) {
-        await updateEvent(editingProject.id, projectData);
+        // updateEvent expects an Event object; construct minimal event with CRM fields
+        await updateEvent({
+          id: editingProject.id,
+          name: projectData.name,
+          startDate: projectData.startDate,
+          endDate: projectData.endDate,
+          location: projectData.location,
+          pipeline_status: projectData.pipeline_status,
+          service_ids: projectData.service_ids,
+          estimated_value: projectData.estimated_value,
+          notes: projectData.notes,
+          // preserve required fields with defaults
+          status: 'Planejado',
+        } as any);
       } else {
         await addEvent(projectData);
       }
@@ -151,8 +161,6 @@ const ProjectsPage = () => {
 
   const handleDelete = async (projectId: number) => {
     try {
-      // For projects, we can delete them since they're not operational events yet
-      // This would need to be implemented in the events hook
       showError("Funcionalidade de exclusão ainda não implementada.");
     } catch (error) {
       // Error handling
@@ -293,34 +301,29 @@ const ProjectsPage = () => {
 
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="client" className="text-right">Cliente</Label>
-                <Select value={formData.client_id} onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={formData.client_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, client_id: e.target.value }))}
+                  className="col-span-3 border rounded p-2"
+                >
+                  <option value="">Selecione um cliente</option>
+                  {clients.map(client => (
+                    <option key={client.id} value={client.id}>{client.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">Status</Label>
-                <Select value={formData.pipeline_status} onValueChange={(value) => setFormData(prev => ({ ...prev, pipeline_status: value as Project['pipeline_status'] }))}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pipelineStatuses.map(status => (
-                      <SelectItem key={status.value} value={status.value}>
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={formData.pipeline_status}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pipeline_status: e.target.value as Project['pipeline_status'] }))}
+                  className="col-span-3 border rounded p-2"
+                >
+                  {pipelineStatuses.map(status => (
+                    <option key={status.value} value={status.value}>{status.label}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-4 items-start gap-4">
@@ -328,10 +331,11 @@ const ProjectsPage = () => {
                 <div className="col-span-3 space-y-2">
                   {services.map(service => (
                     <div key={service.id} className="flex items-center space-x-2">
-                      <Checkbox
+                      <input
                         id={`service-${service.id}`}
+                        type="checkbox"
                         checked={formData.service_ids.includes(service.id)}
-                        onCheckedChange={() => toggleService(service.id)}
+                        onChange={() => toggleService(service.id)}
                       />
                       <Label htmlFor={`service-${service.id}`} className="text-sm">
                         {service.name}

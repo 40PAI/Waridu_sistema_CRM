@@ -28,6 +28,13 @@ export interface Event {
   expenses?: Expense[];
   status: EventStatus;
   description?: string;
+
+  // CRM / project-related optional fields (added)
+  pipeline_status?: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
+  estimated_value?: number;
+  service_ids?: string[];
+  client_id?: string;
+  notes?: string;
 }
 
 export interface Role {
