@@ -15,6 +15,7 @@ import { useServices } from "@/hooks/useServices";
 import { showSuccess, showError } from "@/utils/toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import VirtualAssistant from "@/components/crm/VirtualAssistant";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -66,9 +67,6 @@ const CRMDashboard = () => {
 
   // Tempo médio de conversão (dias entre 1º Contato e Confirmado)
   const avgConversionDays = React.useMemo(() => {
-    // Para cada projeto confirmado, buscar o projeto correspondente com status 1º Contato e calcular diferença
-    // Como não temos histórico de status, vamos aproximar pela diferença entre startDate e hoje para Confirmado
-    // Melhor seria histórico, mas vamos usar diferença entre startDate e hoje para projetos Confirmados
     const confirmed = projects.filter(p => p.pipeline_status === 'Confirmado' && p.startDate);
     if (confirmed.length === 0) return 0;
     const totalDays = confirmed.reduce((sum, p) => {
@@ -150,7 +148,7 @@ const CRMDashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="text-sm">Total de Clientes</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -172,17 +170,6 @@ const CRMDashboard = () => {
 
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="text-sm">Tempo Médio de Conversão</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgConversionDays.toFixed(1)} dias</div>
-            <p className="text-xs text-muted-foreground">Média de 1º contato → confirmação</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex items-center justify-between pb-2">
             <CardTitle className="text-sm">% Follow-ups Realizados</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -193,10 +180,12 @@ const CRMDashboard = () => {
         </Card>
       </div>
 
+      <VirtualAssistant stagnantProjects={overdueProjects} />
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="text-sm">Valor Estimado Total</CardTitle>
+            <CardTitle>Valor Estimado Total</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -207,7 +196,7 @@ const CRMDashboard = () => {
 
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="text-sm">Valor Confirmado</CardTitle>
+            <CardTitle>Valor Confirmado</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -218,7 +207,7 @@ const CRMDashboard = () => {
 
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="text-sm">Projetos Estagnados</CardTitle>
+            <CardTitle>Projetos Estagnados</CardTitle>
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
@@ -230,70 +219,7 @@ const CRMDashboard = () => {
         <div />
       </div>
 
-      {overdueProjects.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Projetos Estagnados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc list-inside text-sm text-destructive">
-              {overdueProjects.map(p => (
-                <li key={p.id}>
-                  {p.name} - Última atualização: {p.updated_at ? format(new Date(p.updated_at), "dd/MM/yyyy", { locale: ptBR }) : "N/A"}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Projetos Recentes</CardTitle>
-            <CardDescription>Últimos projetos adicionados ao pipeline.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc list-inside text-sm">
-              {recentProjects.length > 0 ? recentProjects.map(p => (
-                <li key={p.id}>
-                  {p.name} - {p.pipeline_status} - {format(new Date(p.startDate), "dd/MM/yyyy", { locale: ptBR })}
-                </li>
-              )) : (
-                <li>Nenhum projeto recente.</li>
-              )}
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Clientes</CardTitle>
-            <CardDescription>Estatísticas básicas dos clientes.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div>Total: {clientStats.totalClients}</div>
-            <div>Ativos (30d): {clientStats.activeClients}</div>
-            <div>Alto Valor: {clientStats.highValueClients}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Serviços</CardTitle>
-            <CardDescription>Serviços cadastrados no sistema.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc list-inside text-sm">
-              {services.length > 0 ? services.map(s => (
-                <li key={s.id}>{s.name}</li>
-              )) : (
-                <li>Nenhum serviço cadastrado.</li>
-              )}
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
+      {/* TODO: Futuras integrações externas e previsão de receita */}
     </div>
   );
 };
