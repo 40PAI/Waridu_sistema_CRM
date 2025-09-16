@@ -35,6 +35,12 @@ export interface Event {
   service_ids?: string[];
   client_id?: string;
   notes?: string;
+
+  // Additional optional properties used across CRM pages
+  follow_ups_count?: number;
+  follow_ups_completed?: number;
+  updated_at?: string;
+  tags?: string[];
 }
 
 export interface Role {
