@@ -4,7 +4,7 @@ import * as React from "react";
 import { useEvents } from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
