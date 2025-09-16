@@ -28,16 +28,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const inviteSchema = z.object({
   employeeId: z.string().min(1, "Selecione um funcionário."),
-  roleName: z.enum(["Técnico", "Financeiro", "Gestor de Material", "Admin"], { message: "Selecione um role válido." }), // Hardcoded roles específicos
+  roleName: z.enum(["Técnico", "Financeiro", "Gestor de Material", "Admin", "Comercial"], { message: "Selecione um role válido." }),
 });
 
 type InviteFormValues = z.infer<typeof inviteSchema>;
 
-// Roles específicos que você quer (hardcoded para o dropdown)
 const specificRoles = [
   { value: "Técnico", label: "Técnico (acesso a páginas de técnico)" },
   { value: "Financeiro", label: "Financeiro (acesso a páginas financeiras)" },
   { value: "Gestor de Material", label: "Gestor de Material (acesso a materiais e requisições)" },
+  { value: "Comercial", label: "Comercial (acesso ao CRM e pipeline de projetos)" },
   { value: "Admin", label: "Admin (acesso total a todas as páginas)" },
 ] as const;
 
@@ -50,7 +50,7 @@ const InviteMember = () => {
   const canDelete = !!userRole && hasActionPermission(userRole, "members:delete");
 
   const { employees } = useEmployees();
-  const { users, refreshUsers } = useUsers(); // Fixed: Added 'users' to destructuring
+  const { users, refreshUsers } = useUsers();
   const { logs, loading: logsLoading } = useUserLogs();
 
   const [inviteSubmitting, setInviteSubmitting] = React.useState(false);
@@ -62,13 +62,11 @@ const InviteMember = () => {
 
   const inviteForm = useForm<InviteFormValues>({
     resolver: zodResolver(inviteSchema),
-    defaultValues: { employeeId: "", roleName: "Técnico" }, // Default para Técnico
+    defaultValues: { employeeId: "", roleName: "Técnico" },
   });
 
-  // Filtrar roles disponíveis baseado no role do usuário logado
   const availableRoles = React.useMemo(() => {
     return specificRoles.filter(role => {
-      // Apenas admins podem convidar/promover para Admin
       if (userRole !== 'Admin' && role.value === 'Admin') {
         return false;
       }
@@ -76,7 +74,6 @@ const InviteMember = () => {
     });
   }, [userRole]);
 
-  // Filtrar apenas funcionários que ainda não têm usuário associado
   const availableEmployees = React.useMemo(() => {
     const employeesWithUsers = new Set(users.map(u => u.employee?.id).filter(Boolean));
     return employees.filter(e => !employeesWithUsers.has(e.id));
@@ -95,15 +92,15 @@ const InviteMember = () => {
       const { error } = await supabase.functions.invoke("invite-member", {
         body: { 
           email: selectedEmployee.email, 
-          roleName: values.roleName, // Role específico selecionado
+          roleName: values.roleName,
           employeeId: values.employeeId 
         },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error) throw error;
-      showSuccess(`Convite enviado para ${selectedEmployee.email} com role ${values.roleName}! Ele terá acesso às páginas correspondentes.`);
+      showSuccess(`Convite enviado para ${selectedEmployee.email} com role ${values.roleName}!`);
       inviteForm.reset();
-      refreshUsers(); // Atualizar lista de usuários após convite
+      refreshUsers();
     } catch (err: any) {
       showError(err.message || "Erro ao enviar convite.");
     } finally {
@@ -120,8 +117,8 @@ const InviteMember = () => {
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error) throw error;
-      showSuccess(`Role "${newRole}" atribuído! O membro agora tem acesso às páginas correspondentes.`);
-      refreshUsers(); // Recarrega a lista para refletir mudanças
+      showSuccess(`Role "${newRole}" atribuído!`);
+      refreshUsers();
     } catch (err: any) {
       showError(err.message || "Erro ao atualizar role.");
     }
@@ -186,7 +183,7 @@ const InviteMember = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Gerenciar Membros</h1>
-        <p className="text-muted-foreground">Convide novos membros ou atribua roles a existentes para controlar acesso às páginas.</p>
+        <p className="text-muted-foreground">Convide novos membros ou atribua roles para controlar o acesso.</p>
       </div>
 
       <Tabs defaultValue="invite">
@@ -200,7 +197,7 @@ const InviteMember = () => {
           <Card>
             <CardHeader>
               <CardTitle>Convidar Novo Membro</CardTitle>
-              <CardDescription>Selecione um funcionário e atribua um role específico para dar acesso às páginas correspondentes.</CardDescription>
+              <CardDescription>Selecione um funcionário e atribua um role para dar acesso.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...inviteForm}>
@@ -238,7 +235,7 @@ const InviteMember = () => {
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione o role (acesso a páginas específicas)" />
+                              <SelectValue placeholder="Selecione o role" />
                             </SelectTrigger>
                             <SelectContent>
                               {availableRoles.map(role => (
@@ -266,7 +263,7 @@ const InviteMember = () => {
           <Card>
             <CardHeader>
               <CardTitle>Lista de Membros</CardTitle>
-              <CardDescription>Atribua roles diretamente para dar acesso às páginas (ex: Técnico acessa dashboard técnico).</CardDescription>
+              <CardDescription>Atribua roles diretamente para dar acesso às páginas.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -304,7 +301,7 @@ const InviteMember = () => {
                             </SelectTrigger>
                             <SelectContent>
                               {specificRoles
-                                .filter(role => role.value !== u.role) // Exclui o atual
+                                .filter(role => role.value !== u.role)
                                 .map(role => (
                                   <SelectItem key={role.value} value={role.value}>
                                     {role.label}
@@ -381,7 +378,6 @@ const InviteMember = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Diálogos para Ban e Delete (mantidos como antes) */}
       <Dialog open={banDialog.open} onOpenChange={(open) => setBanDialog({ ...banDialog, open })}>
         <DialogContent>
           <DialogHeader>

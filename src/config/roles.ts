@@ -1,4 +1,4 @@
-export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico';
+export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro' | 'Técnico' | 'Comercial';
 
 export const PAGE_PERMISSIONS: Record<Role, string[]> = {
   Admin: [
@@ -7,7 +7,9 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/admin/tasks', '/admin/create-task',
     '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
     '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId',
-    '/notifications', '/material-manager/profile'
+    '/notifications', '/material-manager/profile', '/admin/profile',
+    // New CRM pages for Admin
+    '/crm/dashboard', '/crm/pipeline', '/crm/clients'
   ],
   Coordenador: [
     '/', '/calendar', '/create-event', '/roster-management',
@@ -28,13 +30,18 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/technician/events/:eventId', '/technician/tasks',
     '/technician/tasks-kanban', '/technician/profile', '/technician/notifications', '/notifications'
   ],
+  Comercial: [
+    '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/notifications'
+  ],
 };
 
 export const ACTION_PERMISSIONS: Record<Role, string[]> = {
   Admin: [
     'members:invite', 'members:promote', 'members:ban', 'members:delete',
     'materials:write', 'employees:write', 'employees:assign_category', 'categories:manage',
-    'tasks:create'
+    'tasks:create',
+    // New CRM actions for Admin
+    'projects:write', 'clients:write'
   ],
   Coordenador: [
     'members:invite', 'members:promote', 'employees:write',
@@ -46,7 +53,10 @@ export const ACTION_PERMISSIONS: Record<Role, string[]> = {
   Financeiro: [
     'categories:manage'
   ],
-  Técnico: []
+  Técnico: [],
+  Comercial: [
+    'projects:write', 'clients:write'
+  ],
 };
 
 export function hasPermission(role: Role | undefined, path: string): boolean {
@@ -54,6 +64,7 @@ export function hasPermission(role: Role | undefined, path: string): boolean {
   const permissions = PAGE_PERMISSIONS[role] || [];
   return permissions.some(p => {
     if (p.endsWith('/:roleId')) return path === '/roles' || path.startsWith('/roles/');
+    if (p.endsWith('/:eventId')) return path.startsWith('/technician/events/');
     return path === p || (p.endsWith('*') && path.startsWith(p.slice(0, -1)));
   });
 }
