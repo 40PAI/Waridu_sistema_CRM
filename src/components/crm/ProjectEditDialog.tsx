@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { showError, showSuccess } from "@/utils/toast";
+import { cn } from "@/lib/utils";
 
 interface FollowUp {
   id: string;
@@ -27,6 +28,9 @@ interface Project {
   service_ids: string[];
   estimated_value?: number;
   startDate: string;
+  endDate: string;
+  location: string;
+  status: string;
   tags?: string[];
   follow_ups?: FollowUp[];
   notes?: string;
@@ -48,6 +52,9 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
   const [serviceIds, setServiceIds] = React.useState<string[]>([]);
   const [estimatedValue, setEstimatedValue] = React.useState<number | "">("");
   const [startDate, setStartDate] = React.useState("");
+  const [endDate, setEndDate] = React.useState("");
+  const [location, setLocation] = React.useState("");
+  const [status, setStatus] = React.useState("");
   const [tags, setTags] = React.useState<string[]>([]);
   const [newTag, setNewTag] = React.useState("");
   const [followUps, setFollowUps] = React.useState<FollowUp[]>([]);
@@ -65,6 +72,9 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
       setServiceIds(project.service_ids || []);
       setEstimatedValue(project.estimated_value ?? "");
       setStartDate(project.startDate);
+      setEndDate(project.endDate);
+      setLocation(project.location);
+      setStatus(project.status);
       setTags(project.tags || []);
       setFollowUps(project.follow_ups || []);
       setNotes(project.notes || "");
@@ -75,6 +85,9 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
       setServiceIds([]);
       setEstimatedValue("");
       setStartDate("");
+      setEndDate("");
+      setLocation("");
+      setStatus("");
       setTags([]);
       setFollowUps([]);
       setNotes("");
@@ -130,6 +143,18 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
       showError("Data de início é obrigatória.");
       return;
     }
+    if (!endDate) {
+      showError("Data de fim é obrigatória.");
+      return;
+    }
+    if (!location.trim()) {
+      showError("Localização é obrigatória.");
+      return;
+    }
+    if (!status.trim()) {
+      showError("Status é obrigatório.");
+      return;
+    }
     if (estimatedValue !== "" && (typeof estimatedValue !== "number" || estimatedValue < 0)) {
       showError("Valor estimado deve ser um número positivo.");
       return;
@@ -145,6 +170,9 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
         service_ids: serviceIds,
         estimated_value: estimatedValue === "" ? undefined : Number(estimatedValue),
         startDate,
+        endDate,
+        location,
+        status,
         tags,
         follow_ups: followUps,
         notes,
@@ -187,7 +215,7 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
               </div>
               <div className="space-y-2">
                 <Label htmlFor="project-client">Cliente</Label>
-                <Select value={clientId} onValueChange={setClientId}>
+                <Select value={clientId} onValueChange={(v) => setClientId(v)}>
                   <SelectTrigger id="project-client">
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
@@ -201,7 +229,7 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
               </div>
               <div className="space-y-2">
                 <Label htmlFor="pipeline-status">Status do Pipeline</Label>
-                <Select value={pipelineStatus} onValueChange={setPipelineStatus}>
+                <Select value={pipelineStatus} onValueChange={(v) => setPipelineStatus(v as Project['pipeline_status'])}>
                   <SelectTrigger id="pipeline-status">
                     <SelectValue />
                   </SelectTrigger>
@@ -230,6 +258,31 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-date">Data de Fim *</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Localização *</Label>
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status *</Label>
+                <Input
+                  id="status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
                 />
               </div>
               <div className="space-y-2 col-span-2">
@@ -308,9 +361,8 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
           </TabsContent>
 
           <TabsContent value="notes" className="space-y-4 mt-4">
-            <Label htmlFor="project-notes">Notas Gerais</Label>
+            <Label>Notas Gerais</Label>
             <Textarea
-              id="project-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={6}
