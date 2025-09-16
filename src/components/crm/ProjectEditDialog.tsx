@@ -39,13 +39,15 @@ interface Project {
 interface ProjectEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  project: Project | null;
+  project?: Project | null;
   onSave: (updatedProject: Project) => Promise<void>;
   clients: { id: string; name: string }[];
   services: { id: string; name: string }[];
+  onCreateProject?: (projectData: any) => Promise<void>; // New prop for creation
+  isCreating?: boolean; // Flag to indicate creation mode
 }
 
-export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients, services }: ProjectEditDialogProps) => {
+export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients, services, onCreateProject, isCreating = false }: ProjectEditDialogProps) => {
   const [name, setName] = React.useState("");
   const [clientId, setClientId] = React.useState<string>("");
   const [pipelineStatus, setPipelineStatus] = React.useState<Project['pipeline_status']>('1º Contato');
@@ -84,10 +86,10 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
       setPipelineStatus('1º Contato');
       setServiceIds([]);
       setEstimatedValue("");
-      setStartDate("");
-      setEndDate("");
+      setStartDate(format(new Date(), "yyyy-MM-dd"));
+      setEndDate(format(new Date(), "yyyy-MM-dd"));
       setLocation("");
-      setStatus("");
+      setStatus("Planejado");
       setTags([]);
       setFollowUps([]);
       setNotes("");
@@ -162,7 +164,7 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
 
     setSaving(true);
     try {
-      await onSave({
+      const projectData: Project = {
         id: project?.id || 0,
         name: name.trim(),
         client_id: clientId || undefined,
@@ -176,8 +178,21 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
         tags,
         follow_ups: followUps,
         notes,
-      });
-      showSuccess("Projeto salvo com sucesso!");
+      };
+
+      if (isCreating && onCreateProject) {
+        // Creation mode
+        await onCreateProject(projectData);
+      } else {
+        // Edit mode
+        if (!project) {
+          showError("Projeto não encontrado para edição.");
+          return;
+        }
+        await onSave(projectData);
+      }
+
+      showSuccess(isCreating ? "Projeto criado com sucesso!" : "Projeto salvo com sucesso!");
       onOpenChange(false);
     } catch (error) {
       console.error("Erro ao salvar projeto:", error);
