@@ -45,6 +45,7 @@ import CreateTask from "@/pages/admin/CreateTask";
 import CRMDashboard from "@/pages/crm/Dashboard";
 import ClientsPage from "@/pages/crm/Clients";
 import ProjectsPage from "@/pages/crm/Projects";
+import CRMReports from "@/pages/crm/Reports";
 
 // Hooks for wrappers
 import { useEvents } from "@/hooks/useEvents";
@@ -233,6 +234,7 @@ const AppContent = () => {
             <Route path="/crm/dashboard" element={<CRMDashboard />} />
             <Route path="/crm/clients" element={<ClientsPage />} />
             <Route path="/crm/projects" element={<ProjectsPage />} />
+            <Route path="/crm/reports" element={<CRMReports />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

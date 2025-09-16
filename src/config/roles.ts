@@ -9,7 +9,7 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId',
     '/notifications', '/material-manager/profile', '/admin/profile',
     // New CRM pages for Admin
-    '/crm/dashboard', '/crm/pipeline', '/crm/clients'
+    '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/crm/reports'
   ],
   Coordenador: [
     '/', '/calendar', '/create-event', '/roster-management',
@@ -31,7 +31,7 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/technician/tasks-kanban', '/technician/profile', '/technician/notifications', '/notifications'
   ],
   Comercial: [
-    '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/notifications'
+    '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/crm/reports', '/notifications'
   ],
 };
 
