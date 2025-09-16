@@ -44,7 +44,7 @@ import CreateTask from "@/pages/admin/CreateTask";
 // CRM Pages
 import CRMDashboard from "@/pages/crm/Dashboard";
 import ClientsPage from "@/pages/crm/Clients";
-import ProjectsPage from "@/pages/crm/Projects";
+import PipelinePage from "@/pages/crm/Pipeline";
 import CRMReports from "@/pages/crm/Reports";
 
 // Hooks for wrappers
@@ -233,7 +233,7 @@ const AppContent = () => {
             {/* CRM */}
             <Route path="/crm/dashboard" element={<CRMDashboard />} />
             <Route path="/crm/clients" element={<ClientsPage />} />
-            <Route path="/crm/projects" element={<ProjectsPage />} />
+            <Route path="/crm/pipeline" element={<PipelinePage />} />
             <Route path="/crm/reports" element={<CRMReports />} />
           </Route>
 
