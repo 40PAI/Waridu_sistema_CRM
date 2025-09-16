@@ -63,7 +63,43 @@ export default function PipelinePage() {
     return !!e.pipeline_status;
   };
 
-  const projectsWithPipeline = events.filter(hasPipeline);
+  // Local Project type matching PipelineKanban expected shape
+  type Project = {
+    id: number;
+    name: string;
+    client_id?: string;
+    pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
+    service_ids: string[];
+    estimated_value?: number;
+    startDate: string;
+    endDate: string;
+    location: string;
+    status: string;
+    tags?: string[];
+    follow_ups?: any[];
+    notes?: string;
+  };
+
+  // Map events with pipeline_status into Project[] and provide defaults for required fields
+  const projectsWithPipeline: Project[] = React.useMemo(() => {
+    return events
+      .filter(hasPipeline)
+      .map((e) => ({
+        id: e.id,
+        name: e.name ?? `Evento ${e.id}`,
+        client_id: e.client_id,
+        pipeline_status: e.pipeline_status,
+        service_ids: e.service_ids ?? [],
+        estimated_value: e.estimated_value,
+        startDate: e.startDate,
+        endDate: e.endDate ?? e.startDate,
+        location: e.location ?? "",
+        status: e.status ?? "Planejado",
+        tags: e.tags ?? [],
+        follow_ups: e.follow_ups ?? [],
+        notes: e.notes ?? "",
+      }));
+  }, [events]);
 
   return (
     <div className="space-y-6">
