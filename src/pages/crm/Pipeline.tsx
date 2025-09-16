@@ -23,14 +23,25 @@ const PipelinePage = () => {
       estimated_value: event.estimated_value,
       startDate: event.startDate,
       tags: event.tags || [],
-      follow_ups: event.follow_ups || [],
+      follow_ups: (event as any).follow_ups || [], // cast to any to avoid TS error
       notes: event.notes || "",
+      // Provide required fields for Event type
+      endDate: event.endDate || event.startDate,
+      location: event.location || "",
+      status: event.status || "Planejado",
     }));
   }, [events]);
 
   const handleUpdateProject = async (updatedProject: Partial<typeof projects[0]> & { id: number }) => {
     try {
-      await updateEvent(updatedProject);
+      // Ensure required fields exist before update
+      const fullProject = {
+        ...updatedProject,
+        endDate: updatedProject.endDate || updatedProject.startDate || "",
+        location: updatedProject.location || "",
+        status: updatedProject.status || "Planejado",
+      };
+      await updateEvent(fullProject);
     } catch (error) {
       console.error("Erro ao atualizar projeto:", error);
       showError("Erro ao atualizar status do projeto.");

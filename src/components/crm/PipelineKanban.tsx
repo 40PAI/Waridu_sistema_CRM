@@ -34,6 +34,9 @@ interface Project {
   service_ids: string[];
   estimated_value?: number;
   startDate: string;
+  endDate: string;
+  location: string;
+  status: string;
   tags?: string[];
   follow_ups?: any[];
   notes?: string;
@@ -41,7 +44,7 @@ interface Project {
 
 interface PipelineKanbanProps {
   projects: Project[];
-  onUpdateProject: (updatedProject: Partial<Project> & { id: number }) => Promise<void>;
+  onUpdateProject: (updatedProject: Project) => Promise<void>;
   clients?: { id: string; name: string }[];
   services?: { id: string; name: string }[];
 }
@@ -111,7 +114,7 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       const newStatus = overId as Project['pipeline_status'];
       const project = projects.find(p => p.id === activeId);
       if (project && project.pipeline_status !== newStatus) {
-        onUpdateProject({ id: activeId, pipeline_status: newStatus }).catch(() => {
+        onUpdateProject({ ...project, pipeline_status: newStatus }).catch(() => {
           showError("Erro ao atualizar status do projeto.");
         });
       }
@@ -132,7 +135,7 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       const newStatus = overId as Project['pipeline_status'];
       const project = projects.find(p => p.id === activeId);
       if (project && project.pipeline_status !== newStatus) {
-        onUpdateProject({ id: activeId, pipeline_status: newStatus }).catch(() => {
+        onUpdateProject({ ...project, pipeline_status: newStatus }).catch(() => {
           showError("Erro ao atualizar status do projeto.");
         });
       }
