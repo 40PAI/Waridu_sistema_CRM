@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { showError, showSuccess } from "@/utils/toast";
+import { cn } from "@/lib/utils"; // <-- imported cn for className helper
 
 type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
 

@@ -9,6 +9,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
+import type { Event } from "@/types";
 
 export default function PipelinePage() {
   const { events, addEvent, updateEvent } = useEvents();
@@ -57,6 +58,13 @@ export default function PipelinePage() {
     await updateEvent(updatedProject);
   };
 
+  // Type predicate to narrow Event to those that have pipeline_status defined
+  const hasPipeline = (e: Event): e is Event & { pipeline_status: NonNullable<Event["pipeline_status"]> } => {
+    return !!e.pipeline_status;
+  };
+
+  const projectsWithPipeline = events.filter(hasPipeline);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -70,7 +78,7 @@ export default function PipelinePage() {
       </div>
 
       <PipelineKanban
-        projects={events.filter(e => !!e.pipeline_status)}
+        projects={projectsWithPipeline}
         onUpdateProject={handleUpdateProject}
         clients={clients}
         services={services}
