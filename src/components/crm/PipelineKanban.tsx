@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { ProjectEditDialog } from "./ProjectEditDialog";
 import SortableProjectCard from "./SortableProjectCard";
 import type { Event } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasActionPermission } from "@/config/roles";
 
 interface Project {
   id: number;
@@ -65,10 +67,15 @@ const getStatusBadge = (status: Project['pipeline_status']) => {
 };
 
 export const PipelineKanban = ({ projects, onUpdateProject, clients = [], services = [] }: PipelineKanbanProps) => {
+  const { user } = useAuth();
+  const role = user?.profile?.role;
+  const canUpdate = hasActionPermission(role, 'projects:write') || hasActionPermission(role, 'projects:update');
+
   const [activeProjectId, setActiveProjectId] = React.useState<number | null>(null);
   const [draggingProject, setDraggingProject] = React.useState<Project | null>(null);
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [editingProject, setEditingProject] = React.useState<Project | null>(null);
+  const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
   const navigate = useNavigate();
 
   const sensors = useSensors(
@@ -103,19 +110,28 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
-    if (!over) return;
+    if (!over) {
+      setDragOverColumn(null);
+      return;
+    }
 
     const activeId = active.id as number;
     const overId = over.id as string;
 
     if (columns.some(col => col.id === overId)) {
+      setDragOverColumn(overId);
       const newStatus = overId as Project['pipeline_status'];
       const project = projects.find(p => p.id === activeId);
-      if (project && project.pipeline_status !== newStatus) {
+      if (!project) return;
+      if (!canUpdate) return;
+      if (project.pipeline_status !== newStatus) {
+        // Optionally, debounce or throttle this update if needed
         onUpdateProject({ ...project, pipeline_status: newStatus }).catch(() => {
           console.error("Erro ao atualizar status do projeto.");
         });
       }
+    } else {
+      setDragOverColumn(null);
     }
   };
 
@@ -123,20 +139,23 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
     const { active, over } = event;
     setActiveProjectId(null);
     setDraggingProject(null);
+    setDragOverColumn(null);
 
     if (!over) return;
 
     const activeId = active.id as number;
     const overId = over.id as string;
 
+    if (!canUpdate) return;
+
     if (columns.some(col => col.id === overId)) {
       const newStatus = overId as Project['pipeline_status'];
       const project = projects.find(p => p.id === activeId);
-      if (project && project.pipeline_status !== newStatus) {
-        onUpdateProject({ ...project, pipeline_status: newStatus }).catch(() => {
-          console.error("Erro ao atualizar status do projeto.");
-        });
-      }
+      if (!project) return;
+      if (project.pipeline_status === newStatus) return; // evita update desnecessário
+      onUpdateProject({ ...project, pipeline_status: newStatus }).catch(() => {
+        console.error("Erro ao atualizar status do projeto.");
+      });
     }
   };
 
@@ -176,8 +195,9 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
               <Card
                 key={column.id}
                 className={cn(
-                  "min-h-[600px] flex flex-col inline-block align-top",
-                  column.color
+                  "min-h-[600px] flex flex-col inline-block align-top transition-shadow",
+                  column.color,
+                  dragOverColumn === column.id ? "ring-2 ring-primary shadow-lg" : ""
                 )}
                 style={{ minWidth: 280 }}
               >
