@@ -41,6 +41,11 @@ import MaterialManagerProfile from "@/pages/material-manager/Profile";
 import AdminTasks from "@/pages/admin/Tasks";
 import CreateTask from "@/pages/admin/CreateTask";
 
+// CRM Pages
+import CRMDashboard from "@/pages/crm/Dashboard";
+import ClientsPage from "@/pages/crm/Clients";
+import ProjectsPage from "@/pages/crm/Projects";
+
 // Hooks for wrappers
 import { useEvents } from "@/hooks/useEvents";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -223,6 +228,11 @@ const AppContent = () => {
             <Route path="/admin/tasks" element={<AdminTasks />} />
             <Route path="/admin/create-task" element={<CreateTask />} />
             <Route path="/notifications" element={<Notifications />} />
+
+            {/* CRM */}
+            <Route path="/crm/dashboard" element={<CRMDashboard />} />
+            <Route path="/crm/clients" element={<ClientsPage />} />
+            <Route path="/crm/projects" element={<ProjectsPage />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
