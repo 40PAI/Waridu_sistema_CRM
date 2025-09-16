@@ -53,7 +53,7 @@ const statusBadgeClass = (status?: PipelineStatus) => {
   }
 };
 
-export default function SortableProjectCard({ project }: SortableProjectCardProps) {
+export default function SortableProjectCard({ project, onEditClick }: SortableProjectCardProps) {
   const {
     attributes,
     listeners,
@@ -87,28 +87,37 @@ export default function SortableProjectCard({ project }: SortableProjectCardProp
       >
         <Card className="bg-white rounded-md shadow-sm hover:shadow-md">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between text-sm font-medium">
-              <div className="min-w-0">
-                <div className="truncate" title={project.name}>{project.name}</div>
-                {project.startDate && (
-                  <div className="text-xs text-muted-foreground">
-                    {format(parseISO(project.startDate), "dd/MM/yyyy", { locale: ptBR })}
-                    {project.endDate && project.endDate !== project.startDate ? ` - ${format(parseISO(project.endDate), "dd/MM/yyyy", { locale: ptBR })}` : ""}
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex flex-col">
+                <div className="truncate font-semibold text-sm" title={project.name}>
+                  {project.name}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {project.startDate && (
+                    <>
+                      {format(parseISO(project.startDate), "dd/MM/yyyy", { locale: ptBR })}
+                      {project.endDate && project.endDate !== project.startDate ? ` - ${format(parseISO(project.endDate), "dd/MM/yyyy", { locale: ptBR })}` : ""}
+                    </>
+                  )}
+                </div>
+                {project.location && (
+                  <div className="text-xs text-muted-foreground mt-1 truncate" title={project.location}>
+                    {project.location}
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2 ml-2">
+              <div className="flex items-center gap-2 ml-2 flex-shrink-0">
                 <Badge className={statusBadgeClass(project.pipeline_status)}>{project.pipeline_status || "—"}</Badge>
                 <button
                   aria-label={`Detalhes de ${project.name}`}
                   onClick={handleOpenDialog}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded focus:outline-none focus:ring-2 focus:ring-primary"
                   type="button"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
               </div>
-            </CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             {project.tags && project.tags.length > 0 && (
