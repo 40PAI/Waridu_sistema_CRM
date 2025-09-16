@@ -2,11 +2,15 @@
 
 import * as React from "react";
 import { useEvents } from "@/hooks/useEvents";
+import { useClients } from "@/hooks/useClients";
+import { useServices } from "@/hooks/useServices";
 import { showError } from "@/utils/toast";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
 
 const ProjectsPage = () => {
   const { events, updateEvent } = useEvents();
+  const { clients } = useClients();
+  const { services } = useServices();
 
   // Filtrar apenas projetos com pipeline_status definido
   const projects = React.useMemo(() => {
@@ -19,15 +23,14 @@ const ProjectsPage = () => {
       estimated_value: event.estimated_value,
       startDate: event.startDate,
       tags: event.tags || [],
+      follow_ups: event.follow_ups || [],
+      notes: event.notes || "",
     }));
   }, [events]);
 
   const handleUpdateProject = async (updatedProject: Partial<typeof projects[0]> & { id: number }) => {
     try {
-      await updateEvent({
-        id: updatedProject.id,
-        pipeline_status: updatedProject.pipeline_status,
-      });
+      await updateEvent(updatedProject);
     } catch (error) {
       console.error("Erro ao atualizar projeto:", error);
       showError("Erro ao atualizar status do projeto.");
@@ -36,7 +39,12 @@ const ProjectsPage = () => {
 
   return (
     <div className="p-4">
-      <PipelineKanban projects={projects} onUpdateProject={handleUpdateProject} />
+      <PipelineKanban 
+        projects={projects} 
+        onUpdateProject={handleUpdateProject} 
+        clients={clients} 
+        services={services} 
+      />
     </div>
   );
 };
