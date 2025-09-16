@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Em andamento' | 'Cancelado' | 'Acompanhamento';
+type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Cancelado';
 
 interface ProjectCardData {
   id: number;
@@ -52,12 +52,8 @@ const statusBadgeClass = (status?: PipelineStatus) => {
       return "bg-yellow-100 text-yellow-800";
     case "Confirmado":
       return "bg-green-100 text-green-800";
-    case "Em andamento":
-      return "bg-green-200 text-green-900";
     case "Cancelado":
       return "bg-red-100 text-red-800";
-    case "Acompanhamento":
-      return "bg-purple-100 text-purple-800";
     default:
       return "bg-gray-100 text-gray-800";
   }

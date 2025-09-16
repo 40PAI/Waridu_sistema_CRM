@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { showError, showSuccess } from "@/utils/toast";
 import { cn } from "@/lib/utils";
 
-type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Em andamento' | 'Cancelado' | 'Acompanhamento';
+type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Cancelado';
 
 interface Client { id: string; name: string; }
 interface Service { id: string; name: string; }
@@ -153,10 +153,8 @@ const CreateProjectDialog: React.FC<Props> = ({ open, onOpenChange, clients = []
                   <SelectItem value="1º Contato">1º Contato</SelectItem>
                   <SelectItem value="Orçamento">Orçamento</SelectItem>
                   <SelectItem value="Negociação">Negociação</SelectItem>
-                  <SelectItem value="Confirmado">Confirmado</SelectItem>
-                  <SelectItem value="Em andamento">Em andamento</SelectItem>
+                  <SelectItem value="Confirmado">Confirmado (Fechado)</SelectItem>
                   <SelectItem value="Cancelado">Cancelado</SelectItem>
-                  <SelectItem value="Acompanhamento">Acompanhamento</SelectItem>
                 </SelectContent>
               </Select>
             </div>

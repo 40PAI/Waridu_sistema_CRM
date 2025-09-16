@@ -28,7 +28,7 @@ interface Project {
   id: number;
   name: string;
   client_id?: string;
-  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Em andamento' | 'Cancelado' | 'Acompanhamento';
+  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Cancelado';
   service_ids: string[];
   estimated_value?: number;
   startDate: string;
@@ -51,9 +51,7 @@ const columns = [
   { id: '1º Contato', title: '1º Contato', color: 'bg-gray-100 border-gray-200' },
   { id: 'Orçamento', title: 'Orçamento', color: 'bg-blue-100 border-blue-200' },
   { id: 'Negociação', title: 'Negociação', color: 'bg-yellow-100 border-yellow-200' },
-  { id: 'Confirmado', title: 'Confirmado', color: 'bg-green-100 border-green-200' },
-  { id: 'Em andamento', title: 'Em andamento', color: 'bg-green-200 border-green-300' },
-  { id: 'Acompanhamento', title: 'Acompanhamento', color: 'bg-purple-100 border-purple-200' },
+  { id: 'Confirmado', title: 'Confirmado (Fechado)', color: 'bg-green-100 border-green-200' },
   { id: 'Cancelado', title: 'Cancelado', color: 'bg-red-100 border-red-200' },
 ];
 
@@ -116,8 +114,6 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       'Orçamento': [],
       'Negociação': [],
       'Confirmado': [],
-      'Em andamento': [],
-      'Acompanhamento': [],
       'Cancelado': [],
     };
     localProjects.forEach(project => {
@@ -206,7 +202,7 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
           onDragEnd={handleDragEnd}
         >
           <div
-            className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-6 overflow-x-auto whitespace-nowrap px-2"
+            className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-6 overflow-x-auto whitespace-nowrap px-2"
             style={{ minHeight: 600 }}
           >
             {columns.map((column) => (
@@ -261,9 +257,7 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
                     draggingProject.pipeline_status === 'Orçamento' ? 'bg-blue-100 text-blue-800' :
                     draggingProject.pipeline_status === 'Negociação' ? 'bg-yellow-100 text-yellow-800' :
                     draggingProject.pipeline_status === 'Confirmado' ? 'bg-green-100 text-green-800' :
-                    draggingProject.pipeline_status === 'Em andamento' ? 'bg-green-200 text-green-900' :
-                    draggingProject.pipeline_status === 'Cancelado' ? 'bg-red-100 text-red-800' :
-                    'bg-purple-100 text-purple-800'
+                    'bg-red-100 text-red-800'
                   )}>{draggingProject.pipeline_status}</Badge>
                 </CardContent>
               </Card>
