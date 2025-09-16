@@ -4,115 +4,85 @@ import * as React from "react";
 import { useEvents } from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
-import { showError, showSuccess } from "@/utils/toast";
-import { PipelineKanban } from "@/components/crm/PipelineKanban";
+import CreateProjectDialog from "@/components/crm/CreateProjectDialog";
+import { showSuccess, showError } from "@/utils/toast";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import type { EventStatus } from "@/types";
-import { format } from "date-fns";
+import { PipelineKanban } from "@/components/crm/PipelineKanban";
 
-interface Project {
-  id: number;
-  name: string;
-  client_id?: string;
-  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
-  service_ids: string[];
-  estimated_value?: number;
-  startDate: string;
-  endDate: string;
-  location: string;
-  status: EventStatus;
-  tags?: string[];
-  follow_ups?: any[];
-  notes?: string;
-}
-
-const PipelinePage = () => {
+export default function PipelinePage() {
   const { events, addEvent, updateEvent } = useEvents();
   const { clients } = useClients();
   const { services } = useServices();
 
-  // Filtrar apenas projetos com pipeline_status definido
-  const projects: Project[] = React.useMemo(() => {
-    return events.filter(event => !!event.pipeline_status).map(event => ({
-      id: event.id,
-      name: event.name!, // name is required
-      client_id: event.client_id,
-      pipeline_status: event.pipeline_status as Project['pipeline_status'],
-      service_ids: event.service_ids || [],
-      estimated_value: event.estimated_value,
-      startDate: event.startDate,
-      endDate: event.endDate || event.startDate,
-      location: event.location || "",
-      status: (event.status as EventStatus) || "Planejado",
-      tags: event.tags || [],
-      follow_ups: (event as any).follow_ups || [],
-      notes: event.notes || "",
-    }));
-  }, [events]);
+  const [createOpen, setCreateOpen] = React.useState(false);
 
-  const handleUpdateProject = async (updatedProject: Project) => {
+  const handleCreate = async (payload: {
+    name: string;
+    client_id?: string;
+    pipeline_status?: any;
+    service_ids?: string[];
+    estimated_value?: number;
+    startDate: string;
+    endDate: string;
+    location?: string;
+    notes?: string;
+  }) => {
     try {
-      // Ensure required fields exist before update
-      const fullProject: Project = {
-        ...updatedProject,
-        name: updatedProject.name!,
-        endDate: updatedProject.endDate || updatedProject.startDate,
-        location: updatedProject.location || "",
-        status: updatedProject.status || "Planejado",
-      };
-      await updateEvent(fullProject);
-    } catch (error) {
-      console.error("Erro ao atualizar projeto:", error);
-      showError("Erro ao atualizar status do projeto.");
+      await addEvent({
+        name: payload.name,
+        startDate: payload.startDate,
+        endDate: payload.endDate,
+        location: payload.location || "",
+        startTime: "",
+        endTime: "",
+        revenue: undefined,
+        description: payload.notes || "",
+        pipeline_status: payload.pipeline_status,
+        estimated_value: payload.estimated_value,
+        service_ids: payload.service_ids,
+        client_id: payload.client_id,
+        notes: payload.notes,
+      } as any);
+      // addEvent already refreshes events; show feedback
+      showSuccess("Projeto criado com sucesso!");
+    } catch (err: any) {
+      console.error("Erro ao criar projeto:", err);
+      showError(err?.message || "Erro ao criar projeto.");
+      throw err;
     }
   };
 
-  const handleCreateProject = () => {
-    // Simplified: Create a new event with pipeline_status set
-    const newProjectData = {
-      name: "Novo Projeto",
-      startDate: format(new Date(), "yyyy-MM-dd"),
-      endDate: format(new Date(), "yyyy-MM-dd"),
-      location: "",
-      startTime: "",
-      endTime: "",
-      revenue: undefined,
-      description: "Projeto criado via Pipeline",
-      pipeline_status: "1º Contato" as const, // Start in first column
-      estimated_value: 0,
-      service_ids: [],
-      client_id: undefined,
-      notes: "",
-    };
-    addEvent(newProjectData)
-      .then(() => {
-        showSuccess("Projeto criado e adicionado ao pipeline!");
-      })
-      .catch((error) => {
-        console.error("Erro ao criar projeto:", error);
-        showError("Erro ao criar projeto. Verifique as permissões.");
-      });
+  const handleUpdateProject = async (updatedProject: any) => {
+    await updateEvent(updatedProject);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Pipeline de Projetos</h1>
-        <Button onClick={handleCreateProject}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Projeto
-        </Button>
+        <div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Projeto
+          </Button>
+        </div>
       </div>
 
-      <PipelineKanban 
-        projects={projects} 
-        onUpdateProject={handleUpdateProject} 
-        clients={clients} 
-        services={services} 
+      <PipelineKanban
+        projects={events.filter(e => !!e.pipeline_status)}
+        onUpdateProject={handleUpdateProject}
+        clients={clients}
+        services={services}
+      />
+
+      <CreateProjectDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        clients={clients}
+        services={services}
+        onCreate={handleCreate}
       />
     </div>
   );
-};
-
-export default PipelinePage;
+}
