@@ -13,13 +13,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
+  DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
+type PipelineStatus = '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Em andamento' | 'Cancelado' | 'Follow-up';
 
 interface ProjectCardData {
   id: number;
@@ -31,6 +31,10 @@ interface ProjectCardData {
   location?: string;
   status?: string;
   description?: string;
+  client_id?: string;
+  estimated_value?: number;
+  service_ids: string[]; // Changed from optional to required to match Project
+  notes?: string;
 }
 
 interface SortableProjectCardProps {
@@ -48,6 +52,12 @@ const statusBadgeClass = (status?: PipelineStatus) => {
       return "bg-yellow-100 text-yellow-800";
     case "Confirmado":
       return "bg-green-100 text-green-800";
+    case "Em andamento":
+      return "bg-green-200 text-green-900";
+    case "Cancelado":
+      return "bg-red-100 text-red-800";
+    case "Follow-up":
+      return "bg-purple-100 text-purple-800";
     default:
       return "bg-gray-100 text-gray-800";
   }
@@ -103,6 +113,11 @@ export default function SortableProjectCard({ project, onEditClick }: SortablePr
                 {project.location && (
                   <div className="text-xs text-muted-foreground mt-1 truncate" title={project.location}>
                     {project.location}
+                  </div>
+                )}
+                {project.estimated_value && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    AOA {project.estimated_value.toLocaleString("pt-AO")}
                   </div>
                 )}
               </div>
@@ -164,6 +179,16 @@ export default function SortableProjectCard({ project, onEditClick }: SortablePr
             {project.tags && project.tags.length > 0 && (
               <div>
                 <strong>Tags:</strong> {project.tags.join(", ")}
+              </div>
+            )}
+            {project.estimated_value && (
+              <div>
+                <strong>Valor Estimado:</strong> AOA {project.estimated_value.toLocaleString("pt-AO")}
+              </div>
+            )}
+            {project.service_ids && project.service_ids.length > 0 && (
+              <div>
+                <strong>Serviços:</strong> {project.service_ids.join(", ")}
               </div>
             )}
           </div>
