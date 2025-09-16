@@ -18,13 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ProjectEditDialog } from "./ProjectEditDialog";
 import SortableProjectCard from "./SortableProjectCard";
 import type { Event } from "@/types";
-import { useAuth } from "@/contexts/AuthContext";
-import { hasActionPermission } from "@/config/roles";
 
 interface Project {
   id: number;
@@ -67,16 +64,12 @@ const getStatusBadge = (status: Project['pipeline_status']) => {
 };
 
 export const PipelineKanban = ({ projects, onUpdateProject, clients = [], services = [] }: PipelineKanbanProps) => {
-  const { user } = useAuth();
-  const role = user?.profile?.role;
-  const canUpdate = hasActionPermission(role, 'projects:write') || hasActionPermission(role, 'projects:update');
-
   const [activeProjectId, setActiveProjectId] = React.useState<number | null>(null);
   const [draggingProject, setDraggingProject] = React.useState<Project | null>(null);
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [editingProject, setEditingProject] = React.useState<Project | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
-  const navigate = useNavigate();
+  const [updating, setUpdating] = React.useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -109,53 +102,45 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
+    const { over } = event;
     if (!over) {
       setDragOverColumn(null);
       return;
     }
-
-    const activeId = active.id as number;
-    const overId = over.id as string;
-
-    if (columns.some(col => col.id === overId)) {
-      setDragOverColumn(overId);
-      const newStatus = overId as Project['pipeline_status'];
-      const project = projects.find(p => p.id === activeId);
-      if (!project) return;
-      if (!canUpdate) return;
-      if (project.pipeline_status !== newStatus) {
-        // Optionally, debounce or throttle this update if needed
-        onUpdateProject({ ...project, pipeline_status: newStatus }).catch(() => {
-          console.error("Erro ao atualizar status do projeto.");
-        });
-      }
+    if (columns.some(col => col.id === over.id)) {
+      setDragOverColumn(over.id);
     } else {
       setDragOverColumn(null);
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveProjectId(null);
     setDraggingProject(null);
     setDragOverColumn(null);
 
     if (!over) return;
+    if (updating) return; // evita múltiplas atualizações simultâneas
 
     const activeId = active.id as number;
     const overId = over.id as string;
 
-    if (!canUpdate) return;
+    if (!columns.some(col => col.id === overId)) return;
 
-    if (columns.some(col => col.id === overId)) {
-      const newStatus = overId as Project['pipeline_status'];
-      const project = projects.find(p => p.id === activeId);
-      if (!project) return;
-      if (project.pipeline_status === newStatus) return; // evita update desnecessário
-      onUpdateProject({ ...project, pipeline_status: newStatus }).catch(() => {
-        console.error("Erro ao atualizar status do projeto.");
-      });
+    const project = projects.find(p => p.id === activeId);
+    if (!project) return;
+
+    if (project.pipeline_status === overId) return; // sem mudança
+
+    try {
+      setUpdating(true);
+      await onUpdateProject({ ...project, pipeline_status: overId });
+    } catch (error) {
+      console.error("Erro ao atualizar status do projeto:", error);
+      alert("Erro ao atualizar status do projeto. Tente novamente.");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -171,6 +156,7 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       setEditingProject(null);
     } catch (error) {
       console.error("Erro ao salvar projeto:", error);
+      alert("Erro ao salvar projeto.");
     }
   };
 
