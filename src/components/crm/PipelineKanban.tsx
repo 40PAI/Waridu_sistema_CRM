@@ -168,10 +168,20 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto whitespace-nowrap">
+          <div
+            className="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto whitespace-nowrap px-2"
+            style={{ minHeight: 600 }}
+          >
             {columns.map((column) => (
-              <Card key={column.id} className={cn("min-h-[600px] flex flex-col inline-block align-top", column.color)} style={{ minWidth: 280 }}>
-                <CardHeader className="pb-3">
+              <Card
+                key={column.id}
+                className={cn(
+                  "min-h-[600px] flex flex-col inline-block align-top",
+                  column.color
+                )}
+                style={{ minWidth: 280 }}
+              >
+                <CardHeader className="pb-3 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-border">
                   <CardTitle className="flex items-center justify-between text-sm font-medium">
                     {column.title}
                     <span className="bg-white/80 px-2 py-1 rounded-full text-xs font-semibold">
@@ -180,10 +190,16 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 overflow-y-auto">
-                  <SortableContext items={projectsByColumn[column.id].map(p => p.id)} strategy={verticalListSortingStrategy}>
+                  <SortableContext
+                    items={projectsByColumn[column.id].map(p => p.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
                     {projectsByColumn[column.id].map((project) => (
                       <div key={project.id} id={String(project.id)} className="mb-3">
-                        <SortableProjectCard project={project} onEditClick={handleEditClick} />
+                        <SortableProjectCard
+                          project={project}
+                          onEditClick={handleEditClick}
+                        />
                       </div>
                     ))}
                   </SortableContext>
