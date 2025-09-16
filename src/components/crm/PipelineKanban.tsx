@@ -169,9 +169,9 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto whitespace-nowrap">
             {columns.map((column) => (
-              <Card key={column.id} className={cn("min-h-[600px] flex flex-col", column.color)}>
+              <Card key={column.id} className={cn("min-h-[600px] flex flex-col inline-block align-top", column.color)} style={{ minWidth: 280 }}>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center justify-between text-sm font-medium">
                     {column.title}
