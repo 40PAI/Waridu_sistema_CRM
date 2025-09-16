@@ -53,8 +53,8 @@ const columns = [
   { id: 'Negociação', title: 'Negociação', color: 'bg-yellow-100 border-yellow-200' },
   { id: 'Confirmado', title: 'Confirmado', color: 'bg-green-100 border-green-200' },
   { id: 'Em andamento', title: 'Em andamento', color: 'bg-green-200 border-green-300' },
-  { id: 'Cancelado', title: 'Cancelado', color: 'bg-red-100 border-red-200' },
   { id: 'Follow-up', title: 'Follow-up', color: 'bg-purple-100 border-purple-200' },
+  { id: 'Cancelado', title: 'Cancelado', color: 'bg-red-100 border-red-200' },
 ];
 
 // 🔹 Componente coluna droppable
@@ -117,8 +117,8 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       'Negociação': [],
       'Confirmado': [],
       'Em andamento': [],
-      'Cancelado': [],
       'Follow-up': [],
+      'Cancelado': [],
     };
     localProjects.forEach(project => {
       if (grouped[project.pipeline_status]) {
