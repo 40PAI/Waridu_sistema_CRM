@@ -25,7 +25,7 @@ interface Project {
   id: number;
   name: string;
   client_id?: string;
-  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Em andamento' | 'Cancelado' | 'Follow-up';
+  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Em andamento' | 'Cancelado' | 'Acompanhamento';
   service_ids: string[];
   estimated_value?: number;
   startDate: string;
@@ -232,7 +232,7 @@ export const ProjectEditDialog = ({ open, onOpenChange, project, onSave, clients
                     <SelectItem value="Confirmado">Confirmado</SelectItem>
                     <SelectItem value="Em andamento">Em andamento</SelectItem>
                     <SelectItem value="Cancelado">Cancelado</SelectItem>
-                    <SelectItem value="Follow-up">Follow-up</SelectItem>
+                    <SelectItem value="Acompanhamento">Acompanhamento</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
