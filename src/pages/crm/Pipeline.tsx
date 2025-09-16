@@ -6,6 +6,8 @@ import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
 import { showError } from "@/utils/toast";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import type { EventStatus } from "@/types";
 
 interface Project {
@@ -25,7 +27,7 @@ interface Project {
 }
 
 const PipelinePage = () => {
-  const { events, updateEvent } = useEvents();
+  const { events, addEvent, updateEvent } = useEvents();
   const { clients } = useClients();
   const { services } = useServices();
 
@@ -65,8 +67,43 @@ const PipelinePage = () => {
     }
   };
 
+  const handleCreateProject = () => {
+    // Simplified: Create a new event with pipeline_status set
+    const newProjectData = {
+      name: "Novo Projeto",
+      startDate: format(new Date(), "yyyy-MM-dd"),
+      endDate: format(new Date(), "yyyy-MM-dd"),
+      location: "",
+      startTime: "",
+      endTime: "",
+      revenue: undefined,
+      description: "Projeto criado via Pipeline",
+      pipeline_status: "1º Contato" as const, // Start in first column
+      estimated_value: 0,
+      service_ids: [],
+      client_id: undefined,
+      notes: "",
+    };
+    addEvent(newProjectData)
+      .then(() => {
+        showSuccess("Projeto criado e adicionado ao pipeline!");
+      })
+      .catch((error) => {
+        console.error("Erro ao criar projeto:", error);
+        showError("Erro ao criar projeto. Verifique as permissões.");
+      });
+  };
+
   return (
-    <div className="p-4">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Pipeline de Projetos</h1>
+        <Button onClick={handleCreateProject}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Projeto
+        </Button>
+      </div>
+
       <PipelineKanban 
         projects={projects} 
         onUpdateProject={handleUpdateProject} 

@@ -13,9 +13,13 @@ import { useClients, Client } from "@/hooks/useClients";
 import { showError, showSuccess } from "@/utils/toast";
 import { Plus, Edit, Trash2, Mail, Phone, MapPin } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useEvents } from "@/hooks/useEvents";
+import type { Event } from "@/types";
 
 const ClientsPage = () => {
   const { clients, loading, createClient, updateClient, deleteClient } = useClients();
+  const { events } = useEvents();
+
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingClient, setEditingClient] = React.useState<Client | null>(null);
   const [formData, setFormData] = React.useState({
@@ -27,13 +31,21 @@ const ClientsPage = () => {
     notes: ''
   });
 
-  // Add project history (assume projects from useEvents)
+  // Integrate with events to populate project history
   const projectsByClient = React.useMemo(() => {
     const map: Record<string, any[]> = {};
-    // Assume projects are available from useEvents
-    // For now, placeholder - integrate with actual projects
+    events.forEach((event: Event) => {
+      if (event.client_id) {
+        if (!map[event.client_id]) map[event.client_id] = [];
+        map[event.client_id].push({
+          name: event.name,
+          status: event.status,
+          startDate: event.startDate
+        });
+      }
+    });
     return map;
-  }, []);
+  }, [events]);
 
   const resetForm = () => {
     setFormData({
