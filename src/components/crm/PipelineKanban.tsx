@@ -24,7 +24,9 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { ProjectEditDialog } from "./ProjectEditDialog";
+import ProjectEditDialog from "./ProjectEditDialog";
+import SortableProjectCard from "./SortableProjectCard";
+import type { Event } from "@/types";
 
 interface Project {
   id: number;
@@ -186,37 +188,8 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
                 <CardContent className="space-y-3 flex-1 overflow-y-auto">
                   <SortableContext items={projectsByColumn[column.id].map(p => p.id)} strategy={verticalListSortingStrategy}>
                     {projectsByColumn[column.id].map((project) => (
-                      <div
-                        key={project.id}
-                        id={String(project.id)}
-                        className="cursor-grab active:cursor-grabbing bg-white rounded-md p-3 shadow hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex flex-col flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm truncate" title={project.name}>{project.name}</h3>
-                            <div className="text-xs text-muted-foreground truncate">
-                              Início: {format(new Date(project.startDate), "dd/MM/yyyy", { locale: ptBR })}
-                            </div>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {project.tags?.map(tag => (
-                                <Badge key={tag} variant={tag === 'urgente' ? 'destructive' : 'secondary'} className="text-xs truncate">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end ml-2 space-y-1">
-                            <Badge className={getStatusBadge(project.pipeline_status)}>{project.pipeline_status}</Badge>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditClick(project)}
-                              aria-label={`Editar projeto ${project.name}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                      <div key={project.id} id={String(project.id)} className="mb-3">
+                        <SortableProjectCard project={project} onEditClick={handleEditClick} />
                       </div>
                     ))}
                   </SortableContext>
