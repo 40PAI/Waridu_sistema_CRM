@@ -16,15 +16,11 @@ import {
 } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { showSuccess, showError } from "@/utils/toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import ProjectEditDialog from "./ProjectEditDialog";
+import { ProjectEditDialog } from "./ProjectEditDialog";
 import SortableProjectCard from "./SortableProjectCard";
 import type { Event } from "@/types";
 
@@ -117,7 +113,7 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       const project = projects.find(p => p.id === activeId);
       if (project && project.pipeline_status !== newStatus) {
         onUpdateProject({ ...project, pipeline_status: newStatus }).catch(() => {
-          showError("Erro ao atualizar status do projeto.");
+          console.error("Erro ao atualizar status do projeto.");
         });
       }
     }
@@ -138,7 +134,7 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       const project = projects.find(p => p.id === activeId);
       if (project && project.pipeline_status !== newStatus) {
         onUpdateProject({ ...project, pipeline_status: newStatus }).catch(() => {
-          showError("Erro ao atualizar status do projeto.");
+          console.error("Erro ao atualizar status do projeto.");
         });
       }
     }
@@ -154,10 +150,8 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       await onUpdateProject(updatedProject);
       setEditDialogOpen(false);
       setEditingProject(null);
-      showSuccess("Projeto atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar projeto:", error);
-      showError("Erro ao salvar projeto.");
     }
   };
 
