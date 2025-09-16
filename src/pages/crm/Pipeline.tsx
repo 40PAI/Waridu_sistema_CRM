@@ -9,6 +9,7 @@ import { PipelineKanban } from "@/components/crm/PipelineKanban";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { EventStatus } from "@/types";
+import { format } from "date-fns";
 
 interface Project {
   id: number;
