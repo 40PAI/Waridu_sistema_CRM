@@ -62,27 +62,43 @@ const CRMDashboard = () => {
     }));
   }, [pipelineStats, projects.length]);
 
+  // MÉTRICAS AVANÇADAS
+
+  // Tempo médio de conversão (dias entre 1º Contato e Confirmado)
   const avgConversionDays = React.useMemo(() => {
-    const confirmed = projects.filter(p => p.pipeline_status === 'Confirmado' && p.startDate && p.endDate);
+    // Para cada projeto confirmado, buscar o projeto correspondente com status 1º Contato e calcular diferença
+    // Como não temos histórico de status, vamos aproximar pela diferença entre startDate e hoje para Confirmado
+    // Melhor seria histórico, mas vamos usar diferença entre startDate e hoje para projetos Confirmados
+    const confirmed = projects.filter(p => p.pipeline_status === 'Confirmado' && p.startDate);
     if (confirmed.length === 0) return 0;
     const totalDays = confirmed.reduce((sum, p) => {
       try {
-        return sum + differenceInDays(new Date(p.endDate), new Date(p.startDate));
+        return sum + differenceInDays(new Date(p.startDate), new Date());
       } catch {
         return sum;
       }
     }, 0);
-    return totalDays / confirmed.length;
+    return Math.abs(totalDays / confirmed.length);
   }, [projects]);
 
+  // Taxa de follow-up (percentual de follow-ups completados)
   const followUpRate = React.useMemo(() => {
-    const total = projects.reduce((sum, p) => sum + (p.follow_ups_count || 0), 0);
-    const completed = projects.reduce((sum, p) => sum + (p.follow_ups_completed || 0), 0);
-    return total > 0 ? (completed / total * 100).toFixed(1) : '0';
+    const totalFollowUps = projects.reduce((sum, p) => sum + (p.follow_ups_count || 0), 0);
+    const completedFollowUps = projects.reduce((sum, p) => sum + (p.follow_ups_completed || 0), 0);
+    return totalFollowUps > 0 ? ((completedFollowUps / totalFollowUps) * 100).toFixed(1) : '0';
   }, [projects]);
 
+  // Projetos estagnados (em negociação há mais de 7 dias)
   const overdueProjects = React.useMemo(() => {
-    return projects.filter(p => p.pipeline_status === 'Negociação' && differenceInDays(new Date(), new Date(p.updated_at || p.startDate)) > 7);
+    return projects.filter(p => {
+      if (p.pipeline_status !== 'Negociação') return false;
+      if (!p.updated_at) return false;
+      try {
+        return differenceInDays(new Date(), new Date(p.updated_at)) > 7;
+      } catch {
+        return false;
+      }
+    });
   }, [projects]);
 
   const clientStats = React.useMemo(() => {
@@ -156,36 +172,12 @@ const CRMDashboard = () => {
 
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="text-sm">Valor Estimado Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">AOA {financialMetrics.totalEstimated.toLocaleString("pt-AO")}</div>
-            <p className="text-xs text-muted-foreground">Soma estimada</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="text-sm">Valor Confirmado</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">AOA {financialMetrics.confirmedValue.toLocaleString("pt-AO")}</div>
-            <p className="text-xs text-muted-foreground">Projetos confirmados</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex items-center justify-between pb-2">
             <CardTitle className="text-sm">Tempo Médio de Conversão</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{avgConversionDays.toFixed(1)} dias</div>
-            <p className="text-xs text-muted-foreground">Média de 1º contato → fecho</p>
+            <p className="text-xs text-muted-foreground">Média de 1º contato → confirmação</p>
           </CardContent>
         </Card>
 
@@ -201,91 +193,104 @@ const CRMDashboard = () => {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Distribuição do Pipeline</CardTitle>
-          <CardDescription>Status dos projetos por estágio</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {pipelineData.some(d => d.value > 0) ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie data={pipelineData} dataKey="value" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percentage }) => `${name} ${percentage}%`}>
-                  {pipelineData.map((entry, index) => (
-                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(val: number) => [`${val} projetos`, "Quantidade"]} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-40" />
-                <p>Nenhum projeto no pipeline.</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Projetos Recentes</CardTitle>
-          <CardDescription>Últimos projetos adicionados</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentProjects.length > 0 ? recentProjects.map(proj => (
-              <div key={proj.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">{proj.name}</p>
-                  <p className="text-xs text-muted-foreground">{proj.pipeline_status}</p>
-                </div>
-                <div className="text-right">
-                  {proj.estimated_value ? <div className="font-medium">AOA {proj.estimated_value.toLocaleString("pt-AO")}</div> : <div>-</div>}
-                  <div className="text-xs text-muted-foreground">{proj.startDate ? format(new Date(proj.startDate), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</div>
-                </div>
-              </div>
-            )) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-40" />
-                <p>Nenhum projeto recente.</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Gerenciar Clientes</CardTitle>
+          <CardHeader className="flex items-center justify-between pb-2">
+            <CardTitle className="text-sm">Valor Estimado Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">Administre sua base de clientes.</p>
-            <Button asChild variant="outline"><Link to="/crm/clients">Ver Clientes</Link></Button>
+            <div className="text-2xl font-bold">AOA {financialMetrics.totalEstimated.toLocaleString("pt-AO")}</div>
+            <p className="text-xs text-muted-foreground">Soma de todos os projetos</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex items-center justify-between pb-2">
+            <CardTitle className="text-sm">Valor Confirmado</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">AOA {financialMetrics.confirmedValue.toLocaleString("pt-AO")}</div>
+            <p className="text-xs text-muted-foreground">Projetos confirmados</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex items-center justify-between pb-2">
+            <CardTitle className="text-sm">Projetos Estagnados</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{overdueProjects.length}</div>
+            <p className="text-xs text-destructive">Projetos em negociação sem atualização há mais de 7 dias</p>
+          </CardContent>
+        </Card>
+
+        <div />
+      </div>
+
+      {overdueProjects.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Projetos Estagnados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc list-inside text-sm text-destructive">
+              {overdueProjects.map(p => (
+                <li key={p.id}>
+                  {p.name} - Última atualização: {p.updated_at ? format(new Date(p.updated_at), "dd/MM/yyyy", { locale: ptBR }) : "N/A"}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Projetos Recentes</CardTitle>
+            <CardDescription>Últimos projetos adicionados ao pipeline.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc list-inside text-sm">
+              {recentProjects.length > 0 ? recentProjects.map(p => (
+                <li key={p.id}>
+                  {p.name} - {p.pipeline_status} - {format(new Date(p.startDate), "dd/MM/yyyy", { locale: ptBR })}
+                </li>
+              )) : (
+                <li>Nenhum projeto recente.</li>
+              )}
+            </ul>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Pipeline</CardTitle>
+            <CardTitle>Clientes</CardTitle>
+            <CardDescription>Estatísticas básicas dos clientes.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">Visão geral do pipeline.</p>
-            <Button asChild variant="outline"><Link to="/crm/projects">Ver Projetos</Link></Button>
+            <div>Total: {clientStats.totalClients}</div>
+            <div>Ativos (30d): {clientStats.activeClients}</div>
+            <div>Alto Valor: {clientStats.highValueClients}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Relatórios</CardTitle>
+            <CardTitle>Serviços</CardTitle>
+            <CardDescription>Serviços cadastrados no sistema.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">Exportar relatórios e análises.</p>
-            <Button asChild variant="outline"><Link to="/crm/reports">Ver Relatórios</Link></Button>
+            <ul className="list-disc list-inside text-sm">
+              {services.length > 0 ? services.map(s => (
+                <li key={s.id}>{s.name}</li>
+              )) : (
+                <li>Nenhum serviço cadastrado.</li>
+              )}
+            </ul>
           </CardContent>
         </Card>
       </div>
