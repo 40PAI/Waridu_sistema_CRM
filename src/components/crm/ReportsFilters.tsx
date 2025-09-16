@@ -12,9 +12,21 @@ interface ReportsFiltersProps {
   statusFilter: string;
   onStatusChange: (v: string) => void;
   onClear: () => void;
+  services?: any[]; // Add services prop
+  serviceFilter?: string;
+  onServiceChange?: (v: string) => void;
 }
 
-const ReportsFilters: React.FC<ReportsFiltersProps> = ({ dateRange, onDateChange, statusFilter, onStatusChange, onClear }) => {
+const ReportsFilters: React.FC<ReportsFiltersProps> = ({ 
+  dateRange, 
+  onDateChange, 
+  statusFilter, 
+  onStatusChange, 
+  onClear,
+  services = [],
+  serviceFilter = "all",
+  onServiceChange
+}) => {
   return (
     <div className="mb-4">
       <div className="flex gap-4 flex-wrap items-end">
@@ -36,6 +48,24 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = ({ dateRange, onDateChange
             </SelectContent>
           </Select>
         </div>
+
+        {onServiceChange && (
+          <div>
+            <Select value={serviceFilter} onValueChange={onServiceChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por serviço" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Serviços</SelectItem>
+                {services.map(service => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <Button variant="outline" onClick={onClear}>Limpar Filtros</Button>
       </div>

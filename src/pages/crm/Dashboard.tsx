@@ -1,20 +1,33 @@
+"use client";
+
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { TrendingUp, Users, Calendar, DollarSign, Target, BarChart3 } from "lucide-react";
+import { TrendingUp, Users, Calendar, DollarSign, Target, BarChart3, AlertTriangle } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { useEvents } from "@/hooks/useEvents";
-import { useClients } from "@/hooks/useClients";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useEvents } from "@/hooks/useEvents";
+import { useClients } from "@/hooks/useClients";
+import { useServices } from "@/hooks/useServices";
+import { format, parseISO, differenceInDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
+import { Button } from "@/components/ui/button";
+import { Download, FileDown } from "lucide-react";
+import { showSuccess, showError } from "@/utils/toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Link } from "react-router-dom";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const CRMDashboard = () => {
   const { events } = useEvents();
   const { clients } = useClients();
+  const { services } = useServices();
 
   // Filter projects (events with pipeline_status)
   const projects = React.useMemo(() => {
@@ -58,12 +71,39 @@ const CRMDashboard = () => {
 
   // Pipeline conversion data for chart
   const pipelineData = React.useMemo(() => {
-    return Object.entries(pipelineStats).map(([status, count]) => ({
-      name: status,
-      value: count,
-      percentage: projects.length > 0 ? ((count / projects.length) * 100).toFixed(1) : '0'
+    return Object.entries(pipelineStats).map(([name, value]) => ({
+      name,
+      value,
+      percentage: projects.length > 0 ? ((value / projects.length) * 100).toFixed(1) : '0'
     }));
   }, [pipelineStats, projects.length]);
+
+  // Add new metrics
+  const avgConversionDays = React.useMemo(() => {
+    const confirmed = projects.filter(p => p.pipeline_status === 'Confirmado');
+    if (confirmed.length === 0) return 0;
+    return confirmed.reduce((sum, p) => sum + differenceInDays(new Date(p.endDate), new Date(p.startDate)), 0) / confirmed.length;
+  }, [projects]);
+
+  const followUpRate = React.useMemo(() => {
+    const total = projects.reduce((sum, p) => sum + (p.follow_ups_count || 0), 0);
+    const completed = projects.reduce((sum, p) => sum + (p.follow_ups_completed || 0), 0);
+    return total > 0 ? (completed / total * 100).toFixed(1) : 0;
+  }, [projects]);
+
+  // Overdue projects alert
+  const overdueProjects = React.useMemo(() => {
+    return projects.filter(p => p.pipeline_status === 'Negociação' && 
+      differenceInDays(new Date(), new Date(p.updated_at || p.startDate)) > 7
+    );
+  }, [projects]);
+
+  const clientStats = React.useMemo(() => {
+    const totalClients = clients.length;
+    const activeClients = clients.filter(c => c.updated_at && new Date(c.updated_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length;
+    const highValueClients = clients.filter(c => c.notes?.includes('alto valor') || false).length;
+    return { totalClients, activeClients, highValueClients };
+  }, [clients]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,6 +124,26 @@ const CRMDashboard = () => {
         </div>
         <Badge variant="outline">Comercial</Badge>
       </div>
+
+      {/* Alerts */}
+      {overdueProjects.length > 0 && (
+        <Card className="border-destructive/50 bg-destructive/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Alertas de Follow-up
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-destructive">
+              {overdueProjects.length} projetos em negociação precisam de follow-up (7+ dias sem movimento)
+            </div>
+            <Button variant="outline" className="mt-2">
+              Notificar Equipa
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -113,7 +173,7 @@ const CRMDashboard = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">AOA {financialMetrics.totalEstimated.toLocaleString('pt-AO')}</div>
+            <div className="text-2xl font-bold">AOA {financialMetrics.totalEstimated.toLocaleString("pt-AO")}</div>
             <p className="text-xs text-muted-foreground">Soma de todos os projetos</p>
           </CardContent>
         </Card>
@@ -123,71 +183,75 @@ const CRMDashboard = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">AOA {financialMetrics.confirmedValue.toLocaleString('pt-AO')}</div>
+            <div className="text-2xl font-bold">AOA {financialMetrics.confirmedValue.toLocaleString("pt-AO")}</div>
             <p className="text-xs text-muted-foreground">Projetos confirmados</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Pipeline Overview */}
+      {/* New Metrics Cards */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Distribuição do Pipeline</CardTitle>
-            <CardDescription>Status atual dos projetos no pipeline.</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tempo Médio de Conversão</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {pipelineData.some(d => d.value > 0) ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={pipelineData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percentage }) => `${name}: ${percentage}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {pipelineData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value} projetos`, "Quantidade"]} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-40" />
-                  <p>Nenhum projeto no pipeline ainda.</p>
-                  <p className="text-sm mt-2">Comece criando seu primeiro projeto!</p>
-                </div>
-              </div>
-            )}
+            <div className="text-2xl font-bold">{avgConversionDays.toFixed(1)} dias</div>
+            <p className="text-xs text-muted-foreground">De 1º contato a fecho</p>
           </CardContent>
         </Card>
-
-        {/* Pipeline Stages */}
         <Card>
-          <CardHeader>
-            <CardTitle>Estágios do Pipeline</CardTitle>
-            <CardDescription>Quantidade de projetos por estágio.</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">% Follow-ups Realizados</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="space-y-4">
-            {Object.entries(pipelineStats).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(status)}>{status}</Badge>
-                </div>
-                <span className="font-semibold">{count}</span>
-              </div>
-            ))}
+          <CardContent>
+            <div className="text-2xl font-bold">{followUpRate}%</div>
+            <p className="text-xs text-muted-foreground">Taxa de acompanhamento</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Pipeline Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Distribuição do Pipeline</CardTitle>
+          <CardDescription>Status atual dos projetos no pipeline.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {pipelineData.some(d => d.value > 0) ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={pipelineData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percentage }) => `${name}: ${percentage}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {pipelineData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => [`${value} projetos`, "Quantidade"]} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+              <div className="text-center">
+                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-40" />
+                <p>Nenhum projeto no pipeline ainda.</p>
+                <p className="text-sm mt-2">Comece criando seu primeiro projeto!</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Projects */}
       <Card>
@@ -221,7 +285,6 @@ const CRMDashboard = () => {
               <div className="text-center py-8 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-4 opacity-40" />
                 <p>Nenhum projeto recente.</p>
-                <p className="text-sm mt-2">Comece criando seu primeiro projeto!</p>
               </div>
             )}
           </div>

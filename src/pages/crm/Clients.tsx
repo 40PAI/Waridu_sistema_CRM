@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,119 @@ const ClientsPage = () => {
     address: '',
     notes: ''
   });
+
+  // Add project history (assume projects from useEvents)
+  const projectsByClient = React.useMemo(() => {
+    const map: Record<string, any[]> = {};
+    // Assume projects are available from useEvents
+    // For now, placeholder - integrate with actual projects
+    return map;
+  }, []);
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      nif: '',
+      email: '',
+      phone: '',
+      address: '',
+      notes: ''
+    });
+  };
+
+  const openDialog = (client?: Client) => {
+    if (client) {
+      setEditingClient(client);
+      setFormData({
+        name: client.name,
+        nif: client.nif || '',
+        email: client.email || '',
+        phone: client.phone || '',
+        address: client.address || '',
+        notes: client.notes || ''
+      });
+    } else {
+      setEditingClient(null);
+      resetForm();
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      showError("Nome do cliente é obrigatório.");
+      return;
+    }
+
+    try {
+      if (editingClient) {
+        await updateClient(editingClient.id, formData);
+      } else {
+        await createClient(formData);
+      }
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      // Error handling is done in the hooks
+    }
+  };
+
+  const handleDelete = async (clientId: string) => {
+    try {
+      await deleteClient(clientId);
+    } catch (error) {
+      // Error handling is done in the hooks
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Carregando clientes...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center<dyad-write path="src/pages/crm/Clients.tsx" description="Updating Clients.tsx to add project history section.">
+"use client";
+
+import * as React from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useClients, Client } from "@/hooks/useClients";
+import { showError, showSuccess } from "@/utils/toast";
+import { Plus, Edit, Trash2, Mail, Phone, MapPin } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
+const ClientsPage = () => {
+  const { clients, loading, createClient, updateClient, deleteClient } = useClients();
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [editingClient, setEditingClient] = React.useState<Client | null>(null);
+  const [formData, setFormData] = React.useState({
+    name: '',
+    nif: '',
+    email: '',
+    phone: '',
+    address: '',
+    notes: ''
+  });
+
+  // Add project history (assume projects from useEvents)
+  const projectsByClient = React.useMemo(() => {
+    const map: Record<string, any[]> = {};
+    // Assume projects are available from useEvents
+    // For now, placeholder - integrate with actual projects
+    return map;
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -118,6 +233,7 @@ const ClientsPage = () => {
                 <TableHead>Contato</TableHead>
                 <TableHead>NIF</TableHead>
                 <TableHead>Endereço</TableHead>
+                <TableHead>Histórico de Projetos</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -150,6 +266,13 @@ const ClientsPage = () => {
                       </div>
                     ) : '-'}
                   </TableCell>
+                  <TableCell>
+                    {projectsByClient[client.id]?.map(proj => (
+                      <div key={proj.name} className="text-xs">
+                        {proj.name} ({proj.status})
+                      </div>
+                    )) || 'Nenhum projeto'}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={() => openDialog(client)}>
@@ -181,7 +304,7 @@ const ClientsPage = () => {
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center h-24">
+                  <TableCell colSpan={6} className="text-center h-24">
                     Nenhum cliente cadastrado ainda.
                   </TableCell>
                 </TableRow>

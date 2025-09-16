@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ interface Project {
   notes?: string;
   startDate: string;
   endDate: string;
+  tags?: string[]; // Add tags
 }
 
 const pipelineStatuses = [
@@ -50,7 +53,8 @@ const ProjectsPage = () => {
     estimated_value: '',
     notes: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    tags: [] as string[] // Add tags
   });
 
   const projects = React.useMemo(() => {
@@ -63,7 +67,8 @@ const ProjectsPage = () => {
       estimated_value: event.estimated_value,
       notes: event.notes,
       startDate: event.startDate,
-      endDate: event.endDate
+      endDate: event.endDate,
+      tags: event.tags || [] // Add tags
     }));
   }, [events]);
 
@@ -90,7 +95,8 @@ const ProjectsPage = () => {
       estimated_value: '',
       notes: '',
       startDate: '',
-      endDate: ''
+      endDate: '',
+      tags: []
     });
   };
 
@@ -105,7 +111,8 @@ const ProjectsPage = () => {
         estimated_value: project.estimated_value?.toString() || '',
         notes: project.notes || '',
         startDate: project.startDate,
-        endDate: project.endDate
+        endDate: project.endDate,
+        tags: project.tags || []
       });
     } else {
       setEditingProject(null);
@@ -131,7 +138,8 @@ const ProjectsPage = () => {
         pipeline_status: formData.pipeline_status,
         service_ids: formData.service_ids,
         estimated_value: formData.estimated_value ? Number(formData.estimated_value) : undefined,
-        notes: formData.notes.trim() || undefined
+        notes: formData.notes.trim() || undefined,
+        tags: formData.tags // Add tags
       };
 
       if (editingProject) {
@@ -146,6 +154,7 @@ const ProjectsPage = () => {
           service_ids: projectData.service_ids,
           estimated_value: projectData.estimated_value,
           notes: projectData.notes,
+          tags: projectData.tags, // Add tags
           // preserve required fields with defaults
           status: 'Planejado',
         } as any);
@@ -379,6 +388,18 @@ const ProjectsPage = () => {
                   value={formData.endDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                   className="col-span-3"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="tags" className="text-right">Tags</Label>
+                <Input
+                  id="tags"
+                  name="tags"
+                  value={formData.tags?.join(', ') || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) }))}
+                  className="col-span-3"
+                  placeholder="urgente, prazo-curto, VIP"
                 />
               </div>
 

@@ -16,6 +16,7 @@ interface Project {
   service_ids?: string[];
   estimated_value?: number;
   startDate: string;
+  tags?: string[]; // Add tags
 }
 
 interface Props {
@@ -52,6 +53,7 @@ const ProjectsTable: React.FC<Props> = ({ projects, clientsMap }) => {
                   <TableHead>Serviços</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Data</TableHead>
+                  <TableHead>Tags</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -61,12 +63,23 @@ const ProjectsTable: React.FC<Props> = ({ projects, clientsMap }) => {
                     <TableCell>{project.client_id ? clientsMap[project.client_id]?.name || 'Não definido' : 'Não definido'}</TableCell>
                     <TableCell>{getStatusBadge(project.pipeline_status)}</TableCell>
                     <TableCell>{project.service_ids?.length || 0}</TableCell>
-                    <TableCell>{project.estimated_value ? `AOA ${project.estimated_value.toLocaleString('pt-AO')}` : '-'}</TableCell>
+                    <TableCell>{project.estimated_value ? `AOA ${project.estimated_value.toLocaleString("pt-AO")}` : '-'}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <CalendarIcon className="h-3 w-3" />
                         {format(new Date(project.startDate), 'dd/MM/yyyy', { locale: ptBR })}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {project.tags && project.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {project.tags.map(tag => (
+                            <Badge key={tag} variant={tag === 'urgente' ? 'destructive' : 'secondary'} className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
