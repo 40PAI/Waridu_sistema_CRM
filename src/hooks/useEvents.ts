@@ -35,7 +35,16 @@ export const useEvents = () => {
         status: event.status,
         description: event.description,
         roster: event.roster,
-        expenses: event.expenses
+        expenses: event.expenses,
+        // CRM / project-related fields (added)
+        pipeline_status: event.pipeline_status,
+        estimated_value: event.estimated_value,
+        service_ids: event.service_ids,
+        client_id: event.client_id,
+        notes: event.notes,
+        tags: event.tags,
+        follow_ups: event.follow_ups,
+        updated_at: event.updated_at,
       }));
 
       setEvents(formattedEvents);
@@ -49,21 +58,39 @@ export const useEvents = () => {
     }
   };
 
-  const addEvent = async (newEventData: Omit<Event, 'id' | 'roster' | 'expenses' | 'status'>) => {
+  const addEvent = async (newEventData: Omit<Event, 'id' | 'roster' | 'expenses' | 'status'> & Partial<{
+    pipeline_status: Event['pipeline_status'];
+    estimated_value: number;
+    service_ids: string[];
+    client_id: string;
+    notes: string;
+    tags: string[];
+    follow_ups: any[];
+  }>) => {
     try {
+      const insertPayload: any = {
+        name: newEventData.name,
+        start_date: newEventData.startDate,
+        end_date: newEventData.endDate,
+        location: newEventData.location,
+        start_time: newEventData.startTime,
+        end_time: newEventData.endTime,
+        revenue: newEventData.revenue ?? null,
+        description: newEventData.description ?? null,
+        status: 'Planejado',
+        // CRM fields
+        pipeline_status: newEventData.pipeline_status ?? null,
+        estimated_value: newEventData.estimated_value ?? null,
+        service_ids: newEventData.service_ids ?? null,
+        client_id: newEventData.client_id ?? null,
+        notes: newEventData.notes ?? null,
+        tags: newEventData.tags ?? null,
+        follow_ups: newEventData.follow_ups ?? null,
+      };
+
       const { error } = await supabase
         .from('events')
-        .insert({
-          name: newEventData.name,
-          start_date: newEventData.startDate,
-          end_date: newEventData.endDate,
-          location: newEventData.location,
-          start_time: newEventData.startTime,
-          end_time: newEventData.endTime,
-          revenue: newEventData.revenue,
-          description: newEventData.description,
-          status: 'Planejado'
-        });
+        .insert(insertPayload);
 
       if (error) throw error;
 
@@ -87,9 +114,17 @@ export const useEvents = () => {
           location: updatedEvent.location,
           start_time: updatedEvent.startTime,
           end_time: updatedEvent.endTime,
-          revenue: updatedEvent.revenue,
+          revenue: updatedEvent.revenue ?? null,
           status: updatedEvent.status,
-          description: updatedEvent.description
+          description: updatedEvent.description ?? null,
+          // CRM fields to persist
+          pipeline_status: updatedEvent.pipeline_status ?? null,
+          estimated_value: updatedEvent.estimated_value ?? null,
+          service_ids: updatedEvent.service_ids ?? null,
+          client_id: updatedEvent.client_id ?? null,
+          notes: updatedEvent.notes ?? null,
+          tags: updatedEvent.tags ?? null,
+          follow_ups: updatedEvent.follow_ups ?? null,
         })
         .eq('id', updatedEvent.id);
 
