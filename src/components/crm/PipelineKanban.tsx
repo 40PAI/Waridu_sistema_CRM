@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { ProjectEditDialog } from "./ProjectEditDialog";
 import SortableProjectCard from "./SortableProjectCard";
 import type { Event } from "@/types";
+import { showError, showSuccess } from "@/utils/toast";
 
 interface Project {
   id: number;
@@ -131,14 +132,15 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
     const project = projects.find(p => p.id === activeId);
     if (!project) return;
 
-    if (project.pipeline_status === overId) return; // sem mudança
+    // Removido: if (project.pipeline_status === overId) return; para permitir movimento mesmo se status for o mesmo (embora improvável)
 
     try {
       setUpdating(true);
-      await onUpdateProject({ ...project, pipeline_status: overId });
+      await onUpdateProject({ ...project, pipeline_status: overId as Project['pipeline_status'] });
+      showSuccess(`Projeto "${project.name}" movido para "${overId}".`);
     } catch (error) {
       console.error("Erro ao atualizar status do projeto:", error);
-      alert("Erro ao atualizar status do projeto. Tente novamente.");
+      showError("Erro ao atualizar status do projeto. Tente novamente.");
     } finally {
       setUpdating(false);
     }
@@ -154,9 +156,10 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
       await onUpdateProject(updatedProject);
       setEditDialogOpen(false);
       setEditingProject(null);
+      showSuccess("Projeto salvo com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar projeto:", error);
-      alert("Erro ao salvar projeto.");
+      showError("Erro ao salvar projeto.");
     }
   };
 
@@ -181,9 +184,10 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
               <Card
                 key={column.id}
                 className={cn(
-                  "min-h-[600px] flex flex-col inline-block align-top transition-shadow",
+                  "min-h-[600px] flex flex-col inline-block align-top transition-all duration-200",
                   column.color,
-                  dragOverColumn === column.id ? "ring-2 ring-primary shadow-lg" : ""
+                  dragOverColumn === column.id ? "ring-4 ring-primary shadow-2xl scale-105 bg-primary/10" : "",
+                  updating ? "opacity-50 pointer-events-none" : ""
                 )}
                 style={{ minWidth: 280 }}
               >
@@ -209,6 +213,11 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
                       </div>
                     ))}
                   </SortableContext>
+                  {projectsByColumn[column.id].length === 0 && dragOverColumn === column.id && (
+                    <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium">
+                      Solte aqui
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -216,7 +225,7 @@ export const PipelineKanban = ({ projects, onUpdateProject, clients = [], servic
 
           <DragOverlay>
             {draggingProject ? (
-              <Card className="shadow-lg p-3 bg-white rounded-md w-64">
+              <Card className="shadow-2xl p-3 bg-white rounded-md w-64 border-2 border-primary">
                 <CardContent>
                   <h3 className="font-semibold text-sm truncate">{draggingProject.name}</h3>
                   <div className="text-xs text-muted-foreground">
