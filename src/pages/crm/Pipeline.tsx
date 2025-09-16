@@ -6,6 +6,23 @@ import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
 import { showError } from "@/utils/toast";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
+import type { EventStatus } from "@/types";
+
+interface Project {
+  id: number;
+  name: string;
+  client_id?: string;
+  pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
+  service_ids: string[];
+  estimated_value?: number;
+  startDate: string;
+  endDate: string;
+  location: string;
+  status: EventStatus;
+  tags?: string[];
+  follow_ups?: any[];
+  notes?: string;
+}
 
 const PipelinePage = () => {
   const { events, updateEvent } = useEvents();
@@ -13,31 +30,31 @@ const PipelinePage = () => {
   const { services } = useServices();
 
   // Filtrar apenas projetos com pipeline_status definido
-  const projects = React.useMemo(() => {
+  const projects: Project[] = React.useMemo(() => {
     return events.filter(event => !!event.pipeline_status).map(event => ({
       id: event.id,
-      name: event.name,
+      name: event.name!, // name is required
       client_id: event.client_id,
-      pipeline_status: event.pipeline_status as '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado',
+      pipeline_status: event.pipeline_status as Project['pipeline_status'],
       service_ids: event.service_ids || [],
       estimated_value: event.estimated_value,
       startDate: event.startDate,
-      tags: event.tags || [],
-      follow_ups: (event as any).follow_ups || [], // cast to any to avoid TS error
-      notes: event.notes || "",
-      // Provide required fields for Event type
       endDate: event.endDate || event.startDate,
       location: event.location || "",
-      status: event.status || "Planejado",
+      status: (event.status as EventStatus) || "Planejado",
+      tags: event.tags || [],
+      follow_ups: (event as any).follow_ups || [],
+      notes: event.notes || "",
     }));
   }, [events]);
 
-  const handleUpdateProject = async (updatedProject: Partial<typeof projects[0]> & { id: number }) => {
+  const handleUpdateProject = async (updatedProject: Project) => {
     try {
       // Ensure required fields exist before update
-      const fullProject = {
+      const fullProject: Project = {
         ...updatedProject,
-        endDate: updatedProject.endDate || updatedProject.startDate || "",
+        name: updatedProject.name!,
+        endDate: updatedProject.endDate || updatedProject.startDate,
         location: updatedProject.location || "",
         status: updatedProject.status || "Planejado",
       };
