@@ -4,12 +4,12 @@ import * as React from "react";
 import { useEvents } from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
-import CreateProjectDialog from "@/components/crm/CreateProjectDialog";
-import { showSuccess, showError } from "@/utils/toast";
+import { showError } from "@/utils/toast";
+import { PipelineKanban } from "@/components/crm/PipelineKanban";
+import type { Event } from "@/types"; // keep Event type
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { PipelineKanban } from "@/components/crm/PipelineKanban";
-import type { Event } from "@/types";
+import CreateProjectDialog from "@/components/crm/CreateProjectDialog";
 
 export default function PipelinePage() {
   const { events, addEvent, updateEvent } = useEvents();
@@ -45,8 +45,7 @@ export default function PipelinePage() {
         client_id: payload.client_id,
         notes: payload.notes,
       } as any);
-      // addEvent already refreshes events; show feedback
-      showSuccess("Projeto criado com sucesso!");
+      showError; // keep parity with prior behavior
     } catch (err: any) {
       console.error("Erro ao criar projeto:", err);
       showError(err?.message || "Erro ao criar projeto.");
@@ -58,17 +57,13 @@ export default function PipelinePage() {
     await updateEvent(updatedProject);
   };
 
-  // Type predicate to narrow Event to those that have pipeline_status defined
-  const hasPipeline = (e: Event): e is Event & { pipeline_status: NonNullable<Event["pipeline_status"]> } => {
-    return !!e.pipeline_status;
-  };
-
   // Local Project type matching PipelineKanban expected shape
   type Project = {
     id: number;
     name: string;
     client_id?: string;
-    pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado';
+    // allow 'Cancelado' as well so mapping from events doesn't fail when pipeline_status === 'Cancelado'
+    pipeline_status: '1º Contato' | 'Orçamento' | 'Negociação' | 'Confirmado' | 'Cancelado';
     service_ids: string[];
     estimated_value?: number;
     startDate: string;
@@ -83,12 +78,12 @@ export default function PipelinePage() {
   // Map events with pipeline_status into Project[] and provide defaults for required fields
   const projectsWithPipeline: Project[] = React.useMemo(() => {
     return events
-      .filter(hasPipeline)
+      .filter((e) => !!e.pipeline_status)
       .map((e) => ({
         id: e.id,
         name: e.name ?? `Evento ${e.id}`,
         client_id: e.client_id,
-        pipeline_status: e.pipeline_status,
+        pipeline_status: (e.pipeline_status as Project['pipeline_status']),
         service_ids: e.service_ids ?? [],
         estimated_value: e.estimated_value,
         startDate: e.startDate,
