@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Edit, Trash2, Plus, ToggleRight, ToggleLeft } from "lucide-react";
 import {
   AlertDialog,
@@ -29,8 +28,16 @@ import { Badge } from "@/components/ui/badge";
 export default function AdminServicesPage() {
   const { services, refreshServices, createService, updateService, deleteService, loading } = useServices();
   const { user } = useAuth();
-  const canManage = hasActionPermission(user?.profile?.role, "services:manage");
-  const isAdmin = user?.profile?.role === "Admin";
+  const role = user?.profile?.role;
+
+  // New permission separation:
+  // - canCreate: only Admin (services:create)
+  // - canManage: Admin and Gestor Comercial/Coordenador (services:manage) -> edit + toggle status
+  // - canDelete: only Admin (services:delete)
+  const canCreate = hasActionPermission(role, "services:create");
+  const canManage = hasActionPermission(role, "services:manage");
+  const canDelete = hasActionPermission(role, "services:delete");
+  const isGestorComercial = role === "Coordenador";
 
   const [query, setQuery] = React.useState("");
   const [filtered, setFiltered] = React.useState(services);
@@ -43,7 +50,7 @@ export default function AdminServicesPage() {
 
   React.useEffect(() => {
     setFiltered(
-      services.filter(s => s.name.toLowerCase().includes(query.toLowerCase()))
+      services.filter(s => s.name?.toLowerCase().includes(query.toLowerCase()))
     );
   }, [services, query]);
 
@@ -62,7 +69,7 @@ export default function AdminServicesPage() {
   };
 
   const handleSave = async () => {
-    if (!canManage) {
+    if (!canManage && !canCreate) {
       showError("Sem permissão");
       return;
     }
@@ -73,9 +80,19 @@ export default function AdminServicesPage() {
     setSaving(true);
     try {
       if (editing) {
+        // Only users with manage permission can edit
+        if (!canManage) {
+          showError("Sem permissão para editar este serviço.");
+          return;
+        }
         await updateService(editing.id, { name: name.trim(), description: description.trim() || null });
         showSuccess("Serviço atualizado");
       } else {
+        // Only users with create permission can add
+        if (!canCreate) {
+          showError("Sem permissão para criar serviços.");
+          return;
+        }
         await createService({ name: name.trim(), description: description.trim() || undefined });
         showSuccess("Serviço criado");
       }
@@ -90,12 +107,13 @@ export default function AdminServicesPage() {
 
   const toggleActive = async (svc: any) => {
     if (!canManage) {
-      showError("Sem permissão");
+      showError("Sem permissão para alterar status.");
       return;
     }
-    const newStatus = svc.status && (typeof svc.status === "string")
-      ? (String(svc.status).toLowerCase() === "ativo" ? "inativo" : "ativo")
-      : (svc.status ? "inativo" : "ativo");
+    const current = svc.status;
+    // Normalize to string
+    const currentStr = current === undefined || current === null ? "ativo" : String(current).toLowerCase();
+    const newStatus = currentStr === "ativo" || currentStr === "true" || currentStr === "1" ? "inativo" : "ativo";
     try {
       await updateService(svc.id, { status: newStatus });
       showSuccess(`Serviço ${newStatus === "ativo" ? "ativado" : "desativado"}`);
@@ -106,8 +124,8 @@ export default function AdminServicesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!isAdmin) {
-      showError("Apenas Admin pode eliminar.");
+    if (!canDelete) {
+      showError("Apenas Admin pode eliminar serviços.");
       return;
     }
     try {
@@ -124,10 +142,10 @@ export default function AdminServicesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Serviços Waridu</h1>
-          <p className="text-sm text-muted-foreground">Gerencie o catálogo de serviços oferecidos.</p>
+          <p className="text-sm text-muted-foreground">Gerencie o catálogo de serviços.</p>
         </div>
         <div className="flex items-center gap-2">
-          {canManage && (
+          {canCreate && (
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />
               + Novo Serviço
@@ -136,10 +154,24 @@ export default function AdminServicesPage() {
         </div>
       </div>
 
+      {/* Fixed notice for Gestor Comercial */}
+      {isGestorComercial && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent>
+            <div className="flex items-start gap-3">
+              <div className="flex-1 text-sm">
+                <strong>Atenção — Painel do Gestor Comercial:</strong>
+                <div>Alterações aplicam-se a todo o catálogo de serviços Waridu. Ao editar ou desativar um serviço, ele deixará de aparecer para novas seleções, mas permanecerá nos registros históricos.</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Catálogo de Serviços</CardTitle>
-          <CardDescription>Pesquisar, editar, ativar/desativar ou eliminar (apenas Admin).</CardDescription>
+          <CardDescription>Pesquisar, editar, ativar/desativar ou eliminar (apenas Admin pode eliminar).</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex items-center gap-2">
@@ -154,40 +186,41 @@ export default function AdminServicesPage() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Data de Criação</TableHead>
+                  <TableHead>Última Alteração</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((svc) => (
+                {filtered.map(svc => (
                   <TableRow key={svc.id}>
-                    <TableCell className="font-medium">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="cursor-help">{svc.name}</span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">{svc.description || "Sem descrição"}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                    <TableCell className="font-medium max-w-[200px] truncate">
+                      <span title={svc.description || ""}>{svc.name}</span>
                     </TableCell>
                     <TableCell className="max-w-lg truncate">{svc.description || "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={svc.status && String(svc.status).toLowerCase() === "ativo" ? "default" : "secondary"}>
-                        {svc.status ? String(svc.status) : (svc.status === undefined ? "Ativo" : "Inativo")}
+                      <Badge variant={(svc.status && String(svc.status).toLowerCase() === "ativo") ? "default" : "secondary"}>
+                        {(svc.status && String(svc.status).toLowerCase() === "ativo") ? "Ativo" : "Inativo"}
                       </Badge>
                     </TableCell>
                     <TableCell>{svc.created_at ? new Date(svc.created_at).toLocaleString() : "—"}</TableCell>
+                    <TableCell>{svc.updated_at ? new Date(svc.updated_at).toLocaleString() : (svc.created_at ? new Date(svc.created_at).toLocaleString() : "—")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {canManage && (
+                        {/* Edit available to those with manage permission */}
+                        {canManage ? (
                           <Button variant="outline" size="sm" onClick={() => openEdit(svc)}>
                             <Edit className="h-4 w-4 mr-1" />
                             Editar
                           </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" disabled>
+                            <Edit className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
                         )}
-                        {canManage && (
+
+                        {/* Toggle active/inactive available to those with manage permission */}
+                        {canManage ? (
                           <Button variant="outline" size="sm" onClick={() => toggleActive(svc)}>
                             {svc.status && String(svc.status).toLowerCase() === "ativo" ? (
                               <>
@@ -201,20 +234,26 @@ export default function AdminServicesPage() {
                               </>
                             )}
                           </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" disabled>
+                            {svc.status && String(svc.status).toLowerCase() === "ativo" ? "Desativar" : "Ativar"}
+                          </Button>
                         )}
-                        {isAdmin && (
+
+                        {/* Delete only for admin */}
+                        {canDelete ? (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm" className="text-destructive">
+                              <Button variant="destructive" size="sm">
                                 <Trash2 className="h-4 w-4 mr-1" />
                                 Eliminar
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Eliminar Serviço</AlertDialogTitle>
+                                <AlertDialogTitle>Eliminar Serviço?</AlertDialogTitle>
                                 <p className="text-sm text-muted-foreground mt-2">
-                                  Esta ação removerá o serviço permanentemente e pode afetar registros antigos.
+                                  Este serviço pode estar vinculado a clientes/projetos. Deseja prosseguir? Esta ação é irreversível.
                                 </p>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -223,6 +262,11 @@ export default function AdminServicesPage() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                        ) : (
+                          <Button variant="outline" size="sm" disabled>
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Eliminar
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -242,17 +286,28 @@ export default function AdminServicesPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label>Nome</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
+              <Label>Nome *</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Sonorização"
+              />
             </div>
             <div className="space-y-2">
               <Label>Descrição</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Descrição opcional..."
+                rows={3}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+            <Button onClick={handleSave} disabled={saving || (!editing && !canCreate)}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
