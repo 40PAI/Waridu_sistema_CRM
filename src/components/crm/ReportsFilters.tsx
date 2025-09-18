@@ -1,20 +1,15 @@
-"use client";
-
-import * as React from "react";
-import { DateRange } from "react-day-picker";
-import { DateRangePicker } from "@/components/common/DateRangePicker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-
 interface ReportsFiltersProps {
   dateRange?: DateRange;
   onDateChange: (date: DateRange | undefined) => void;
   statusFilter: string;
   onStatusChange: (v: string) => void;
   onClear: () => void;
-  services?: any[]; // Add services prop
-  serviceFilter?: string;
-  onServiceChange?: (v: string) => void;
+  sectorFilter?: string;
+  onSectorChange?: (v: string) => void;
+  personaFilter?: string;
+  onPersonaChange?: (v: string) => void;
+  lifecycleFilter?: string;
+  onLifecycleChange?: (v: string) => void;
 }
 
 const ReportsFilters: React.FC<ReportsFiltersProps> = ({ 
@@ -23,9 +18,12 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = ({
   statusFilter, 
   onStatusChange, 
   onClear,
-  services = [],
-  serviceFilter = "all",
-  onServiceChange
+  sectorFilter = "all",
+  onSectorChange,
+  personaFilter = "all",
+  onPersonaChange,
+  lifecycleFilter = "all",
+  onLifecycleChange
 }) => {
   return (
     <div className="mb-4">
@@ -49,19 +47,53 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = ({
           </Select>
         </div>
 
-        {onServiceChange && (
+        {onSectorChange && (
           <div>
-            <Select value={serviceFilter} onValueChange={onServiceChange}>
+            <Select value={sectorFilter} onValueChange={onSectorChange}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filtrar por serviço" />
+                <SelectValue placeholder="Filtrar por setor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os Serviços</SelectItem>
-                {services.map(service => (
-                  <SelectItem key={service.id} value={service.id}>
-                    {service.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">Todos os Setores</SelectItem>
+                <SelectItem value="Tecnologia">Tecnologia</SelectItem>
+                <SelectItem value="Financeiro">Financeiro</SelectItem>
+                <SelectItem value="Saúde">Saúde</SelectItem>
+                {/* Add more as needed */}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {onPersonaChange && (
+          <div>
+            <Select value={personaFilter} onValueChange={onPersonaChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por persona" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Personas</SelectItem>
+                <SelectItem value="CEO">CEO</SelectItem>
+                <SelectItem value="CTO">CTO</SelectItem>
+                <SelectItem value="Marketing">Marketing</SelectItem>
+                {/* Add more as needed */}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {onLifecycleChange && (
+          <div>
+            <Select value={lifecycleFilter} onValueChange={onLifecycleChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por ciclo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Ciclos</SelectItem>
+                <SelectItem value="Lead">Lead</SelectItem>
+                <SelectItem value="MQL">MQL</SelectItem>
+                <SelectItem value="SQL">SQL</SelectItem>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Perdido">Perdido</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -72,5 +104,3 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = ({
     </div>
   );
 };
-
-export default ReportsFilters;
