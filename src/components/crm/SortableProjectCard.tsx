@@ -1,3 +1,2 @@
-export function SortableProjectCard({ project, onEditClick }: SortableProjectCardProps) {
-  // ... existing code
-}
+import { Button } from "@/components/ui/button";
+import type { EventProject } from "@/types/crm";

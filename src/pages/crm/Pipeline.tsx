@@ -1,3 +1,2 @@
-export default function PipelinePage() {
-  // ... existing code
-}
+import { useEvents } from "@/hooks/useEvents";
+import type { EventProject } from "@/types/crm";
