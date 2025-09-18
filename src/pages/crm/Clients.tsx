@@ -8,11 +8,10 @@ import { useClients } from "@/hooks/useClients";
 import { useEvents } from "@/hooks/useEvents";
 import { useCommunications } from "@/hooks/useCommunications";
 import { useServices } from "@/hooks/useServices";
-import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import CreateClientModal from "@/components/crm/CreateClientModal";
+import ClientDetailModal from "@/components/crm/ClientDetailModal";
 import { useState } from "react";
 
 const ClientsPage = () => {
@@ -22,6 +21,24 @@ const ClientsPage = () => {
   const { services } = useServices();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  // Modal state for "Ver"
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+
+  const openView = (clientId: string) => {
+    setSelectedClientId(clientId);
+    setIsViewOpen(true);
+  };
+
+  const closeView = () => {
+    setIsViewOpen(false);
+    setSelectedClientId(null);
+  };
+
+  const selectedClient = clients.find((c) => c.id === selectedClientId) ?? null;
+  const selectedClientEvents = selectedClientId ? events.filter((e) => e.client_id === selectedClientId) : [];
+  const selectedClientCommunications = selectedClientId ? communications.filter((c) => c.client_id === selectedClientId) : [];
 
   return (
     <>
@@ -40,7 +57,7 @@ const ClientsPage = () => {
         <Card>
           <CardHeader>
             <CardTitle>Lista de Clientes</CardTitle>
-            <CardDescription>Atribua roles diretamente para dar acesso às páginas.</CardDescription>
+            <CardDescription>Abra a ficha do cliente em um modal para ver detalhes rapidamente.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -74,9 +91,11 @@ const ClientsPage = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={`/crm/clients/${c.id}`}>Ver</Link>
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => openView(c.id)}>
+                            Ver
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -100,6 +119,13 @@ const ClientsPage = () => {
           // refresh clients list (useClients.upsertClient already refreshes but ensure)
           fetchClients();
         }}
+      />
+
+      <ClientDetailModal
+        open={isViewOpen}
+        onOpenChange={setIsViewOpen}
+        client={selectedClient}
+        communications={selectedClientCommunications}
       />
     </>
   );
