@@ -1,2 +1,3 @@
-import { Button } from "@/components/ui/button";
-import type { EventProject } from "@/types/crm";
+export function SortableProjectCard({ project, onEditClick }: SortableProjectCardProps) {
+  // ... existing code
+}
