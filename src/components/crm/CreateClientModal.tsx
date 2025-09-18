@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { showError, showSuccess } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
@@ -27,6 +28,10 @@ const SERVICE_OPTIONS = [
   "Painel LED",
 ];
 
+const SECTOR_OPTIONS = ["Tecnologia", "Financeiro", "Saúde"];
+const PERSONA_OPTIONS = ["CEO", "CTO", "Marketing"];
+const LIFECYCLE_OPTIONS = ["Lead", "MQL", "SQL", "Ativo", "Perdido"];
+
 function isEmailValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -40,7 +45,9 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [nif, setNif] = React.useState("");
-  const [position, setPosition] = React.useState("");
+  const [sector, setSector] = React.useState("");
+  const [persona, setPersona] = React.useState("");
+  const [lifecycleStage, setLifecycleStage] = React.useState("Lead");
   const [notes, setNotes] = React.useState("");
   const [serviceChecks, setServiceChecks] = React.useState<Record<string, boolean>>(() =>
     SERVICE_OPTIONS.reduce((acc, s) => ((acc[s] = false), acc), {} as Record<string, boolean>),
@@ -63,7 +70,9 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         setEmail(client.email || "");
         setPhone(client.phone || "");
         setNif(client.nif || "");
-        setPosition(client.persona || "");
+        setSector(client.sector || "");
+        setPersona(client.persona || "");
+        setLifecycleStage(client.lifecycle_stage || "Lead");
         setNotes(client.notes || "");
         setServiceChecks(SERVICE_OPTIONS.reduce((acc, s) => ((acc[s] = client.tags?.includes(s) || false), acc), {} as Record<string, boolean>));
       } else {
@@ -72,7 +81,9 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         setEmail("");
         setPhone("");
         setNif("");
-        setPosition("");
+        setSector("");
+        setPersona("");
+        setLifecycleStage("Lead");
         setNotes("");
         setServiceChecks(SERVICE_OPTIONS.reduce((acc, s) => ((acc[s] = false), acc), {} as Record<string, boolean>));
       }
@@ -143,8 +154,10 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         email: email.trim(),
         phone: phone.trim(),
         nif: nif.trim(),
+        sector: sector || null,
+        persona: persona || null,
+        lifecycle_stage: lifecycleStage,
         notes: notes.trim() || null,
-        persona: position.trim() || null,
         tags: SERVICE_OPTIONS.filter((s) => serviceChecks[s]),
       };
 
@@ -205,7 +218,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
               </div>
             </div>
 
-            {/* Linha 3: NIF + Cargo */}
+            {/* Linha 3: NIF + Setor */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="client-nif">NIF *</Label>
@@ -213,18 +226,51 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
                 {errors.nif && <p className="text-xs text-destructive">{errors.nif}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client-position">Cargo</Label>
-                <Input id="client-position" value={position} onChange={(e) => setPosition(e.target.value)} />
+                <Label htmlFor="client-sector">Setor</Label>
+                <Select value={sector} onValueChange={setSector}>
+                  <SelectTrigger id="client-sector">
+                    <SelectValue placeholder="Selecione o setor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SECTOR_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            {/* Linha 4: Observações */}
+            {/* Linha 4: Persona + Ciclo de Vida */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="client-persona">Persona</Label>
+                <Select value={persona} onValueChange={setPersona}>
+                  <SelectTrigger id="client-persona">
+                    <SelectValue placeholder="Selecione a persona" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERSONA_OPTIONS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client-lifecycle">Ciclo de Vida</Label>
+                <Select value={lifecycleStage} onValueChange={setLifecycleStage}>
+                  <SelectTrigger id="client-lifecycle">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LIFECYCLE_OPTIONS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Linha 5: Observações */}
             <div className="space-y-2">
               <Label htmlFor="client-notes">Observações</Label>
               <Textarea id="client-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
             </div>
 
-            {/* Linha 5: Serviços de interesse */}
+            {/* Linha 6: Serviços de interesse */}
             <div className="space-y-2">
               <Label>Serviços de interesse</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
