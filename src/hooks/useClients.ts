@@ -15,7 +15,7 @@ export type Client = {
   notes?: string | null;
   sector?: string | null;
   persona?: string | null;
-  tags?: string[]; // Added
+  service_ids?: string[]; // Changed from tags to service_ids
   lifecycle_stage?: LifecycleStage;
   created_at?: string | null;
   updated_at?: string | null;
@@ -55,7 +55,10 @@ export const useClients = () => {
     try {
       const { data, error } = await supabase
         .from("clients")
-        .upsert(payload)
+        .upsert({
+          ...payload,
+          service_ids: payload.service_ids || [], // Ensure service_ids is saved as array
+        })
         .select()
         .single();
       if (error) throw error;

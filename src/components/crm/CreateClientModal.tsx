@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,7 +12,7 @@ import { HelpCircle } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
-import { MultiSelectServices } from "@/components/MultiSelectServices";
+import { MultiSelectServices } from "@/components/MultiSelectServices"; // Import the component used in projects
 
 interface Props {
   open: boolean;
@@ -29,7 +31,7 @@ function isEmailValid(email: string) {
 
 export default function CreateClientModal({ open, onOpenChange, onCreated, client }: Props) {
   const { upsertClient, clients } = useClients();
-  const { services } = useServices();
+  const { services } = useServices(); // Get services for MultiSelectServices
 
   const [name, setName] = React.useState("");
   const [company, setCompany] = React.useState("");
@@ -40,7 +42,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
   const [persona, setPersona] = React.useState("");
   const [lifecycleStage, setLifecycleStage] = React.useState("Lead");
   const [notes, setNotes] = React.useState("");
-  const [selectedServices, setSelectedServices] = React.useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = React.useState<string[]>([]); // For MultiSelectServices
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [saving, setSaving] = React.useState(false);
@@ -58,7 +60,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         setPersona(client.persona || "");
         setLifecycleStage(client.lifecycle_stage || "Lead");
         setNotes(client.notes || "");
-        setSelectedServices(client.tags || []);
+        setSelectedServices(client.service_ids || []); // Use service_ids
       } else {
         setName("");
         setCompany("");
@@ -116,7 +118,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         persona: persona || null,
         lifecycle_stage: lifecycleStage,
         notes: notes.trim() || null,
-        tags: selectedServices,
+        service_ids: selectedServices, // Save selected services
       };
 
       if (client) {
@@ -264,12 +266,15 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
               <Textarea id="client-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
             </div>
 
-            {/* Linha 6: Serviços de interesse (novo componente) */}
-            <MultiSelectServices
-              selected={selectedServices}
-              onChange={setSelectedServices}
-              placeholder="Selecione serviços de interesse..."
-            />
+            {/* Linha 6: Serviços de Interesse (MultiSelectServices instead of tags textarea) */}
+            <div className="space-y-2">
+              <Label>Serviços de Interesse</Label>
+              <MultiSelectServices
+                selected={selectedServices}
+                onChange={setSelectedServices}
+                placeholder="Selecione serviços de interesse..."
+              />
+            </div>
           </div>
 
           <DialogFooter>
