@@ -115,64 +115,69 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Projeto</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-3 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="project-name">Nome do Projeto *</Label>
-            <Input id="project-name" value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="Ex.: Evento BFA – Conferência" />
+        <div className="grid gap-4 py-4">
+          {/* Row 1: Nome do Projeto and Cliente */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="project-name">Nome do Projeto *</Label>
+              <Input id="project-name" value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="Ex.: Evento BFA – Conferência" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="client-id">Cliente *</Label>
+              {preselectedClientId ? (
+                <Input value={clients.find(c => c.id === preselectedClientId)?.name || "Cliente não encontrado"} disabled />
+              ) : (
+                <Select value={form.client_id} onValueChange={(v) => updateField("client_id", v)}>
+                  <SelectTrigger id="client-id">
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientOptions.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                    {clientOptions.length === 0 && (
+                      <SelectItem value="" disabled>
+                        Nenhum cliente encontrado. Crie um cliente primeiro.
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="client-id">Cliente *</Label>
-            {preselectedClientId ? (
-              <Input value={clients.find(c => c.id === preselectedClientId)?.name || "Cliente não encontrado"} disabled />
-            ) : (
-              <Select value={form.client_id} onValueChange={(v) => updateField("client_id", v)}>
-                <SelectTrigger id="client-id">
-                  <SelectValue placeholder="Selecione um cliente" />
+          {/* Row 2: Status and Receita Estimada */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="pipeline-status">Status Inicial *</Label>
+              <Select value={form.pipeline_status} onValueChange={(v) => updateField("pipeline_status", v as PipelineStatus)}>
+                <SelectTrigger id="pipeline-status">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {clientOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {PIPELINE_STATUSES.map(status => (
+                    <SelectItem key={status} value={status}>
+                      {status}
                     </SelectItem>
                   ))}
-                  {clientOptions.length === 0 && (
-                    <SelectItem value="" disabled>
-                      Nenhum cliente encontrado. Crie um cliente primeiro.
-                    </SelectItem>
-                  )}
                 </SelectContent>
               </Select>
-            )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="estimated-value">Receita Estimada (AOA)</Label>
+              <Input id="estimated-value" type="number" value={form.estimated_value ?? ""} onChange={(e) => updateField("estimated_value", Number(e.target.value))} placeholder="0" />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="pipeline-status">Status Inicial *</Label>
-            <Select value={form.pipeline_status} onValueChange={(v) => updateField("pipeline_status", v as PipelineStatus)}>
-              <SelectTrigger id="pipeline-status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PIPELINE_STATUSES.map(status => (
-                  <SelectItem key={status} value={status}>
-                    {status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="estimated-value">Receita Estimada (AOA)</Label>
-            <Input id="estimated-value" type="number" value={form.estimated_value ?? ""} onChange={(e) => updateField("estimated_value", Number(e.target.value))} placeholder="0" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          {/* Row 3: Datas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="start-date">Data de Início *</Label>
               <Input id="start-date" type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} />
@@ -183,7 +188,8 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Row 4: Horas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="start-time">Hora de Início</Label>
               <Input id="start-time" type="time" value={form.startTime || ""} onChange={(e) => updateField("startTime", e.target.value)} />
@@ -194,14 +200,16 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
             </div>
           </div>
 
+          {/* Row 5: Local */}
           <div className="space-y-2">
             <Label htmlFor="location">Local</Label>
             <Input id="location" value={form.location ?? ""} onChange={(e) => updateField("location", e.target.value)} placeholder="Ex.: CCTA, Talatona" />
           </div>
 
-          <div>
+          {/* Row 6: Serviços */}
+          <div className="space-y-2">
             <Label>Serviços Contratados *</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
               {services.map((s) => (
                 <label key={s.id} className="flex items-center gap-2">
                   <Checkbox checked={form.service_ids?.includes(s.id)} onCheckedChange={() => toggleService(s.id)} />
@@ -211,6 +219,7 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
             </div>
           </div>
 
+          {/* Row 7: Notas */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notas de Reunião</Label>
             <Textarea id="notes" rows={3} value={form.notes ?? ""} onChange={(e) => updateField("notes", e.target.value)} placeholder="Observações, follow-up, urgências..." />
