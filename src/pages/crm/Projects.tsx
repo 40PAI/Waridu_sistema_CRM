@@ -1,7 +1,9 @@
+"use client";
+
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
 import { useEvents } from "@/hooks/useEvents";
 import type { EventProject } from "@/types/crm";
-import MultiSelectServices from "@/components/MultiSelectServices";
+import { MultiSelectServices } from "@/components/MultiSelectServices";
 import { useServices } from "@/hooks/useServices";
 import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
