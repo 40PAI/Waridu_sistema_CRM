@@ -13,7 +13,6 @@ import type { CreatePayload, PipelineStatus, Client, Service } from "@/types/crm
 import { useClients } from "@/hooks/useClients";
 import { useEvents } from "@/hooks/useEvents";
 import { useServices } from "@/hooks/useServices";
-import { Trash2 } from "lucide-react";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -35,7 +34,7 @@ const PIPELINE_STATUSES: PipelineStatus[] = [
 export function CreateProjectDialog({ open, onOpenChange, clients, services, onCreate, preselectedClientId }: CreateProjectDialogProps) {
   const { clients: allClients } = useClients();
   const { updateEvent } = useEvents();
-  const { createService, refreshServices, deleteService, services: allServices } = useServices();
+  const { createService, refreshServices } = useServices();
 
   const [form, setForm] = React.useState<CreatePayload>({
     name: "",
@@ -107,25 +106,6 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
     }
   };
 
-  const handleDeleteService = async (serviceId: string, serviceName?: string) => {
-    const confirmMsg = `Remover o serviço "${serviceName || serviceId}"? Esta ação removerá o serviço da lista (itens já em projetos não serão modificados automaticamente).`;
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      await deleteService(serviceId);
-      await refreshServices();
-      // Remove from selected services if present
-      setForm((prev) => ({
-        ...prev,
-        service_ids: (prev.service_ids || []).filter((id) => id !== serviceId),
-      }));
-      showSuccess("Serviço removido com sucesso!");
-    } catch (err) {
-      console.error("deleteService error:", err);
-      showError("Falha ao remover serviço. Verifique permissões.");
-    }
-  };
-
   const submit = async () => {
     if (!form.name?.trim()) return showError("Nome do projeto é obrigatório");
     if (!form.client_id) return showError("Selecione um cliente");
@@ -159,7 +139,6 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
   };
 
   const clientOptions = allClients.map(c => ({ value: c.id, label: `${c.name} (${c.email})` }));
-  const servicesToRender = allServices.length ? allServices : services;
 
   return (
     <>
@@ -170,7 +149,7 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Row 1: Project name + Client */}
+            {/* Linha 1: Nome do Projeto + Cliente */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="project-name">Nome do Projeto *</Label>
@@ -191,13 +170,18 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
                           {opt.label}
                         </SelectItem>
                       ))}
+                      {clientOptions.length === 0 && (
+                        <SelectItem value="" disabled>
+                          Nenhum cliente encontrado. Crie um cliente primeiro.
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 )}
               </div>
             </div>
 
-            {/* Row 2: Status + Estimated */}
+            {/* Linha 2: Status + Receita */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="pipeline-status">Status Inicial *</Label>
@@ -220,7 +204,7 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
               </div>
             </div>
 
-            {/* Row 3: Dates */}
+            {/* Linha 3: Datas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="start-date">Data de Início *</Label>
@@ -232,7 +216,7 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
               </div>
             </div>
 
-            {/* Row 4: Times */}
+            {/* Linha 4: Horas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="start-time">Hora de Início</Label>
@@ -244,46 +228,29 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
               </div>
             </div>
 
-            {/* Row 5: Location */}
+            {/* Linha 5: Local */}
             <div className="space-y-2">
               <Label htmlFor="location">Local</Label>
               <Input id="location" value={form.location ?? ""} onChange={(e) => updateField("location", e.target.value)} placeholder="Ex.: CCTA, Talatona" />
             </div>
 
-            {/* Row 6: Services with delete option */}
+            {/* Linha 6: Serviços */}
             <div className="space-y-2">
               <Label>Serviços Contratados *</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {servicesToRender.map((s) => {
-                  const selected = (form.service_ids || []).includes(s.id);
-                  return (
-                    <div key={s.id} className="flex items-center justify-between gap-2 border rounded-md p-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <Checkbox checked={selected} onCheckedChange={() => toggleService(s.id)} />
-                        <span className="text-sm">{s.name}</span>
-                      </label>
-                      <button
-                        type="button"
-                        aria-label={`Remover serviço ${s.name}`}
-                        title={`Remover ${s.name}`}
-                        onClick={() => handleDeleteService(s.id, s.name)}
-                        className="text-destructive hover:text-destructive focus:outline-none"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                {services.map((s) => (
+                  <label key={s.id} className="flex items-center gap-2">
+                    <Checkbox checked={form.service_ids?.includes(s.id)} onCheckedChange={() => toggleService(s.id)} />
+                    <span className="text-sm">{s.name}</span>
+                  </label>
+                ))}
               </div>
-              <div className="flex items-center gap-4 mt-2">
-                <Button variant="link" size="sm" onClick={() => setAddServiceOpen(true)}>
-                  + Adicionar Novo Serviço
-                </Button>
-                <div className="text-sm text-muted-foreground">Pode adicionar ou remover serviços aqui conforme necessário.</div>
-              </div>
+              <Button variant="link" size="sm" onClick={() => setAddServiceOpen(true)} className="mt-2">
+                + Adicionar Novo Serviço
+              </Button>
             </div>
 
-            {/* Row 7: Notes */}
+            {/* Linha 7: Notas */}
             <div className="space-y-2">
               <Label htmlFor="notes">Notas de Reunião</Label>
               <Textarea id="notes" rows={3} value={form.notes ?? ""} onChange={(e) => updateField("notes", e.target.value)} placeholder="Observações, follow-up, urgências..." />
