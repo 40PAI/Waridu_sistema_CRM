@@ -40,14 +40,14 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
   const [serviceIds, setServiceIds] = React.useState<string[]>([]);
   const [notes, setNotes] = React.useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventName || !startDate || !eventLocation) {
       showError("Por favor, preencha os campos obrigatórios: Nome, Data de Início e Local.");
       return;
     }
 
-    onAddEvent({
+    await onAddEvent({
       name: eventName,
       startDate: startDate,
       endDate: endDate || startDate,
@@ -63,7 +63,13 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
     });
 
     showSuccess("Evento criado com sucesso!");
-    navigate("/roster-management");
+    
+    // Navigate to pipeline if it's a commercial project, otherwise to roster management
+    if (pipelineStatus) {
+      navigate("/crm/pipeline");
+    } else {
+      navigate("/roster-management");
+    }
   };
 
   return (
