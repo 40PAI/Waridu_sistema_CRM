@@ -1,18 +1,16 @@
-"use client";
-
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
+import { MultiSelectServices } from "@/components/MultiSelectServices";
 
 interface Props {
   open: boolean;
@@ -20,15 +18,6 @@ interface Props {
   onCreated?: (clientId: string) => void;
   client?: any;
 }
-
-const SERVICE_OPTIONS = [
-  "Sonorização",
-  "Interpretação simultânea",
-  "Transmissão ao vivo",
-  "Broadcasting",
-  "Iluminação",
-  "Painel LED",
-];
 
 const SECTOR_OPTIONS = ["Tecnologia", "Financeiro", "Saúde"];
 const PERSONA_OPTIONS = ["CEO", "CTO", "Marketing"];
@@ -40,7 +29,7 @@ function isEmailValid(email: string) {
 
 export default function CreateClientModal({ open, onOpenChange, onCreated, client }: Props) {
   const { upsertClient, clients } = useClients();
-  const { createService, refreshServices } = useServices();
+  const { services } = useServices();
 
   const [name, setName] = React.useState("");
   const [company, setCompany] = React.useState("");
@@ -51,17 +40,10 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
   const [persona, setPersona] = React.useState("");
   const [lifecycleStage, setLifecycleStage] = React.useState("Lead");
   const [notes, setNotes] = React.useState("");
-  const [serviceChecks, setServiceChecks] = React.useState<Record<string, boolean>>(() =>
-    SERVICE_OPTIONS.reduce((acc, s) => ((acc[s] = false), acc), {} as Record<string, boolean>),
-  );
+  const [selectedServices, setSelectedServices] = React.useState<string[]>([]);
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [saving, setSaving] = React.useState(false);
-  const [addServiceOpen, setAddServiceOpen] = React.useState(false);
-  const [newServiceName, setNewServiceName] = React.useState("");
-  const [newServiceDesc, setNewServiceDesc] = React.useState("");
-  const [savingService, setSavingService] = React.useState(false);
-
   const isEditing = !!client;
 
   React.useEffect(() => {
@@ -76,7 +58,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         setPersona(client.persona || "");
         setLifecycleStage(client.lifecycle_stage || "Lead");
         setNotes(client.notes || "");
-        setServiceChecks(SERVICE_OPTIONS.reduce((acc, s) => ((acc[s] = client.tags?.includes(s) || false), acc), {} as Record<string, boolean>));
+        setSelectedServices(client.tags || []);
       } else {
         setName("");
         setCompany("");
@@ -87,46 +69,20 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         setPersona("");
         setLifecycleStage("Lead");
         setNotes("");
-        setServiceChecks(SERVICE_OPTIONS.reduce((acc, s) => ((acc[s] = false), acc), {} as Record<string, boolean>));
+        setSelectedServices([]);
       }
       setErrors({});
       setSaving(false);
-      setNewServiceName("");
-      setNewServiceDesc("");
     }
   }, [open, client]);
 
-  // realtime validation handlers
+  // Validação em tempo real
   React.useEffect(() => {
     const newErrors: Record<string, string> = {};
     if (email && !isEmailValid(email)) newErrors.email = "Formato de email inválido";
     if (nif && nif.trim().length === 0) newErrors.nif = "NIF inválido";
     setErrors((prev) => ({ ...prev, ...newErrors }));
   }, [email, nif]);
-
-  const toggleService = (name: string) => {
-    setServiceChecks((prev) => ({ ...prev, [name]: !prev[name] }));
-  };
-
-  const handleCreateService = async () => {
-    if (!newServiceName.trim()) {
-      showError("Nome do serviço é obrigatório.");
-      return;
-    }
-    setSavingService(true);
-    try {
-      await createService({ name: newServiceName.trim(), description: newServiceDesc.trim() || undefined });
-      await refreshServices();
-      showSuccess("Serviço adicionado com sucesso!");
-      setNewServiceName("");
-      setNewServiceDesc("");
-      setAddServiceOpen(false);
-    } catch (error) {
-      showError("Erro ao adicionar serviço.");
-    } finally {
-      setSavingService(false);
-    }
-  };
 
   const validateBeforeSave = () => {
     const e: Record<string, string> = {};
@@ -136,7 +92,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
     if (!phone.trim()) e.phone = "Contacto é obrigatório";
     if (!nif.trim()) e.nif = "NIF é obrigatório";
 
-    // Check for duplicates
+    // Verificar duplicatas
     const existingByEmail = clients.find(c => c.email?.toLowerCase() === email.toLowerCase() && c.id !== client?.id);
     const existingByNif = clients.find(c => c.nif === nif && c.id !== client?.id);
     if (existingByEmail) e.email = "Já existe um cliente com este email";
@@ -160,11 +116,11 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         persona: persona || null,
         lifecycle_stage: lifecycleStage,
         notes: notes.trim() || null,
-        tags: SERVICE_OPTIONS.filter((s) => serviceChecks[s]),
+        tags: selectedServices,
       };
 
       if (client) {
-        payload.id = client.id; // For editing
+        payload.id = client.id;
       }
 
       const savedClient = await upsertClient(payload);
@@ -308,63 +264,18 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
               <Textarea id="client-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
             </div>
 
-            {/* Linha 6: Serviços de interesse */}
-            <div className="space-y-2">
-              <Label>Serviços de interesse</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {SERVICE_OPTIONS.map((s) => (
-                  <label key={s} className="flex items-center gap-2">
-                    <Checkbox checked={!!serviceChecks[s]} onCheckedChange={() => toggleService(s)} />
-                    <span className="text-sm">{s}</span>
-                  </label>
-                ))}
-              </div>
-              <Button variant="link" size="sm" onClick={() => setAddServiceOpen(true)} className="mt-2">
-                + Adicionar Novo Serviço
-              </Button>
-            </div>
+            {/* Linha 6: Serviços de interesse (novo componente) */}
+            <MultiSelectServices
+              selected={selectedServices}
+              onChange={setSelectedServices}
+              placeholder="Selecione serviços de interesse..."
+            />
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Sub-dialog para adicionar novo serviço */}
-      <Dialog open={addServiceOpen} onOpenChange={setAddServiceOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Adicionar Novo Serviço</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="service-name">Nome do Serviço *</Label>
-              <Input
-                id="service-name"
-                value={newServiceName}
-                onChange={(e) => setNewServiceName(e.target.value)}
-                placeholder="Ex: Cobertura de Casamento"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="service-desc">Descrição (Opcional)</Label>
-              <Textarea
-                id="service-desc"
-                value={newServiceDesc}
-                onChange={(e) => setNewServiceDesc(e.target.value)}
-                placeholder="Descreva o serviço brevemente..."
-                rows={2}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddServiceOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreateService} disabled={savingService}>
-              {savingService ? "Adicionando..." : "Adicionar Serviço"}
             </Button>
           </DialogFooter>
         </DialogContent>
