@@ -8,8 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/config/roles";
 
 const SidebarNav = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const role = user?.profile?.role;
 
   const getNavItems = () => {
@@ -89,141 +90,125 @@ const SidebarNav = () => {
     }
   };
 
+  const navItems = getNavItems();
+
+  // Group items for display
+  const mainGroup = navItems.filter(item => ['/', '/calendar', '/roster-management', '/employees', '/roles', '/materials', '/material-requests'].includes(item.to));
+  const crmGroup = navItems.filter(item => item.to.startsWith('/crm/'));
+  const financeGroup = navItems.filter(item => item.to.startsWith('/finance'));
+  const technicianGroup = navItems.filter(item => item.to.startsWith('/technician'));
+  const adminGroup = navItems.filter(item => ['/invite-member', '/admin-settings', '/admin/tasks'].includes(item.to));
+  const generalGroup = navItems.filter(item => !mainGroup.includes(item) && !crmGroup.includes(item) && !financeGroup.includes(item) && !technicianGroup.includes(item) && !adminGroup.includes(item));
+
   return (
-    <Sidebar>
-      <SidebarContent className="flex flex-col">
-        <div className="p-2">
-          <Button variant="ghost" size="icon" className="w-full justify-start" asChild>
-            <Link to="/">
-              <Home className="h-5 w-5 mr-2" />
-              <span className="hidden md:inline">Dashboard</span>
-            </Link>
-          </Button>
-        </div>
+    <div className="flex flex-col h-full">
+      <div className="p-2">
+        <Button variant="ghost" size="icon" className="w-full justify-start" asChild>
+          <Link to="/">
+            <Home className="h-5 w-5 mr-2" />
+            <span className="hidden md:inline">Dashboard</span>
+          </Link>
+        </Button>
+      </div>
 
-        <Accordion type="multiple" defaultValue={["main", "crm", "finance", "technician", "admin"]} className="w-full">
-          {mainGroup.length > 0 && (
-            <AccordionItem value="main">
-              <AccordionTrigger className="px-4 py-2 text-left">Operacional</AccordionTrigger>
-              <AccordionContent className="px-2">
-                <SidebarMenu>
-                  {mainGroup.map((item) => (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
-                          {item.icon}
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </AccordionContent>
-            </AccordionItem>
-          )}
+      <div className="flex-1 overflow-y-auto">
+        {mainGroup.length > 0 && (
+          <div className="mb-4">
+            <h3 className="px-4 py-2 text-sm font-semibold text-muted-foreground">Operacional</h3>
+            <nav className="space-y-1 px-2">
+              {mainGroup.map((item) => (
+                <Button key={item.to} variant="ghost" className="w-full justify-start" asChild>
+                  <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              ))}
+            </nav>
+          </div>
+        )}
 
-          {crmGroup.length > 0 && (
-            <AccordionItem value="crm">
-              <AccordionTrigger className="px-4 py-2 text-left">CRM</AccordionTrigger>
-              <AccordionContent className="px-2">
-                <SidebarMenu>
-                  {crmGroup.map((item) => (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
-                          {item.icon}
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </AccordionContent>
-            </AccordionItem>
-          )}
+        {crmGroup.length > 0 && (
+          <div className="mb-4">
+            <h3 className="px-4 py-2 text-sm font-semibold text-muted-foreground">CRM</h3>
+            <nav className="space-y-1 px-2">
+              {crmGroup.map((item) => (
+                <Button key={item.to} variant="ghost" className="w-full justify-start" asChild>
+                  <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              ))}
+            </nav>
+          </div>
+        )}
 
-          {financeGroup.length > 0 && (
-            <AccordionItem value="finance">
-              <AccordionTrigger className="px-4 py-2 text-left">Financeiro</AccordionTrigger>
-              <AccordionContent className="px-2">
-                <SidebarMenu>
-                  {financeGroup.map((item) => (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
-                          {item.icon}
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </AccordionContent>
-            </AccordionItem>
-          )}
+        {financeGroup.length > 0 && (
+          <div className="mb-4">
+            <h3 className="px-4 py-2 text-sm font-semibold text-muted-foreground">Financeiro</h3>
+            <nav className="space-y-1 px-2">
+              {financeGroup.map((item) => (
+                <Button key={item.to} variant="ghost" className="w-full justify-start" asChild>
+                  <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              ))}
+            </nav>
+          </div>
+        )}
 
-          {technicianGroup.length > 0 && (
-            <AccordionItem value="technician">
-              <AccordionTrigger className="px-4 py-2 text-left">Técnico</AccordionTrigger>
-              <AccordionContent className="px-2">
-                <SidebarMenu>
-                  {technicianGroup.map((item) => (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
-                          {item.icon}
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </AccordionContent>
-            </AccordionItem>
-          )}
+        {technicianGroup.length > 0 && (
+          <div className="mb-4">
+            <h3 className="px-4 py-2 text-sm font-semibold text-muted-foreground">Técnico</h3>
+            <nav className="space-y-1 px-2">
+              {technicianGroup.map((item) => (
+                <Button key={item.to} variant="ghost" className="w-full justify-start" asChild>
+                  <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              ))}
+            </nav>
+          </div>
+        )}
 
-          {adminGroup.length > 0 && (
-            <AccordionItem value="admin">
-              <AccordionTrigger className="px-4 py-2 text-left">Admin</AccordionTrigger>
-              <AccordionContent className="px-2">
-                <SidebarMenu>
-                  {adminGroup.map((item) => (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
-                          {item.icon}
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </AccordionContent>
-            </AccordionItem>
-          )}
-        </Accordion>
+        {adminGroup.length > 0 && (
+          <div className="mb-4">
+            <h3 className="px-4 py-2 text-sm font-semibold text-muted-foreground">Admin</h3>
+            <nav className="space-y-1 px-2">
+              {adminGroup.map((item) => (
+                <Button key={item.to} variant="ghost" className="w-full justify-start" asChild>
+                  <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              ))}
+            </nav>
+          </div>
+        )}
 
         {generalGroup.length > 0 && (
-          <SidebarGroup className="mt-auto">
-            <SidebarGroupLabel>Geral</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {generalGroup.map((item) => (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton asChild>
-                      <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <div className="mt-auto">
+            <h3 className="px-4 py-2 text-sm font-semibold text-muted-foreground">Geral</h3>
+            <nav className="space-y-1 px-2">
+              {generalGroup.map((item) => (
+                <Button key={item.to} variant="ghost" className="w-full justify-start" asChild>
+                  <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              ))}
+            </nav>
+          </div>
         )}
-      </SidebarContent>
-    </Sidebar>
+      </div>
+    </div>
   );
 };
 
