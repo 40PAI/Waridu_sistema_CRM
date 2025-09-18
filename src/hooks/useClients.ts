@@ -17,6 +17,7 @@ export type Client = {
   lifecycle_stage?: LifecycleStage;
   sector?: string | null;
   persona?: string | null;
+  tags?: string[]; // Novo: array de tags
 };
 
 export const useClients = () => {

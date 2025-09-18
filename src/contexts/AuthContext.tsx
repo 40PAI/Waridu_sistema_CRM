@@ -46,7 +46,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role: raw.role as Role,
       technician_category_id: raw.technician_category_id || null,
     };
-    // Nota: Caso precise, podemos adicionar um fallback de role padrão.
   };
 
   useEffect(() => {
