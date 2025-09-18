@@ -9,7 +9,6 @@ import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import ResetPasswordPage from "@/pages/ResetPassword";
-import CreateEvent from "@/pages/CreateEvent";
 import Calendar from "@/pages/Calendar";
 import RosterManagement from "@/pages/RosterManagement";
 import Employees from "@/pages/Employees";
@@ -57,11 +56,6 @@ import { useRoles } from "@/hooks/useRoles";
 import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 
 // Wrappers to provide required props
-const CreateEventWrapper = () => {
-  const { addEvent } = useEvents();
-  return <CreateEvent onAddEvent={addEvent} />;
-};
-
 const CalendarWrapper = () => {
   const { events } = useEvents();
   return <Calendar events={events} />;
@@ -192,7 +186,6 @@ const AppContent = () => {
           {/* Rotas protegidas - COM autenticação */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Index />} />
-            <Route path="/create-event" element={<CreateEventWrapper />} />
             <Route path="/calendar" element={<CalendarWrapper />} />
             <Route path="/roster-management" element={<RosterManagementWrapper />} />
             <Route path="/employees" element={<EmployeesWrapper />} />
