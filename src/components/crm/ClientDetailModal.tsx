@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Client } from "@/hooks/useClients";
 import type { Communication } from "@/hooks/useCommunications";
-import { Search, Filter, Edit, Save, X, Plus, Mail, Phone, Calendar, MessageSquare } from "lucide-react";
+import { Search, Plus, Mail, Phone, Calendar, MessageSquare } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { useCommunications } from "@/hooks/useCommunications";
 import { showSuccess, showError } from "@/utils/toast";
@@ -77,7 +77,7 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
         type: newComm.type,
         subject: newComm.subject || undefined,
         notes: newComm.notes,
-        user_id: "current-user", // TODO: get from auth
+        user_id: "current-user",
         date: new Date().toISOString(),
       });
       showSuccess("Comunicação registrada.");
@@ -106,17 +106,14 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
             <div className="flex gap-2">
               {!isEditing ? (
                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                  <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </Button>
               ) : (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
-                    <X className="h-4 w-4 mr-2" />
                     Cancelar
                   </Button>
                   <Button size="sm" onClick={handleSaveEdit}>
-                    <Save className="h-4 w-4 mr-2" />
                     Salvar
                   </Button>
                 </>
@@ -175,18 +172,6 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
                   />
                 ) : (
                   <p className="text-sm">{client.nif || "—"}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Endereço</label>
-                {isEditing ? (
-                  <Input 
-                    value={editData.address || ''} 
-                    onChange={(e) => setEditData(prev => ({ ...prev, address: e.target.value }))} 
-                  />
-                ) : (
-                  <p className="text-sm">{client.address || "—"}</p>
                 )}
               </div>
 
@@ -307,6 +292,7 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
                       <SelectItem value="note">Nota</SelectItem>
                     </SelectContent>
                   </Select>
+
                   <Input 
                     placeholder="Assunto (opcional)" 
                     value={newComm.subject} 
@@ -374,9 +360,10 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-        </DialogFooter>
+        {/*
+          Intentionally removed explicit close button: user can click outside to close.
+          Dialog supports overlay click to close by default.
+        */}
       </DialogContent>
     </Dialog>
   );

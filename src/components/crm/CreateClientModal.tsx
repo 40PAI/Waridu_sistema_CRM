@@ -148,7 +148,11 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        {/*
+          Limit vertical size so modal doesn't occupy entire viewport height.
+          mx-4 ensures mobile side padding; max-h keeps it within viewport and allows scrolling.
+        */}
+        <DialogContent className="max-w-2xl mx-4 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Cliente</DialogTitle>
             <CardDescription>Preencha os dados do cliente. Campos marcados com * são obrigatórios.</CardDescription>
@@ -253,8 +257,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
           clients={[{ id: createdClientId, name: name } as any]}
           services={services.map((s: any) => ({ id: s.id, name: s.name }))}
           onCreate={async (_payload) => {
-            // Instead of trying to import/create via supabase here, navigate to the project page (client preselected)
-            // This keeps behavior consistent and avoids importing supabase internals dynamically.
+            // Instead of trying to insert here, navigate to project creation page with client preselected
             navigate(`/crm/projects/new?client=${createdClientId}`);
           }}
         />
