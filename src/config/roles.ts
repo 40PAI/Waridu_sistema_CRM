@@ -9,7 +9,9 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/admin-settings', '/invite-member', '/admin/members', '/admin/users', '/debug', '/roles/:roleId',
     '/notifications', '/material-manager/profile', '/admin/profile',
     // New CRM pages for Admin
-    '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/crm/reports'
+    '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/crm/reports',
+    // Services management
+    '/admin/services'
   ],
   Coordenador: [
     '/', '/calendar', '/create-event', '/roster-management',
@@ -31,7 +33,9 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/technician/tasks-kanban', '/technician/profile', '/technician/notifications', '/notifications'
   ],
   Comercial: [
-    '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/crm/reports', '/notifications'
+    '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/crm/reports', '/notifications',
+    // commercial read-only services page
+    '/commercial/services'
   ],
 };
 
@@ -40,8 +44,8 @@ export const ACTION_PERMISSIONS: Record<Role, string[]> = {
     'members:invite', 'members:promote', 'members:ban', 'members:delete',
     'materials:write', 'employees:write', 'employees:assign_category', 'categories:manage',
     'tasks:create',
-    // New CRM actions for Admin
-    'projects:write', 'clients:write'
+    // New service management actions for Admin
+    'services:manage', 'services:create'
   ],
   Coordenador: [
     'members:invite', 'members:promote', 'employees:write',
