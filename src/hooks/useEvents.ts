@@ -79,6 +79,8 @@ export const useEvents = () => {
   const updateEvent = useCallback(
     async (updatedEvent: Event) => {
       try {
+        console.log("updateEvent called with:", updatedEvent);
+
         const payload: any = {
           name: updatedEvent.name,
           start_date: updatedEvent.startDate,
@@ -100,29 +102,59 @@ export const useEvents = () => {
           updated_at: new Date().toISOString(),
         };
 
+        console.log("Payload to save:", payload);
+
         let result;
         if (updatedEvent.id) {
+          console.log("Updating existing event with id:", updatedEvent.id);
           // Update existing event
-          const { error: updateErr } = await supabase
+          const { data, error: updateErr } = await supabase
             .from("events")
             .update(payload)
-            .eq("id", updatedEvent.id);
-          if (updateErr) throw updateErr;
-          result = { id: updatedEvent.id };
+            .eq("id", updatedEvent.id)
+            .select()
+            .single();
+
+          if (updateErr) {
+            console.error("Update error:", updateErr);
+            throw updateErr;
+          }
+
+          console.log("Update successful, data:", data);
+          result = data;
         } else {
+          console.log("Inserting new event");
           // Insert new event
           const { data, error: insertErr } = await supabase
             .from("events")
             .insert(payload)
             .select()
             .single();
-          if (insertErr) throw insertErr;
+
+          if (insertErr) {
+            console.error("Insert error:", insertErr);
+            throw insertErr;
+          }
+
+          console.log("Insert successful, data:", data);
           result = data;
         }
 
+        if (!result) {
+          console.error("No result returned from database operation");
+          throw new Error("Operação no banco de dados não retornou resultado");
+        }
+
         showSuccess(updatedEvent.id ? "Evento atualizado com sucesso!" : "Evento criado com sucesso!");
+
         // Refresh the list
-        await fetchEvents();
+        try {
+          await fetchEvents();
+        } catch (fetchErr) {
+          console.warn("Error refreshing events after save:", fetchErr);
+          // Don't fail the whole operation for refresh errors
+        }
+
         return result;
       } catch (err: any) {
         console.error("Error saving event:", err);
