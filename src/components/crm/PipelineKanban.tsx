@@ -113,7 +113,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject }: Pip
     } catch (e) {
       showError("Erro ao atualizar status do projeto.");
       // rollback
-      setLocalProjects([...projects]);
+      setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, pipeline_status: project.pipeline_status } : p)));
     } finally {
       setUpdating(false);
     }

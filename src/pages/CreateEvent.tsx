@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
 
 interface CreateEventPageProps {
@@ -16,6 +17,11 @@ interface CreateEventPageProps {
     startTime: string;
     endTime: string;
     revenue?: number;
+    pipeline_status?: string | null;
+    estimated_value?: number;
+    client_id?: string;
+    service_ids?: string[];
+    notes?: string;
   }) => Promise<void> | void; // aceita funções assíncronas também
 }
 
@@ -28,6 +34,11 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
   const [endTime, setEndTime] = React.useState("");
   const [eventLocation, setEventLocation] = React.useState("");
   const [revenue, setRevenue] = React.useState<number | undefined>(undefined);
+  const [pipelineStatus, setPipelineStatus] = React.useState("");
+  const [estimatedValue, setEstimatedValue] = React.useState<number | undefined>(undefined);
+  const [clientId, setClientId] = React.useState("");
+  const [serviceIds, setServiceIds] = React.useState<string[]>([]);
+  const [notes, setNotes] = React.useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +55,11 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
       startTime: startTime,
       endTime: endTime,
       revenue: revenue,
+      pipeline_status: pipelineStatus || null,
+      estimated_value: estimatedValue,
+      client_id: clientId || undefined,
+      service_ids: serviceIds,
+      notes: notes || undefined,
     });
 
     showSuccess("Evento criado com sucesso!");
@@ -166,12 +182,70 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="event-pipeline-status">Status Inicial (Pipeline)</Label>
+            <Select value={pipelineStatus} onValueChange={setPipelineStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione se é um projeto comercial" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Não é projeto comercial</SelectItem>
+                <SelectItem value="1º Contato">1º Contato</SelectItem>
+                <SelectItem value="Orçamento">Orçamento</SelectItem>
+                <SelectItem value="Negociação">Negociação</SelectItem>
+                <SelectItem value="Confirmado">Confirmado</SelectItem>
+                <SelectItem value="Cancelado">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {pipelineStatus && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="estimated-value">Valor Estimado (AOA)</Label>
+                <Input 
+                  id="estimated-value" 
+                  name="estimated-value"
+                  autoComplete="off"
+                  type="number" 
+                  placeholder="Ex: 30000" 
+                  value={estimatedValue || ''} 
+                  onChange={(e) => setEstimatedValue(e.target.value ? Number(e.target.value) : undefined)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client-id">ID do Cliente</Label>
+                <Input 
+                  id="client-id" 
+                  name="client-id"
+                  autoComplete="off"
+                  placeholder="Ex: cliente-uuid" 
+                  value={clientId} 
+                  onChange={(e) => setClientId(e.target.value)} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="service-ids">IDs dos Serviços (separados por vírgula)</Label>
+                <Input 
+                  id="service-ids" 
+                  name="service-ids"
+                  autoComplete="off"
+                  placeholder="Ex: service-1, service-2" 
+                  value={serviceIds.join(', ')} 
+                  onChange={(e) => setServiceIds(e.target.value.split(',').map(s => s.trim()).filter(Boolean))} 
+                />
+              </div>
+            </>
+          )}
+
+          <div className="space-y-2">
             <Label htmlFor="event-observations">Observações Adicionais</Label>
             <Textarea 
               id="event-observations"
               name="event-observations"
               autoComplete="off"
               placeholder="Qualquer detalhe importante, como horários de montagem, restrições do local, etc." 
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 
