@@ -12,7 +12,10 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Client } from "@/hooks/useClients";
 import type { Communication } from "@/hooks/useCommunications";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Edit, Save, X, Plus, Mail, Phone, Calendar, MessageSquare } from "lucide-react";
+import { useClients } from "@/hooks/useClients";
+import { useCommunications } from "@/hooks/useCommunications";
+import { showSuccess, showError } from "@/utils/toast";
 
 interface ClientDetailModalProps {
   open: boolean;
@@ -22,9 +25,25 @@ interface ClientDetailModalProps {
 }
 
 const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChange, client, communications }) => {
+  const { upsertClient } = useClients();
+  const { createCommunication } = useCommunications();
+
   const [filterType, setFilterType] = React.useState<string>("all");
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [groupByThread, setGroupByThread] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editData, setEditData] = React.useState<Partial<Client>>({});
+  const [showAddCommunication, setShowAddCommunication] = React.useState(false);
+  const [newComm, setNewComm] = React.useState({
+    type: 'note' as Communication['type'],
+    subject: '',
+    notes: ''
+  });
+
+  React.useEffect(() => {
+    if (client) {
+      setEditData(client);
+    }
+  }, [client]);
 
   if (!client) return null;
 
@@ -36,71 +55,276 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
     return matchesType && matchesSearch;
   });
 
-  const groupedCommunications = React.useMemo(() => {
-    if (!groupByThread) return filteredCommunications;
-    const groups: Record<string, Communication[]> = {};
-    filteredCommunications.forEach(comm => {
-      const threadKey = comm.provider_meta?.threadId || comm.id;
-      if (!groups[threadKey]) groups[threadKey] = [];
-      groups[threadKey].push(comm);
-    });
-    return Object.values(groups).flat();
-  }, [filteredCommunications, groupByThread]);
+  const handleSaveEdit = async () => {
+    try {
+      await upsertClient({ ...client, ...editData });
+      showSuccess("Cliente atualizado com sucesso!");
+      setIsEditing(false);
+    } catch (error) {
+      showError("Erro ao atualizar cliente.");
+    }
+  };
+
+  const handleAddCommunication = async () => {
+    if (!newComm.notes.trim()) {
+      showError("Descreva a comunicação antes de adicionar.");
+      return;
+    }
+
+    try {
+      await createCommunication({
+        client_id: client.id,
+        type: newComm.type,
+        subject: newComm.subject || undefined,
+        notes: newComm.notes,
+        user_id: "current-user", // TODO: get from auth
+        date: new Date().toISOString(),
+      });
+      showSuccess("Comunicação registrada.");
+      setNewComm({ type: 'note', subject: '', notes: '' });
+      setShowAddCommunication(false);
+    } catch (err) {
+      showError("Falha ao registrar comunicação.");
+    }
+  };
+
+  const getIconForType = (type: Communication['type']) => {
+    switch (type) {
+      case 'email': return <Mail className="h-4 w-4" />;
+      case 'call': return <Phone className="h-4 w-4" />;
+      case 'meeting': return <Calendar className="h-4 w-4" />;
+      default: return <MessageSquare className="h-4 w-4" />;
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Ficha de Cliente: {client.name}</DialogTitle>
+          <DialogTitle className="flex items-center justify-between">
+            <span>Ficha de Cliente: {client.name}</span>
+            <div className="flex gap-2">
+              {!isEditing ? (
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+                    <X className="h-4 w-4 mr-2" />
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={handleSaveEdit}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Salvar
+                  </Button>
+                </>
+              )}
+            </div>
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Informações Básicas */}
           <div className="space-y-4">
-            <div>
-              <h4 className="font-semibold text-sm mb-1">Email</h4>
-              <p className="text-sm">{client.email || "—"}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-1">Telefone</h4>
-              <p className="text-sm">{client.phone || "—"}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-1">NIF</h4>
-              <p className="text-sm">{client.nif || "—"}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-1">Endereço</h4>
-              <p className="text-sm">{client.address || "—"}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-1">Setor</h4>
-              <p className="text-sm">{client.sector || "—"}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-1">Persona</h4>
-              <p className="text-sm">{client.persona || "—"}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-1">Ciclo de Vida</h4>
-              <Badge variant="outline">{client.lifecycle_stage || "Lead"}</Badge>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-1">Tags</h4>
-              <div className="flex flex-wrap gap-1">
-                {client.tags?.map(tag => (
-                  <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                )) || "—"}
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="text-sm font-medium">Nome</label>
+                {isEditing ? (
+                  <Input 
+                    value={editData.name || ''} 
+                    onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))} 
+                  />
+                ) : (
+                  <p className="text-sm">{client.name}</p>
+                )}
               </div>
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm mb-1">Observações</h4>
-              <p className="text-sm">{client.notes || "—"}</p>
+
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                {isEditing ? (
+                  <Input 
+                    type="email"
+                    value={editData.email || ''} 
+                    onChange={(e) => setEditData(prev => ({ ...prev, email: e.target.value }))} 
+                  />
+                ) : (
+                  <p className="text-sm">{client.email || "—"}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Telefone</label>
+                {isEditing ? (
+                  <Input 
+                    value={editData.phone || ''} 
+                    onChange={(e) => setEditData(prev => ({ ...prev, phone: e.target.value }))} 
+                  />
+                ) : (
+                  <p className="text-sm">{client.phone || "—"}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">NIF</label>
+                {isEditing ? (
+                  <Input 
+                    value={editData.nif || ''} 
+                    onChange={(e) => setEditData(prev => ({ ...prev, nif: e.target.value }))} 
+                  />
+                ) : (
+                  <p className="text-sm">{client.nif || "—"}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Endereço</label>
+                {isEditing ? (
+                  <Input 
+                    value={editData.address || ''} 
+                    onChange={(e) => setEditData(prev => ({ ...prev, address: e.target.value }))} 
+                  />
+                ) : (
+                  <p className="text-sm">{client.address || "—"}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Setor</label>
+                  {isEditing ? (
+                    <Select 
+                      value={editData.sector || ''} 
+                      onValueChange={(value) => setEditData(prev => ({ ...prev, sector: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Tecnologia">Tecnologia</SelectItem>
+                        <SelectItem value="Financeiro">Financeiro</SelectItem>
+                        <SelectItem value="Saúde">Saúde</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm">{client.sector || "—"}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Persona</label>
+                  {isEditing ? (
+                    <Select 
+                      value={editData.persona || ''} 
+                      onValueChange={(value) => setEditData(prev => ({ ...prev, persona: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CEO">CEO</SelectItem>
+                        <SelectItem value="CTO">CTO</SelectItem>
+                        <SelectItem value="Marketing">Marketing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm">{client.persona || "—"}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Ciclo de Vida</label>
+                {isEditing ? (
+                  <Select 
+                    value={editData.lifecycle_stage || 'Lead'} 
+                    onValueChange={(value) => setEditData(prev => ({ ...prev, lifecycle_stage: value as any }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Lead">Lead</SelectItem>
+                      <SelectItem value="MQL">MQL</SelectItem>
+                      <SelectItem value="SQL">SQL</SelectItem>
+                      <SelectItem value="Ativo">Ativo</SelectItem>
+                      <SelectItem value="Perdido">Perdido</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge variant="outline">{client.lifecycle_stage || "Lead"}</Badge>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Tags</label>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {client.tags?.map(tag => (
+                    <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                  )) || "—"}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Observações</label>
+                {isEditing ? (
+                  <Input 
+                    value={editData.notes || ''} 
+                    onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))} 
+                  />
+                ) : (
+                  <p className="text-sm">{client.notes || "—"}</p>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Timeline de Comunicações */}
           <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Histórico de Comunicações</h3>
+              <Button variant="outline" size="sm" onClick={() => setShowAddCommunication(!showAddCommunication)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar
+              </Button>
+            </div>
+
+            {showAddCommunication && (
+              <div className="p-4 border rounded-lg space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <Select 
+                    value={newComm.type} 
+                    onValueChange={(value) => setNewComm(prev => ({ ...prev, type: value as Communication['type'] }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="call">Chamada</SelectItem>
+                      <SelectItem value="meeting">Reunião</SelectItem>
+                      <SelectItem value="note">Nota</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input 
+                    placeholder="Assunto (opcional)" 
+                    value={newComm.subject} 
+                    onChange={(e) => setNewComm(prev => ({ ...prev, subject: e.target.value }))} 
+                  />
+                </div>
+                <Input 
+                  placeholder="Detalhes da comunicação..." 
+                  value={newComm.notes} 
+                  onChange={(e) => setNewComm(prev => ({ ...prev, notes: e.target.value }))} 
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleAddCommunication}>Salvar</Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowAddCommunication(false)}>Cancelar</Button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4" />
               <Input
@@ -109,9 +333,6 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1"
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4" />
               <Select value={filterType} onValueChange={setFilterType}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -124,24 +345,18 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
                   <SelectItem value="note">Notas</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setGroupByThread(!groupByThread)}
-              >
-                {groupByThread ? "Desagrupar" : "Agrupar por Thread"}
-              </Button>
             </div>
 
             <div className="max-h-96 overflow-y-auto">
-              {groupedCommunications.length > 0 ? (
+              {filteredCommunications.length > 0 ? (
                 <VerticalTimeline layout="1-column-left" className="vertical-timeline-custom-line">
-                  {groupedCommunications.map((comm) => (
+                  {filteredCommunications.map((comm) => (
                     <VerticalTimelineElement
                       key={comm.id}
                       className="vertical-timeline-element--work"
                       date={format(new Date(comm.date), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       iconStyle={{ background: 'rgb(33, 150, 243)', color: '#fff' }}
+                      icon={getIconForType(comm.type)}
                     >
                       <h3 className="vertical-timeline-element-title">{comm.type}</h3>
                       {comm.subject && <h4 className="vertical-timeline-element-subtitle">{comm.subject}</h4>}
@@ -153,7 +368,7 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
                   ))}
                 </VerticalTimeline>
               ) : (
-                <p className="text-muted-foreground">Nenhuma comunicação encontrada.</p>
+                <p className="text-muted-foreground text-center py-8">Nenhuma comunicação encontrada.</p>
               )}
             </div>
           </div>
