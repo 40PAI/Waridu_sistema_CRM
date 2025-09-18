@@ -7,7 +7,7 @@ export type LifecycleStage = "Lead" | "MQL" | "SQL" | "Ativo" | "Perdido";
 export type Client = {
   id: string;
   name: string;
-  company?: string | null; // added company field
+  company?: string | null; // Added
   nif?: string | null;
   email?: string | null;
   phone?: string | null;
@@ -15,7 +15,7 @@ export type Client = {
   notes?: string | null;
   sector?: string | null;
   persona?: string | null;
-  tags?: string[]; // Novo: array de tags
+  tags?: string[]; // Added
   lifecycle_stage?: LifecycleStage;
   created_at?: string | null;
   updated_at?: string | null;
