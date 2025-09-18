@@ -11,9 +11,8 @@ import { Button } from "@/components/ui/button";
 import { showError, showSuccess } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
-import CreateProjectDialog from "@/components/crm/CreateProjectDialog";
+import { CreateProjectDialog } from "@/components/crm/CreateProjectDialog";
 import { useEvents } from "@/hooks/useEvents";
-import { Spinner } from "@/components/ui/skeleton"; // small spinner-like indicator (skeleton component used for simple loader)
 import { useNavigate } from "react-router-dom";
 
 interface Props {
@@ -130,13 +129,9 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
 
       // if asked, open project modal
       if (createProjectAfter) {
-        // ensure events refreshed when project is created inside dialog
+        // open project dialog pre-filled with client
         setOpenCreateProject(true);
       }
-
-      // keep modal open so user can choose to create project, or close and see updated list
-      // but also close if user didn't want further action
-      // we'll leave it open to show options
     } catch (err: any) {
       console.error("Error creating client:", err);
       showError(err?.message || "Erro ao criar cliente.");
@@ -257,16 +252,10 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
           }}
           clients={[{ id: createdClientId, name: name } as any]}
           services={services.map((s: any) => ({ id: s.id, name: s.name }))}
-          onCreate={async (payload) => {
-            try {
-              // insert into events table directly
-              // import supabase lazily to avoid top-level import here
-              const { createClient } = await import("@/integrations/supabase/client");
-              // but the project's supabase client is exported as 'supabase' — use it
-            } catch {
-              // fallback: navigate to project creation page with client preselected
-              window.location.href = `/crm/projects/new?client=${createdClientId}`;
-            }
+          onCreate={async (_payload) => {
+            // Instead of trying to import/create via supabase here, navigate to the project page (client preselected)
+            // This keeps behavior consistent and avoids importing supabase internals dynamically.
+            navigate(`/crm/projects/new?client=${createdClientId}`);
           }}
         />
       )}
