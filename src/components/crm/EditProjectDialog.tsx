@@ -11,14 +11,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { showError, showSuccess } from "@/utils/toast";
 import type { EventProject, PipelineStatus } from "@/types/crm";
 import { useClients } from "@/hooks/useClients";
-import { useEvents } from "@/hooks/useEvents";
 import { useServices } from "@/hooks/useServices";
+import useEvents from "@/hooks/useEvents";
 
 interface EditProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project: EventProject | null;
-  onSave: (updatedProject: EventProject) => Promise<void>;
+  onSave?: (updatedProject: EventProject) => Promise<void>;
 }
 
 const PIPELINE_STATUSES: PipelineStatus[] = [
@@ -31,8 +31,8 @@ const PIPELINE_STATUSES: PipelineStatus[] = [
 
 export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditProjectDialogProps) {
   const { clients } = useClients();
-  const { updateEvent } = useEvents();
   const { services } = useServices();
+  const { updateEvent } = useEvents();
 
   const [form, setForm] = React.useState<Partial<EventProject>>({});
   const [loading, setLoading] = React.useState(false);
@@ -89,10 +89,41 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         notes: form.notes,
       };
 
-      await onSave(updatedProject);
+      // Call the hook updateEvent to persist to Supabase
+      await updateEvent({
+        id: updatedProject.id,
+        name: updatedProject.name,
+        startDate: updatedProject.startDate,
+        endDate: updatedProject.endDate,
+        location: updatedProject.location,
+        startTime: undefined,
+        endTime: undefined,
+        revenue: updatedProject.estimated_value,
+        status: updatedProject.status,
+        description: updatedProject.notes,
+        roster: undefined,
+        expenses: undefined,
+        pipeline_status: updatedProject.pipeline_status,
+        estimated_value: updatedProject.estimated_value,
+        service_ids: updatedProject.service_ids,
+        client_id: updatedProject.client_id,
+        notes: updatedProject.notes,
+        tags: updatedProject.tags,
+      } as any);
+
+      // Optional parent callback (no-op in pipeline page to avoid double updates)
+      if (onSave) {
+        try {
+          await onSave(updatedProject);
+        } catch {
+          // ignore parent callback errors
+        }
+      }
+
       showSuccess("Projeto atualizado com sucesso!");
       onOpenChange(false);
     } catch (error) {
+      console.error("Error saving project:", error);
       showError("Erro ao atualizar projeto.");
     } finally {
       setLoading(false);
@@ -111,7 +142,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Linha 1: Nome do Projeto + Cliente */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-project-name">Nome do Projeto *</Label>
@@ -134,7 +164,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
             </div>
           </div>
 
-          {/* Linha 2: Status + Receita */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-pipeline-status">Status *</Label>
@@ -157,7 +186,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
             </div>
           </div>
 
-          {/* Linha 3: Datas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-start-date">Data de Início *</Label>
@@ -169,13 +197,11 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
             </div>
           </div>
 
-          {/* Linha 4: Local */}
           <div className="space-y-2">
             <Label htmlFor="edit-location">Local</Label>
             <Input id="edit-location" value={form.location || ""} onChange={(e) => updateField("location", e.target.value)} placeholder="Ex.: CCTA, Talatona" />
           </div>
 
-          {/* Linha 5: Serviços */}
           <div className="space-y-2">
             <Label>Serviços Contratados *</Label>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -188,7 +214,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
             </div>
           </div>
 
-          {/* Linha 6: Notas */}
           <div className="space-y-2">
             <Label htmlFor="edit-notes">Notas</Label>
             <Textarea id="edit-notes" rows={3} value={form.notes || ""} onChange={(e) => updateField("notes", e.target.value)} placeholder="Observações, follow-up, urgências..." />

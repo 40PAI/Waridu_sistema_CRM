@@ -108,11 +108,13 @@ export default function PipelinePage() {
         onCreate={handleCreateProject}
       />
 
+      {/* Edit dialog: dialog itself now does the update via useEvents.updateEvent.
+          Pass a noop onSave to avoid duplicate updates (dialog still calls onSave if provided). */}
       <EditProjectDialog
         open={openEditProject}
         onOpenChange={setOpenEditProject}
         project={editingProject}
-        onSave={handleUpdateProject}
+        onSave={async () => { /* noop - already handled inside dialog */ }}
       />
 
       <ViewProjectDialog
