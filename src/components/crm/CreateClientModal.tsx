@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
@@ -182,7 +184,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
   };
 
   return (
-    <>
+    <TooltipProvider>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -226,7 +228,17 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
                 {errors.nif && <p className="text-xs text-destructive">{errors.nif}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client-sector">Setor</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="client-sector">Setor</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-gray-800 text-white rounded-md shadow-lg max-w-xs">
+                      <p>Área de atuação do cliente (ex.: Educação, Saúde, Governo, Tecnologia).</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Select value={sector} onValueChange={setSector}>
                   <SelectTrigger id="client-sector">
                     <SelectValue placeholder="Selecione o setor" />
@@ -241,7 +253,17 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
             {/* Linha 4: Persona + Ciclo de Vida */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="client-persona">Persona</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="client-persona">Persona</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-gray-800 text-white rounded-md shadow-lg max-w-xs">
+                      <p>Perfil da pessoa de contacto principal (ex.: CEO, Diretor de Marketing, Gestor de Eventos).</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Select value={persona} onValueChange={setPersona}>
                   <SelectTrigger id="client-persona">
                     <SelectValue placeholder="Selecione a persona" />
@@ -252,7 +274,23 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client-lifecycle">Ciclo de Vida</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="client-lifecycle">Ciclo de Vida</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-gray-800 text-white rounded-md shadow-lg max-w-sm">
+                      <p>Etapa da relação com a Waridu:<br />
+                        - Lead: Primeiro contacto<br />
+                        - MQL: Interessado (pedido de orçamento)<br />
+                        - SQL: Em negociação com vendas<br />
+                        - Cliente ativo: Contrato assinado<br />
+                        - Cliente recorrente: Já fez mais de 1 projeto<br />
+                        - Cliente perdido: Não converteu / desistiu</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Select value={lifecycleStage} onValueChange={setLifecycleStage}>
                   <SelectTrigger id="client-lifecycle">
                     <SelectValue />
@@ -331,6 +369,6 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   );
 }
