@@ -12,6 +12,15 @@ export interface Communication {
   notes?: string;
   user_id: string;
   created_at: string;
+  // provider information (e.g. gmail) — optional, included when synced from provider
+  provider?: string;
+  provider_meta?: {
+    threadId?: string;
+    messageId?: string;
+    headers?: Record<string, string>;
+    [key: string]: any;
+  } | null;
+  is_internal?: boolean;
 }
 
 export const useCommunications = () => {
@@ -33,7 +42,7 @@ export const useCommunications = () => {
         .order('date', { ascending: false });
 
       if (error) throw error;
-      setCommunications(data || []);
+      setCommunications((data || []) as Communication[]);
     } catch (err) {
       console.error("Error fetching communications:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro ao carregar comunicações.";

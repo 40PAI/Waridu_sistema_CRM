@@ -7,17 +7,18 @@ export type LifecycleStage = "Lead" | "MQL" | "SQL" | "Ativo" | "Perdido";
 export type Client = {
   id: string;
   name: string;
+  company?: string | null; // added company field
   nif?: string | null;
   email?: string | null;
   phone?: string | null;
   address?: string | null;
   notes?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-  lifecycle_stage?: LifecycleStage;
   sector?: string | null;
   persona?: string | null;
   tags?: string[]; // Novo: array de tags
+  lifecycle_stage?: LifecycleStage;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export const useClients = () => {
