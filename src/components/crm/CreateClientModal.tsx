@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import { showError, showSuccess } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
+import { useServices } from "@/hooks/useServices";
 
 interface Props {
   open: boolean;
@@ -32,6 +33,7 @@ function isEmailValid(email: string) {
 
 export default function CreateClientModal({ open, onOpenChange, onCreated, client }: Props) {
   const { upsertClient, clients } = useClients();
+  const { createService, refreshServices } = useServices();
 
   const [name, setName] = React.useState("");
   const [company, setCompany] = React.useState("");
@@ -46,6 +48,10 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [saving, setSaving] = React.useState(false);
+  const [addServiceOpen, setAddServiceOpen] = React.useState(false);
+  const [newServiceName, setNewServiceName] = React.useState("");
+  const [newServiceDesc, setNewServiceDesc] = React.useState("");
+  const [savingService, setSavingService] = React.useState(false);
 
   const isEditing = !!client;
 
@@ -72,6 +78,8 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
       }
       setErrors({});
       setSaving(false);
+      setNewServiceName("");
+      setNewServiceDesc("");
     }
   }, [open, client]);
 
@@ -85,6 +93,26 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
 
   const toggleService = (name: string) => {
     setServiceChecks((prev) => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  const handleCreateService = async () => {
+    if (!newServiceName.trim()) {
+      showError("Nome do serviço é obrigatório.");
+      return;
+    }
+    setSavingService(true);
+    try {
+      await createService({ name: newServiceName.trim(), description: newServiceDesc.trim() || undefined });
+      await refreshServices();
+      showSuccess("Serviço adicionado com sucesso!");
+      setNewServiceName("");
+      setNewServiceDesc("");
+      setAddServiceOpen(false);
+    } catch (error) {
+      showError("Erro ao adicionar serviço.");
+    } finally {
+      setSavingService(false);
+    }
   };
 
   const validateBeforeSave = () => {
@@ -141,73 +169,122 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl mx-4 max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isEditing ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
+          </DialogHeader>
 
-        <div className="grid gap-3 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="client-name">Nome completo *</Label>
-            <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
-            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-          </div>
+          <div className="grid gap-4 py-4">
+            {/* Linha 1: Nome + Empresa */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="client-name">Nome completo *</Label>
+                <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
+                {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client-company">Empresa *</Label>
+                <Input id="client-company" value={company} onChange={(e) => setCompany(e.target.value)} />
+                {errors.company && <p className="text-xs text-destructive">{errors.company}</p>}
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="client-company">Empresa *</Label>
-            <Input id="client-company" value={company} onChange={(e) => setCompany(e.target.value)} />
-            {errors.company && <p className="text-xs text-destructive">{errors.company}</p>}
-          </div>
+            {/* Linha 2: Email + Telefone */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="client-email">E-mail *</Label>
+                <Input id="client-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client-phone">Telefone/Contacto *</Label>
+                <Input id="client-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="client-email">E-mail *</Label>
-            <Input id="client-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-          </div>
+            {/* Linha 3: NIF + Cargo */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="client-nif">NIF *</Label>
+                <Input id="client-nif" value={nif} onChange={(e) => setNif(e.target.value)} />
+                {errors.nif && <p className="text-xs text-destructive">{errors.nif}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client-position">Cargo</Label>
+                <Input id="client-position" value={position} onChange={(e) => setPosition(e.target.value)} />
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="client-phone">Telefone/Contacto *</Label>
-            <Input id="client-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
-          </div>
+            {/* Linha 4: Observações */}
+            <div className="space-y-2">
+              <Label htmlFor="client-notes">Observações</Label>
+              <Textarea id="client-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="client-nif">NIF *</Label>
-            <Input id="client-nif" value={nif} onChange={(e) => setNif(e.target.value)} />
-            {errors.nif && <p className="text-xs text-destructive">{errors.nif}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="client-position">Cargo</Label>
-            <Input id="client-position" value={position} onChange={(e) => setPosition(e.target.value)} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="client-notes">Observações</Label>
-            <Textarea id="client-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
-          </div>
-
-          <div>
-            <Label>Serviços de interesse</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-              {SERVICE_OPTIONS.map((s) => (
-                <label key={s} className="flex items-center gap-2">
-                  <Checkbox checked={!!serviceChecks[s]} onCheckedChange={() => toggleService(s)} />
-                  <span className="text-sm">{s}</span>
-                </label>
-              ))}
+            {/* Linha 5: Serviços de interesse */}
+            <div className="space-y-2">
+              <Label>Serviços de interesse</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                {SERVICE_OPTIONS.map((s) => (
+                  <label key={s} className="flex items-center gap-2">
+                    <Checkbox checked={!!serviceChecks[s]} onCheckedChange={() => toggleService(s)} />
+                    <span className="text-sm">{s}</span>
+                  </label>
+                ))}
+              </div>
+              <Button variant="link" size="sm" onClick={() => setAddServiceOpen(true)} className="mt-2">
+                + Adicionar Novo Serviço
+              </Button>
             </div>
           </div>
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Salvando..." : "Salvar"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sub-dialog para adicionar novo serviço */}
+      <Dialog open={addServiceOpen} onOpenChange={setAddServiceOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Serviço</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="service-name">Nome do Serviço *</Label>
+              <Input
+                id="service-name"
+                value={newServiceName}
+                onChange={(e) => setNewServiceName(e.target.value)}
+                placeholder="Ex: Cobertura de Casamento"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="service-desc">Descrição (Opcional)</Label>
+              <Textarea
+                id="service-desc"
+                value={newServiceDesc}
+                onChange={(e) => setNewServiceDesc(e.target.value)}
+                placeholder="Descreva o serviço brevemente..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddServiceOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateService} disabled={savingService}>
+              {savingService ? "Adicionando..." : "Adicionar Serviço"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
