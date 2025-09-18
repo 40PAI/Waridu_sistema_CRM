@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useClients } from "@/hooks/useClients";
@@ -20,7 +20,7 @@ const ClientsPage = () => {
   const { clients, fetchClients } = useClients();
   const { events } = useEvents();
   const { communications } = useCommunications();
-  const { services, activeServices } = useServices();
+  const { services } = useServices();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
@@ -173,9 +173,9 @@ const ClientsPage = () => {
                       <TableCell>{c.lifecycle_stage || "Lead"}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {(c.tags || []).map((tag: string) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
-                              {serviceNameById[tag] || tag}
+                          {(c.service_ids || []).map((serviceId: string) => (
+                            <Badge key={serviceId} variant="outline" className="text-xs">
+                              {serviceNameById[serviceId] || serviceId}
                             </Badge>
                           ))}
                         </div>
