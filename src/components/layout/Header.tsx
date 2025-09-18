@@ -6,14 +6,10 @@ import { Menu, Users, FileText, Settings, Home, Users2, Package, CalendarDays, B
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/config/roles";
-import { Calendar } from "lucide-react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 
 const SidebarNav = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const role = user?.profile?.role;
 
   const getNavItems = () => {
@@ -92,16 +88,6 @@ const SidebarNav = () => {
       navigate("/login", { replace: true });
     }
   };
-
-  const navItems = getNavItems();
-
-  // Group items for display
-  const mainGroup = navItems.filter(item => ['/', '/calendar', '/roster-management', '/employees', '/roles', '/materials', '/material-requests'].includes(item.to));
-  const crmGroup = navItems.filter(item => item.to.startsWith('/crm/'));
-  const financeGroup = navItems.filter(item => item.to.startsWith('/finance'));
-  const technicianGroup = navItems.filter(item => item.to.startsWith('/technician'));
-  const adminGroup = navItems.filter(item => ['/invite-member', '/admin-settings', '/admin/tasks'].includes(item.to));
-  const generalGroup = navItems.filter(item => !mainGroup.includes(item) && !crmGroup.includes(item) && !financeGroup.includes(item) && !technicianGroup.includes(item) && !adminGroup.includes(item));
 
   return (
     <Sidebar>
