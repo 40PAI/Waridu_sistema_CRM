@@ -24,7 +24,8 @@ import type { EventProject, PipelineStatus } from "@/types/crm";
 interface PipelineKanbanProps {
   projects: EventProject[];
   onUpdateProject: (p: EventProject) => Promise<void>;
-  onEditProject?: (p: EventProject) => void; // NOVO
+  onEditProject?: (p: EventProject) => void;
+  onViewProject?: (p: EventProject) => void;
 }
 
 const columns = [
@@ -58,7 +59,7 @@ const getOverColumnId = (over: DragOverEvent["over"]) => {
   return (over.data?.current as any)?.sortable?.containerId ?? null;
 };
 
-export function PipelineKanban({ projects, onUpdateProject, onEditProject }: PipelineKanbanProps) {
+export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<PipelineStatus | null>(null);
   const [updating, setUpdating] = React.useState(false);
@@ -136,7 +137,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject }: Pip
               <SortableContext items={projectsByColumn[column.id].map((p) => p.id)} strategy={verticalListSortingStrategy}>
                 {projectsByColumn[column.id].map((project) => (
                   <div key={project.id} id={String(project.id)} className="mb-3">
-                    <SortableProjectCard project={project} onEditClick={onEditProject} />
+                    <SortableProjectCard project={project} onEditClick={onEditProject} onViewClick={onViewProject} />
                   </div>
                 ))}
               </SortableContext>

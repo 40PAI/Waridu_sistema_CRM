@@ -4,6 +4,7 @@ import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
 import { CreateProjectDialog } from "@/components/crm/CreateProjectDialog";
 import { EditProjectDialog } from "@/components/crm/EditProjectDialog";
+import { ViewProjectDialog } from "@/components/crm/ViewProjectDialog";
 import useEvents from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
@@ -18,7 +19,9 @@ export default function PipelinePage() {
 
   const [openCreateProject, setOpenCreateProject] = React.useState(false);
   const [openEditProject, setOpenEditProject] = React.useState(false);
+  const [openViewProject, setOpenViewProject] = React.useState(false);
   const [editingProject, setEditingProject] = React.useState<EventProject | null>(null);
+  const [viewingProject, setViewingProject] = React.useState<EventProject | null>(null);
 
   const projects: EventProject[] = React.useMemo(() => {
     return (events || [])
@@ -63,6 +66,11 @@ export default function PipelinePage() {
     setOpenEditProject(true);
   };
 
+  const handleViewProject = (project: EventProject) => {
+    setViewingProject(project);
+    setOpenViewProject(true);
+  };
+
   const handleCreateProject = async (payload: any) => {
     const eventPayload = {
       name: payload.name,
@@ -90,7 +98,7 @@ export default function PipelinePage() {
           Novo Projeto
         </Button>
       </div>
-      {loading ? <p>Carregando...</p> : <PipelineKanban projects={projects} onUpdateProject={handleUpdateProject} onEditProject={handleEditProject} />}
+      {loading ? <p>Carregando...</p> : <PipelineKanban projects={projects} onUpdateProject={handleUpdateProject} onEditProject={handleEditProject} onViewProject={handleViewProject} />}
 
       <CreateProjectDialog
         open={openCreateProject}
@@ -105,6 +113,12 @@ export default function PipelinePage() {
         onOpenChange={setOpenEditProject}
         project={editingProject}
         onSave={handleUpdateProject}
+      />
+
+      <ViewProjectDialog
+        open={openViewProject}
+        onOpenChange={setOpenViewProject}
+        project={viewingProject}
       />
     </div>
   );

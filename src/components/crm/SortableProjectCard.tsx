@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, MapPin, Pencil } from "lucide-react";
+import { Calendar, DollarSign, MapPin, Pencil, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { EventProject } from "@/types/crm";
@@ -14,6 +14,7 @@ import type { EventProject } from "@/types/crm";
 export interface SortableProjectCardProps {
   project: EventProject;
   onEditClick?: (project: EventProject) => void;
+  onViewClick?: (project: EventProject) => void;
 }
 
 const getStatusBadge = (status?: string) => {
@@ -27,7 +28,7 @@ const getStatusBadge = (status?: string) => {
   }
 };
 
-export function SortableProjectCard({ project, onEditClick }: SortableProjectCardProps) {
+export function SortableProjectCard({ project, onEditClick, onViewClick }: SortableProjectCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: project.id });
 
   const style = {
@@ -47,18 +48,29 @@ export function SortableProjectCard({ project, onEditClick }: SortableProjectCar
     >
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-sm leading-tight max-w-[220px] truncate">
+          <h3 className="font-semibold text-sm leading-tight max-w-[180px] truncate">
             {project.name}
           </h3>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Editar"
-            onClick={(e) => { e.stopPropagation(); onEditClick?.(project); }}
-            className="h-7 w-7"
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-1 flex-shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Visualizar"
+              onClick={(e) => { e.stopPropagation(); onViewClick?.(project); }}
+              className="h-7 w-7"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Editar"
+              onClick={(e) => { e.stopPropagation(); onEditClick?.(project); }}
+              className="h-7 w-7"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
