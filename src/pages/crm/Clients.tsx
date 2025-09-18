@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useClients } from "@/hooks/useClients";
+import { useClients, type Client } from "@/hooks/useClients";
 import { useCommunications } from "@/hooks/useCommunications";
 import { useEvents } from "@/hooks/useEvents";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import ClientDetailModal from "@/components/crm/ClientDetailModal"; // Novo import
+import ClientDetailModal from "@/components/crm/ClientDetailModal";
 
 const ClientsPage = () => {
   const { clients, loading, fetchClients, upsertClient } = useClients();
@@ -28,8 +28,8 @@ const ClientsPage = () => {
   const [tagFilter, setTagFilter] = React.useState<string[]>([]);
   const [editingTags, setEditingTags] = React.useState<string | null>(null);
   const [newTag, setNewTag] = React.useState("");
-  const [selectedClient, setSelectedClient] = React.useState<Client | null>(null); // Novo: para modal
-  const [modalOpen, setModalOpen] = React.useState(false); // Novo: controle modal
+  const [selectedClient, setSelectedClient] = React.useState<Client | null>(null);
+  const [modalOpen, setModalOpen] = React.useState(false);
 
   React.useEffect(() => {
     fetchClients();
@@ -88,7 +88,6 @@ const ClientsPage = () => {
           <p className="text-sm text-muted-foreground">Gerencie clientes, histórico e ciclo de vida.</p>
         </div>
 
-        {/* Filtros */}
         <Card>
           <CardHeader>
             <CardTitle>Filtros</CardTitle>
@@ -222,7 +221,6 @@ const ClientsPage = () => {
         </Card>
       </div>
 
-      {/* Modal de Detalhes */}
       <ClientDetailModal
         open={modalOpen}
         onOpenChange={setModalOpen}
