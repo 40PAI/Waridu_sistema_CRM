@@ -56,19 +56,38 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
     }
   }, [open, project]);
 
-  const updateField = (key: keyof EventProject, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
+  const updateField = (key: keyof EventProject, value: any) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-  const toggleService = (id: string) =>
+  const toggleService = (id: string) => {
     setForm((prev) => ({
       ...prev,
       service_ids: prev.service_ids?.includes(id)
         ? prev.service_ids.filter((s) => s !== id)
         : [...(prev.service_ids ?? []), id],
     }));
+  };
 
   const submit = async () => {
-    if (!form.name?.trim() || !form.client_id || !form.service_ids?.length) {
-      showError("Nome, cliente e serviços são obrigatórios.");
+    if (!form.name?.trim()) {
+      showError("Nome do projeto é obrigatório.");
+      return;
+    }
+    if (!form.client_id) {
+      showError("Cliente é obrigatório.");
+      return;
+    }
+    if (!form.service_ids?.length) {
+      showError("Selecione pelo menos um serviço.");
+      return;
+    }
+    if (!form.pipeline_status) {
+      showError("Status do pipeline é obrigatório.");
+      return;
+    }
+    if (!form.startDate) {
+      showError("Data de início é obrigatória.");
       return;
     }
 
@@ -76,21 +95,21 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
     try {
       const updatedProject: EventProject = {
         id: form.id!,
-        name: form.name!,
-        client_id: form.client_id!,
-        pipeline_status: form.pipeline_status!,
-        service_ids: form.service_ids!,
+        name: form.name.trim(),
+        client_id: form.client_id,
+        pipeline_status: form.pipeline_status,
+        service_ids: form.service_ids,
         estimated_value: form.estimated_value,
-        startDate: form.startDate!,
-        endDate: form.endDate!,
-        location: form.location!,
-        status: form.status!,
+        startDate: form.startDate,
+        endDate: form.endDate || form.startDate,
+        location: form.location || "",
+        status: form.status || "Planejado",
         tags: form.tags,
         notes: form.notes,
       };
 
       // Call the hook updateEvent to persist to Supabase
-      await updateEvent({
+      const result = await updateEvent({
         id: updatedProject.id,
         name: updatedProject.name,
         startDate: updatedProject.startDate,
@@ -109,22 +128,28 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         client_id: updatedProject.client_id,
         notes: updatedProject.notes,
         tags: updatedProject.tags,
+        updated_at: new Date().toISOString(),
       } as any);
 
-      // Optional parent callback (no-op in pipeline page to avoid double updates)
+      if (!result) {
+        throw new Error("Falha ao atualizar projeto");
+      }
+
+      // Optional parent callback
       if (onSave) {
         try {
           await onSave(updatedProject);
-        } catch {
-          // ignore parent callback errors
+        } catch (parentError) {
+          console.warn("Parent callback error:", parentError);
+          // Don't fail the whole operation for parent callback errors
         }
       }
 
       showSuccess("Projeto atualizado com sucesso!");
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving project:", error);
-      showError("Erro ao atualizar projeto.");
+      showError(error?.message || "Erro ao atualizar projeto.");
     } finally {
       setLoading(false);
     }
@@ -145,7 +170,12 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-project-name">Nome do Projeto *</Label>
-              <Input id="edit-project-name" value={form.name || ""} onChange={(e) => updateField("name", e.target.value)} placeholder="Ex.: Evento BFA – Conferência" />
+              <Input 
+                id="edit-project-name" 
+                value={form.name || ""} 
+                onChange={(e) => updateField("name", e.target.value)} 
+                placeholder="Ex.: Evento BFA – Conferência" 
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-client-id">Cliente *</Label>
@@ -182,24 +212,45 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-estimated-value">Valor Estimado (AOA)</Label>
-              <Input id="edit-estimated-value" type="number" value={form.estimated_value || ""} onChange={(e) => updateField("estimated_value", Number(e.target.value))} placeholder="0" />
+              <Input 
+                id="edit-estimated-value" 
+                type="number" 
+                value={form.estimated_value || ""} 
+                onChange={(e) => updateField("estimated_value", Number(e.target.value))} 
+                placeholder="0" 
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-start-date">Data de Início *</Label>
-              <Input id="edit-start-date" type="date" value={form.startDate || ""} onChange={(e) => updateField("startDate", e.target.value)} />
+              <Input 
+                id="edit-start-date" 
+                type="date" 
+                value={form.startDate || ""} 
+                onChange={(e) => updateField("startDate", e.target.value)} 
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-end-date">Data de Fim</Label>
-              <Input id="edit-end-date" type="date" value={form.endDate || ""} onChange={(e) => updateField("endDate", e.target.value)} />
+              <Input 
+                id="edit-end-date" 
+                type="date" 
+                value={form.endDate || ""} 
+                onChange={(e) => updateField("endDate", e.target.value)} 
+              />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-location">Local</Label>
-            <Input id="edit-location" value={form.location || ""} onChange={(e) => updateField("location", e.target.value)} placeholder="Ex.: CCTA, Talatona" />
+            <Input 
+              id="edit-location" 
+              value={form.location || ""} 
+              onChange={(e) => updateField("location", e.target.value)} 
+              placeholder="Ex.: CCTA, Talatona" 
+            />
           </div>
 
           <div className="space-y-2">
@@ -207,7 +258,10 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
               {services.map((s) => (
                 <label key={s.id} className="flex items-center gap-2">
-                  <Checkbox checked={form.service_ids?.includes(s.id)} onCheckedChange={() => toggleService(s.id)} />
+                  <Checkbox 
+                    checked={form.service_ids?.includes(s.id)} 
+                    onCheckedChange={() => toggleService(s.id)} 
+                  />
                   <span className="text-sm">{s.name}</span>
                 </label>
               ))}
@@ -216,12 +270,20 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
 
           <div className="space-y-2">
             <Label htmlFor="edit-notes">Notas</Label>
-            <Textarea id="edit-notes" rows={3} value={form.notes || ""} onChange={(e) => updateField("notes", e.target.value)} placeholder="Observações, follow-up, urgências..." />
+            <Textarea 
+              id="edit-notes" 
+              rows={3} 
+              value={form.notes || ""} 
+              onChange={(e) => updateField("notes", e.target.value)} 
+              placeholder="Observações, follow-up, urgências..." 
+            />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            Cancelar
+          </Button>
           <Button onClick={submit} disabled={loading}>
             {loading ? "Salvando..." : "Salvar Alterações"}
           </Button>
