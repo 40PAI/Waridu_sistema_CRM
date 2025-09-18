@@ -20,6 +20,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   // optional callback so parent can refresh or react after new client created
   onCreated?: (clientId: string) => void;
+  // optional client for editing
+  client?: any;
 }
 
 const SERVICE_OPTIONS = [
@@ -32,12 +34,11 @@ const SERVICE_OPTIONS = [
 ];
 
 function isEmailValid(email: string) {
-  // simple regex for basic validation
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-export default function CreateClientModal({ open, onOpenChange, onCreated }: Props) {
-  const { upsertClient } = useClients();
+export default function CreateClientModal({ open, onOpenChange, onCreated, client }: Props) {
+  const { upsertClient, clients } = useClients();
   const { services } = useServices();
   const { fetchEvents } = useEvents();
   const navigate = useNavigate();
@@ -55,28 +56,38 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [saving, setSaving] = React.useState(false);
-
-  // Controls CreateProjectDialog open state after create
-  const [openCreateProject, setOpenCreateProject] = React.useState(false);
   const [createdClientId, setCreatedClientId] = React.useState<string | null>(null);
+  const [openCreateProject, setOpenCreateProject] = React.useState(false);
+
+  const isEditing = !!client;
 
   React.useEffect(() => {
-    if (!open) {
-      // reset form when modal closes
-      setName("");
-      setCompany("");
-      setEmail("");
-      setPhone("");
-      setNif("");
-      setPosition("");
-      setNotes("");
-      setServiceChecks(SERVICE_OPTIONS.reduce((acc, s) => ((acc[s] = false), acc), {} as Record<string, boolean>));
+    if (open) {
+      if (client) {
+        setName(client.name || "");
+        setCompany(client.company || "");
+        setEmail(client.email || "");
+        setPhone(client.phone || "");
+        setNif(client.nif || "");
+        setPosition(client.persona || "");
+        setNotes(client.notes || "");
+        setServiceChecks(SERVICE_OPTIONS.reduce((acc, s) => ((acc[s] = client.tags?.includes(s) || false), acc), {} as Record<string, boolean>));
+      } else {
+        setName("");
+        setCompany("");
+        setEmail("");
+        setPhone("");
+        setNif("");
+        setPosition("");
+        setNotes("");
+        setServiceChecks(SERVICE_OPTIONS.reduce((acc, s) => ((acc[s] = false), acc), {} as Record<string, boolean>));
+      }
       setErrors({});
       setSaving(false);
       setCreatedClientId(null);
       setOpenCreateProject(false);
     }
-  }, [open]);
+  }, [open, client]);
 
   // realtime validation handlers
   React.useEffect(() => {
@@ -84,7 +95,6 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
     if (email && !isEmailValid(email)) newErrors.email = "Formato de email inválido";
     if (nif && nif.trim().length === 0) newErrors.nif = "NIF inválido";
     setErrors((prev) => ({ ...prev, ...newErrors }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, nif]);
 
   const toggleService = (name: string) => {
@@ -98,6 +108,13 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
     if (!email.trim() || !isEmailValid(email)) e.email = "Email válido é obrigatório";
     if (!phone.trim()) e.phone = "Contacto é obrigatório";
     if (!nif.trim()) e.nif = "NIF é obrigatório";
+
+    // Check for duplicates
+    const existingByEmail = clients.find(c => c.email?.toLowerCase() === email.toLowerCase() && c.id !== client?.id);
+    const existingByNif = clients.find(c => c.nif === nif && c.id !== client?.id);
+    if (existingByEmail) e.email = "Já existe um cliente com este email";
+    if (existingByNif) e.nif = "Já existe um cliente com este NIF";
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -106,7 +123,6 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
     if (!validateBeforeSave()) return;
     setSaving(true);
     try {
-      // Persist client - adapt fields to existing clients table shape
       const payload: any = {
         name: name.trim(),
         company: company.trim(),
@@ -118,29 +134,32 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
         tags: SERVICE_OPTIONS.filter((s) => serviceChecks[s]),
       };
 
-      const client = await upsertClient(payload);
-      if (!client || !client.id) {
-        throw new Error("Falha ao criar cliente");
+      if (client) {
+        payload.id = client.id; // For editing
       }
 
-      showSuccess("Cliente criado com sucesso!");
-      setCreatedClientId(client.id);
-      onCreated?.(client.id);
+      const savedClient = await upsertClient(payload);
+      if (!savedClient || !savedClient.id) {
+        throw new Error("Falha ao salvar cliente");
+      }
 
-      // if asked, open project modal
+      showSuccess(isEditing ? "Cliente atualizado com sucesso!" : "Cliente criado com sucesso!");
+      setCreatedClientId(savedClient.id);
+      onCreated?.(savedClient.id);
+
       if (createProjectAfter) {
-        // open project dialog pre-filled with client
         setOpenCreateProject(true);
+      } else {
+        onOpenChange(false);
       }
     } catch (err: any) {
-      console.error("Error creating client:", err);
-      showError(err?.message || "Erro ao criar cliente.");
+      console.error("Error saving client:", err);
+      showError(err?.message || "Erro ao salvar cliente.");
     } finally {
       setSaving(false);
     }
   };
 
-  // minimal inline spinner
   const SpinnerSmall = () => (
     <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-600 mr-2" />
   );
@@ -148,13 +167,9 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        {/*
-          Limit vertical size so modal doesn't occupy entire viewport height.
-          mx-4 ensures mobile side padding; max-h keeps it within viewport and allows scrolling.
-        */}
         <DialogContent className="max-w-2xl mx-4 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Novo Cliente</DialogTitle>
+            <DialogTitle>{isEditing ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
             <CardDescription>Preencha os dados do cliente. Campos marcados com * são obrigatórios.</CardDescription>
           </DialogHeader>
 
@@ -220,13 +235,10 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
-                onClick={() => {
-                  // save and immediately open Create Project dialog when success
-                  handleSave(true);
-                }}
+                onClick={() => handleSave(true)}
                 disabled={saving}
               >
-                Criar Projeto para este Cliente
+                Salvar e Criar Projeto
               </Button>
 
               <Button onClick={() => handleSave(false)} disabled={saving}>
@@ -243,21 +255,18 @@ export default function CreateClientModal({ open, onOpenChange, onCreated }: Pro
         </DialogContent>
       </Dialog>
 
-      {/* After creating client, open project modal pre-filled with this client */}
       {createdClientId && (
         <CreateProjectDialog
           open={openCreateProject}
           onOpenChange={(v) => {
             setOpenCreateProject(v);
             if (!v) {
-              // close create client modal when project dialog closes to return user to clients list
               onOpenChange(false);
             }
           }}
           clients={[{ id: createdClientId, name: name } as any]}
           services={services.map((s: any) => ({ id: s.id, name: s.name }))}
           onCreate={async (_payload) => {
-            // Instead of trying to insert here, navigate to project creation page with client preselected
             navigate(`/crm/projects/new?client=${createdClientId}`);
           }}
         />

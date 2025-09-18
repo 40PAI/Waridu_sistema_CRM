@@ -1,14 +1,21 @@
+"use client";
+
 import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
+import { CreateProjectDialog } from "@/components/crm/CreateProjectDialog";
 import useEvents from "@/hooks/useEvents";
+import { useClients } from "@/hooks/useClients";
+import { useServices } from "@/hooks/useServices";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import type { EventProject } from "@/types/crm";
-import type { Event } from "@/types";
 
-/**
- * Pipeline page - renders the kanban and persists pipeline status changes via useEvents.updateEvent
- */
 export default function PipelinePage() {
   const { events, updateEvent, loading } = useEvents();
+  const { clients } = useClients();
+  const { services } = useServices();
+
+  const [openCreateProject, setOpenCreateProject] = React.useState(false);
 
   const projects: EventProject[] = React.useMemo(() => {
     return (events || [])
@@ -30,39 +37,60 @@ export default function PipelinePage() {
   }, [events]);
 
   const handleUpdateProject = async (updatedProject: EventProject) => {
-    // Map EventProject back to app Event shape and call updateEvent to persist pipeline_status and other fields
-    const fullEvent: Event = {
+    const fullEvent: any = {
       id: updatedProject.id,
       name: updatedProject.name,
       startDate: updatedProject.startDate,
       endDate: updatedProject.endDate,
       location: updatedProject.location,
-      status: updatedProject.status as any,
-      // keep CRM fields
-      pipeline_status: updatedProject.pipeline_status as any,
+      status: updatedProject.status,
+      pipeline_status: updatedProject.pipeline_status,
       estimated_value: updatedProject.estimated_value,
       service_ids: updatedProject.service_ids,
       client_id: updatedProject.client_id,
       notes: updatedProject.notes,
       tags: updatedProject.tags,
-      // other optional fields left undefined
-      startTime: undefined,
-      endTime: undefined,
-      revenue: undefined,
-      description: undefined,
-      roster: undefined,
-      expenses: undefined,
-      follow_ups: undefined,
       updated_at: new Date().toISOString(),
-    } as Event;
-
+    };
     await updateEvent(fullEvent);
+  };
+
+  const handleCreateProject = async (payload: any) => {
+    const eventPayload = {
+      name: payload.name,
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      startTime: payload.startTime,
+      endTime: payload.endTime,
+      location: payload.location,
+      description: payload.notes,
+      pipeline_status: payload.pipeline_status,
+      estimated_value: payload.estimated_value,
+      service_ids: payload.service_ids,
+      client_id: payload.client_id,
+      status: "Planejado",
+    };
+    await updateEvent(eventPayload as any);
   };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Pipeline</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Pipeline</h1>
+        <Button onClick={() => setOpenCreateProject(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Projeto
+        </Button>
+      </div>
       {loading ? <p>Carregando...</p> : <PipelineKanban projects={projects} onUpdateProject={handleUpdateProject} />}
+
+      <CreateProjectDialog
+        open={openCreateProject}
+        onOpenChange={setOpenCreateProject}
+        clients={clients}
+        services={services}
+        onCreate={handleCreateProject}
+      />
     </div>
   );
 }

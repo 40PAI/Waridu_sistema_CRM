@@ -21,6 +21,7 @@ const ClientsPage = () => {
   const { services } = useServices();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<any>(null);
 
   // Modal state for "Ver"
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -40,6 +41,16 @@ const ClientsPage = () => {
   const selectedClientEvents = selectedClientId ? events.filter((e) => e.client_id === selectedClientId) : [];
   const selectedClientCommunications = selectedClientId ? communications.filter((c) => c.client_id === selectedClientId) : [];
 
+  const handleEditClient = (client: any) => {
+    setEditingClient(client);
+    setIsCreateOpen(true);
+  };
+
+  const handleCreateClient = () => {
+    setEditingClient(null);
+    setIsCreateOpen(true);
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -50,7 +61,7 @@ const ClientsPage = () => {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={() => setIsCreateOpen(true)}>+ Novo Cliente</Button>
+            <Button onClick={handleCreateClient}>+ Novo Cliente</Button>
           </div>
         </div>
 
@@ -95,6 +106,9 @@ const ClientsPage = () => {
                           <Button variant="outline" size="sm" onClick={() => openView(c.id)}>
                             Ver
                           </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleEditClient(c)}>
+                            Editar
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -110,15 +124,17 @@ const ClientsPage = () => {
         open={isCreateOpen}
         onOpenChange={(v) => {
           setIsCreateOpen(v);
+          if (!v) setEditingClient(null);
           // When closed, ensure clients refreshed
           if (!v) {
             fetchClients();
           }
         }}
         onCreated={() => {
-          // refresh clients list (useClients.upsertClient already refreshes but ensure)
+          // refresh clients list
           fetchClients();
         }}
+        client={editingClient}
       />
 
       <ClientDetailModal
