@@ -79,9 +79,9 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Cliente</Label>
+            <Label htmlFor="client-id">Cliente</Label>
             <Select onValueChange={(v) => updateField("client_id", v)} value={form.client_id ?? ""}>
-              <SelectTrigger>
+              <SelectTrigger id="client-id">
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
@@ -95,14 +95,14 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
           </div>
 
           <div className="space-y-2">
-            <Label>Nome do Projeto</Label>
-            <Input value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="Ex.: Evento BFA – Conferência" />
+            <Label htmlFor="project-name">Nome do Projeto</Label>
+            <Input id="project-name" value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="Ex.: Evento BFA – Conferência" />
           </div>
 
           <div className="space-y-2">
-            <Label>Status inicial</Label>
+            <Label htmlFor="pipeline-status">Status inicial</Label>
             <Select onValueChange={(v) => updateField("pipeline_status", v as PipelineStatus)} value={form.pipeline_status}>
-              <SelectTrigger>
+              <SelectTrigger id="pipeline-status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -116,23 +116,23 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
           </div>
 
           <div className="space-y-2">
-            <Label>Receita estimada</Label>
-            <Input type="number" value={form.estimated_value ?? ""} onChange={(e) => updateField("estimated_value", Number(e.target.value))} placeholder="0" />
+            <Label htmlFor="estimated-value">Receita estimada</Label>
+            <Input id="estimated-value" type="number" value={form.estimated_value ?? ""} onChange={(e) => updateField("estimated_value", Number(e.target.value))} placeholder="0" />
           </div>
 
           <div className="space-y-2">
-            <Label>Início</Label>
-            <Input type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} />
+            <Label htmlFor="start-date">Início</Label>
+            <Input id="start-date" type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} />
           </div>
 
           <div className="space-y-2">
-            <Label>Fim</Label>
-            <Input type="date" value={form.endDate} onChange={(e) => updateField("endDate", e.target.value)} />
+            <Label htmlFor="end-date">Fim</Label>
+            <Input id="end-date" type="date" value={form.endDate} onChange={(e) => updateField("endDate", e.target.value)} />
           </div>
 
           <div className="md:col-span-2 space-y-2">
-            <Label>Serviços (selecione 1 ou mais)</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <Label htmlFor="services">Serviços (selecione 1 ou mais)</Label>
+            <div id="services" className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {services.map((s) => (
                 <label key={s.id} className="flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer">
                   <Checkbox checked={form.service_ids?.includes(s.id)} onCheckedChange={() => toggleService(s.id)} />
@@ -143,20 +143,20 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label>Localização</Label>
-            <Input value={form.location ?? ""} onChange={(e) => updateField("location", e.target.value)} placeholder="Ex.: CCTA, Talatona" />
+            <Label htmlFor="location">Localização</Label>
+            <Input id="location" value={form.location ?? ""} onChange={(e) => updateField("location", e.target.value)} placeholder="Ex.: CCTA, Talatona" />
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label>Notas</Label>
-            <Textarea rows={3} value={form.notes ?? ""} onChange={(e) => updateField("notes", e.target.value)} placeholder="Observações, follow-up, urgências..." />
+            <Label htmlFor="notes">Notas</Label>
+            <Textarea id="notes" rows={3} value={form.notes ?? ""} onChange={(e) => updateField("notes", e.target.value)} placeholder="Observações, follow-up, urgências..." />
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>Cancelar</Button>
           <Button onClick={submit} disabled={loading}>
-            Criar Projeto
+            Salvar
           </Button>
         </DialogFooter>
       </DialogContent>

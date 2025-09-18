@@ -24,6 +24,7 @@ import type { EventProject, PipelineStatus } from "@/types/crm";
 interface PipelineKanbanProps {
   projects: EventProject[];
   onUpdateProject: (p: EventProject) => Promise<void>;
+  onEditProject?: (p: EventProject) => void; // NOVO
 }
 
 const columns = [
@@ -57,7 +58,7 @@ const getOverColumnId = (over: DragOverEvent["over"]) => {
   return (over.data?.current as any)?.sortable?.containerId ?? null;
 };
 
-export function PipelineKanban({ projects, onUpdateProject }: PipelineKanbanProps) {
+export function PipelineKanban({ projects, onUpdateProject, onEditProject }: PipelineKanbanProps) {
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<PipelineStatus | null>(null);
   const [updating, setUpdating] = React.useState(false);
@@ -135,7 +136,7 @@ export function PipelineKanban({ projects, onUpdateProject }: PipelineKanbanProp
               <SortableContext items={projectsByColumn[column.id].map((p) => p.id)} strategy={verticalListSortingStrategy}>
                 {projectsByColumn[column.id].map((project) => (
                   <div key={project.id} id={String(project.id)} className="mb-3">
-                    <SortableProjectCard project={project} onEditClick={() => {}} />
+                    <SortableProjectCard project={project} onEditClick={onEditProject} />
                   </div>
                 ))}
               </SortableContext>
@@ -156,7 +157,7 @@ export function PipelineKanban({ projects, onUpdateProject }: PipelineKanbanProp
             <CardContent>
               <h3 className="font-semibold text-sm truncate">{draggingProject.name}</h3>
               <div className="text-xs text-muted-foreground">
-                Início: {format(new Date(draggingProject.startDate), "dd/MM/yyyy", { locale: ptBR })}
+                Início: {draggingProject.startDate ? format(new Date(draggingProject.startDate), "dd/MM/yyyy", { locale: ptBR }) : "—"}
               </div>
               <Badge className={getStatusBadge(draggingProject.pipeline_status)}>{draggingProject.pipeline_status}</Badge>
             </CardContent>
