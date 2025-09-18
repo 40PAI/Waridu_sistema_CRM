@@ -22,8 +22,6 @@ import { showError, showSuccess } from "@/utils/toast";
 import { DroppableColumn } from "./DroppableColumn";
 import { SortableProjectCard } from "./SortableProjectCard";
 import type { EventProject, PipelineStatus } from "@/types/crm";
-import { Button } from "@/components/ui/button";
-import { Save, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PipelineKanbanProps {
@@ -61,19 +59,9 @@ const getOverColumnId = (over: DragOverEvent["over"]) => {
 export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<PipelineStatus | null>(null);
-  const [updating, setUpdating] = React.useState(false);
   const [localProjects, setLocalProjects] = React.useState<EventProject[]>(projects);
-  const [hasChanges, setHasChanges] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => setLocalProjects(projects), [projects]);
-
-  // Detectar mudanças comparando com o estado original
-  React.useEffect(() => {
-    const originalMap = new Map(projects.map(p => [p.id, p.pipeline_status]));
-    const hasAnyChange = localProjects.some(p => originalMap.get(p.id) !== p.pipeline_status);
-    setHasChanges(hasAnyChange);
-  }, [localProjects, projects]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -104,7 +92,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const { active, over } = event;
     setDraggingProject(null);
     setDragOverColumn(null);
-    if (!over || updating) return;
+    if (!over) return;
 
     const targetColumnId = getOverColumnId(over) as PipelineStatus | null;
     if (!targetColumnId) return;
@@ -112,103 +100,36 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const project = localProjects.find((p) => p.id === Number(active.id));
     if (!project) return;
 
-    // UI otimista
+    // UI otimista: atualiza localmente primeiro
     setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, pipeline_status: targetColumnId } : p)));
-  };
-
-  const handleSavePipeline = async () => {
-    if (!hasChanges || saving) return;
-
-    console.log("🚀 Iniciando salvamento do pipeline...");
-    setSaving(true);
 
     try {
-      // Coletar projetos modificados
-      const originalMap = new Map(projects.map(p => [p.id, p.pipeline_status]));
-      const modifiedProjects = localProjects.filter(p => originalMap.get(p.id) !== p.pipeline_status);
+      // Salva no Supabase automaticamente
+      const { error } = await supabase
+        .from('events')
+        .update({
+          pipeline_status: targetColumnId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', project.id);
 
-      console.log("📝 Projetos modificados:", modifiedProjects);
+      if (error) throw error;
 
-      if (modifiedProjects.length === 0) {
-        console.log("ℹ️ Nenhum projeto foi modificado");
-        setSaving(false);
-        return;
-      }
-
-      // Preparar updates em lote
-      const updates = modifiedProjects.map(project => ({
-        id: project.id,
-        pipeline_status: project.pipeline_status,
-        updated_at: new Date().toISOString(),
-      }));
-
-      console.log("🔄 Enviando updates para Supabase:", updates);
-
-      // Executar updates em lote
-      const updatePromises = updates.map(update =>
-        supabase
-          .from('events')
-          .update({
-            pipeline_status: update.pipeline_status,
-            updated_at: update.updated_at
-          })
-          .eq('id', update.id)
-      );
-
-      const results = await Promise.all(updatePromises);
-
-      // Verificar se houve erros
-      const errors = results.filter(result => result.error);
-      if (errors.length > 0) {
-        console.error("❌ Erros no salvamento:", errors);
-        throw new Error(`Falha ao salvar ${errors.length} projeto(s)`);
-      }
-
-      console.log("✅ Salvamento concluído com sucesso");
-
-      // Atualizar estado original para refletir mudanças
-      setLocalProjects(localProjects);
-      setHasChanges(false);
-
-      showSuccess("Alterações salvas com sucesso!");
+      showSuccess("Projeto movido com sucesso!");
     } catch (error: any) {
-      console.error("💥 Erro ao salvar pipeline:", error);
-      showError(`Erro ao salvar alterações: ${error.message || "Tente novamente"}`);
-    } finally {
-      setSaving(false);
+      console.error("Error saving pipeline:", error);
+      showError(`Erro ao salvar: ${error.message || "Tente novamente"}`);
+      // Reverte a mudança local em caso de erro
+      setLocalProjects(projects);
     }
   };
 
   return (
     <div className="space-y-4">
-      {/* Botão Salvar Alterações */}
-      <div className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">
-          {hasChanges ? `${localProjects.filter(p => projects.find(op => op.id === p.id)?.pipeline_status !== p.pipeline_status).length} projeto(s) modificado(s)` : "Nenhuma alteração pendente"}
-        </div>
-        <Button
-          onClick={handleSavePipeline}
-          disabled={!hasChanges || saving}
-          className="flex items-center gap-2"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4" />
-              Salvar Alterações
-            </>
-          )}
-        </Button>
-      </div>
-
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 overflow-x-auto px-2" style={{ minHeight: 600 }}>
           {columns.map((column) => (
-            <DroppableColumn key={column.id} column={column} disabled={updating}>
+            <DroppableColumn key={column.id} column={column}>
               <CardHeader className="pb-3 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-border">
                 <CardTitle className="flex items-center justify-between text-sm font-medium">
                   {column.title}
