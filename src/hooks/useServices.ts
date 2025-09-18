@@ -8,6 +8,7 @@ export interface Service {
   description?: string | null;
   status?: string | boolean | null;
   created_at?: string | null;
+  updated_at?: string | null; // added to reflect DB column and avoid TS errors
 }
 
 export const useServices = () => {
@@ -38,6 +39,7 @@ export const useServices = () => {
         description: row.description ?? null,
         status: row.status ?? null,
         created_at: row.created_at ?? null,
+        updated_at: row.updated_at ?? null,
       })) as Service[];
 
       setServices(formatted);
@@ -86,6 +88,7 @@ export const useServices = () => {
     updateService: async (id: string, updates: Partial<Service>) => {
       const { data, error } = await supabase.from("services").update({
         ...updates,
+        updated_at: new Date().toISOString(),
       }).eq("id", id).select().single();
       if (error) {
         showError("Erro ao atualizar serviço.");
