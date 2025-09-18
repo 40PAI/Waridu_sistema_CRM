@@ -12,15 +12,15 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 import ClientDetailModal from "@/components/crm/ClientDetailModal";
-import { CreateProjectDialog } from "@/components/crm/CreateProjectDialog";
 import { useState } from "react";
 import { showSuccess } from "@/utils/toast";
+import MultiSelectServices from "@/components/MultiSelectServices";
 
 const ClientsPage = () => {
   const { clients, fetchClients } = useClients();
   const { events } = useEvents();
   const { communications } = useCommunications();
-  const { services } = useServices();
+  const { services, activeServices } = useServices();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
@@ -30,6 +30,9 @@ const ClientsPage = () => {
   // Modal state for "Ver"
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+
+  // New: service filters (array of service ids)
+  const [serviceFilter, setServiceFilter] = useState<string[]>([]);
 
   const openView = (clientId: string) => {
     setSelectedClientId(clientId);
@@ -67,11 +70,21 @@ const ClientsPage = () => {
     }
   };
 
-  const handleProjectCreated = async (payload: any) => {
-    // Project creation logic here if needed
-    setIsProjectModalOpen(false);
-    setCreatedClientId(null);
-  };
+  // Filtering clients by selected services (match ANY selected service)
+  const filteredClients = React.useMemo(() => {
+    if (!serviceFilter || serviceFilter.length === 0) return clients;
+    return clients.filter((c) => {
+      const clientTags = c.tags || [];
+      return clientTags.some((t: string) => serviceFilter.includes(t));
+    });
+  }, [clients, serviceFilter]);
+
+  // Helper map service id -> name
+  const serviceNameById = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    services.forEach(s => (map[s.id] = s.name));
+    return map;
+  }, [services]);
 
   return (
     <>
@@ -99,10 +112,42 @@ const ClientsPage = () => {
           </Card>
         )}
 
+        {/* Filters: services multi-select */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filtros</CardTitle>
+            <CardDescription>Filtre a lista de clientes por serviços de interesse (seleção múltipla)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+              <div className="flex-1">
+                <MultiSelectServices selected={serviceFilter} onChange={setServiceFilter} />
+              </div>
+              <div className="flex items-center gap-2 mt-2 md:mt-0">
+                <Button variant="outline" onClick={() => setServiceFilter([])}>Limpar filtros</Button>
+              </div>
+            </div>
+
+            {/* Applied filters chips */}
+            {serviceFilter.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {serviceFilter.map(id => (
+                  <Badge key={id} variant="secondary" className="inline-flex items-center gap-2">
+                    <span>{serviceNameById[id] || id}</span>
+                    <button onClick={() => setServiceFilter(prev => prev.filter(x => x !== id))} className="ml-1">
+                      ✕
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Lista de Clientes</CardTitle>
-            <CardDescription>Abra a ficha do cliente em um modal para ver detalhes rapidamente.</CardDescription>
+            <CardDescription>Abrir a ficha do cliente em um modal para ver detalhes rapidamente.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -114,12 +159,12 @@ const ClientsPage = () => {
                     <TableHead>Telefone</TableHead>
                     <TableHead>Setor</TableHead>
                     <TableHead>Ciclo</TableHead>
-                    <TableHead>Tags</TableHead>
+                    <TableHead>Serviços</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clients.map((c) => (
+                  {filteredClients.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">{c.name}</TableCell>
                       <TableCell>{c.email}</TableCell>
@@ -128,9 +173,9 @@ const ClientsPage = () => {
                       <TableCell>{c.lifecycle_stage || "Lead"}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {c.tags?.map(tag => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
+                          {(c.tags || []).map((tag: string) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {serviceNameById[tag] || tag}
                             </Badge>
                           ))}
                         </div>
@@ -159,7 +204,6 @@ const ClientsPage = () => {
         onOpenChange={(v) => {
           setIsCreateOpen(v);
           if (!v) setEditingClient(null);
-          // When closed, ensure clients refreshed
           if (!v) {
             fetchClients();
           }
@@ -173,15 +217,6 @@ const ClientsPage = () => {
         onOpenChange={setIsViewOpen}
         client={selectedClient}
         communications={selectedClientCommunications}
-      />
-
-      <CreateProjectDialog
-        open={isProjectModalOpen}
-        onOpenChange={setIsProjectModalOpen}
-        clients={clients.filter(c => c.id === createdClientId)}
-        services={services}
-        onCreate={handleProjectCreated}
-        preselectedClientId={createdClientId || undefined}
       />
     </>
   );

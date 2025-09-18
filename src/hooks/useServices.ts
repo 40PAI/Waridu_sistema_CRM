@@ -5,8 +5,9 @@ import { showError, showSuccess } from "@/utils/toast";
 export interface Service {
   id: string;
   name: string;
-  description?: string;
-  created_at: string;
+  description?: string | null;
+  status?: string | boolean | null;
+  created_at?: string | null;
 }
 
 export const useServices = () => {
@@ -16,6 +17,7 @@ export const useServices = () => {
 
   useEffect(() => {
     fetchServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchServices = async () => {
@@ -23,14 +25,23 @@ export const useServices = () => {
       setLoading(true);
       setError(null);
       const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .order('name', { ascending: true });
+        .from("services")
+        .select("*")
+        .order("name", { ascending: true });
 
       if (error) throw error;
 
-      setServices(data || []);
-    } catch (err) {
+      // Normalize shape (keep status as-is if present)
+      const formatted = (data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description ?? null,
+        status: row.status ?? null,
+        created_at: row.created_at ?? null,
+      })) as Service[];
+
+      setServices(formatted);
+    } catch (err: any) {
       console.error("Error fetching services:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro ao carregar serviços.";
       setError(errorMessage);
@@ -40,75 +51,58 @@ export const useServices = () => {
     }
   };
 
-  const createService = async (serviceData: Omit<Service, 'id' | 'created_at'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('services')
-        .insert(serviceData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setServices(prev => [...prev, data]);
-      showSuccess("Serviço criado com sucesso!");
-      return data;
-    } catch (err) {
-      console.error("Error creating service:", err);
-      const errorMessage = err instanceof Error ? err.message : "Erro ao criar serviço.";
-      showError(errorMessage);
-      throw err;
+  // Heuristic to treat a service as active:
+  // support a few possible representations (boolean true, 'ativo', 'Ativo', 'active')
+  const activeServices = services.filter((s) => {
+    if (s.status === undefined || s.status === null) {
+      // If status not present, consider it active (backwards compatibility)
+      return true;
     }
-  };
-
-  const updateService = async (id: string, updates: Partial<Omit<Service, 'id' | 'created_at'>>) => {
-    try {
-      const { data, error } = await supabase
-        .from('services')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setServices(prev => prev.map(service => service.id === id ? data : service));
-      showSuccess("Serviço atualizado com sucesso!");
-      return data;
-    } catch (err) {
-      console.error("Error updating service:", err);
-      const errorMessage = err instanceof Error ? err.message : "Erro ao atualizar serviço.";
-      showError(errorMessage);
-      throw err;
-    }
-  };
-
-  const deleteService = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('services')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setServices(prev => prev.filter(service => service.id !== id));
-      showSuccess("Serviço removido com sucesso!");
-    } catch (err) {
-      console.error("Error deleting service:", err);
-      const errorMessage = err instanceof Error ? err.message : "Erro ao remover serviço.";
-      showError(errorMessage);
-      throw err;
-    }
-  };
+    if (typeof s.status === "boolean") return s.status === true;
+    const st = String(s.status).toLowerCase();
+    return st === "ativo" || st === "active" || st === "true" || st === "1";
+  });
 
   return {
     services,
+    activeServices,
     loading,
     error,
-    createService,
-    updateService,
-    deleteService,
-    refreshServices: fetchServices
+    refreshServices: fetchServices,
+    createService: async (payload: { name: string; description?: string }) => {
+      const { data, error } = await supabase.from("services").insert({
+        name: payload.name,
+        description: payload.description ?? null,
+        status: "ativo",
+      }).select().single();
+      if (error) {
+        showError("Erro ao criar serviço.");
+        throw error;
+      }
+      showSuccess("Serviço criado com sucesso!");
+      await fetchServices();
+      return data as Service;
+    },
+    updateService: async (id: string, updates: Partial<Service>) => {
+      const { data, error } = await supabase.from("services").update({
+        ...updates,
+      }).eq("id", id).select().single();
+      if (error) {
+        showError("Erro ao atualizar serviço.");
+        throw error;
+      }
+      showSuccess("Serviço atualizado com sucesso!");
+      await fetchServices();
+      return data as Service;
+    },
+    deleteService: async (id: string) => {
+      const { error } = await supabase.from("services").delete().eq("id", id);
+      if (error) {
+        showError("Erro ao remover serviço.");
+        throw error;
+      }
+      showSuccess("Serviço removido com sucesso!");
+      await fetchServices();
+    }
   };
 };
