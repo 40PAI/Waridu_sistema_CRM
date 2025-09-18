@@ -3,14 +3,16 @@
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerticalTimeline, VerticalTimelineElement } from "react-vertical-timeline-component";
 import "react-vertical-timeline-component/style.min.css";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Client } from "@/hooks/useClients";
 import type { Communication } from "@/hooks/useCommunications";
+import { Search, Filter } from "lucide-react";
 
 interface ClientDetailModalProps {
   open: boolean;
@@ -20,9 +22,30 @@ interface ClientDetailModalProps {
 }
 
 const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChange, client, communications }) => {
+  const [filterType, setFilterType] = React.useState<string>("all");
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [groupByThread, setGroupByThread] = React.useState(false);
+
   if (!client) return null;
 
-  const clientCommunications = communications.filter(c => c.client_id === client.id);
+  const filteredCommunications = communications.filter(comm => {
+    const matchesType = filterType === "all" || comm.type === filterType;
+    const matchesSearch = !searchTerm || 
+      comm.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      comm.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesType && matchesSearch;
+  });
+
+  const groupedCommunications = React.useMemo(() => {
+    if (!groupByThread) return filteredCommunications;
+    const groups: Record<string, Communication[]> = {};
+    filteredCommunications.forEach(comm => {
+      const threadKey = comm.provider_meta?.threadId || comm.id;
+      if (!groups[threadKey]) groups[threadKey] = [];
+      groups[threadKey].push(comm);
+    });
+    return Object.values(groups).flat();
+  }, [filteredCommunications, groupByThread]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -33,32 +56,87 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Informações Básicas */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações Básicas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div><strong>Email:</strong> {client.email || "—"}</div>
-              <div><strong>Telefone:</strong> {client.phone || "—"}</div>
-              <div><strong>NIF:</strong> {client.nif || "—"}</div>
-              <div><strong>Endereço:</strong> {client.address || "—"}</div>
-              <div><strong>Setor:</strong> {client.sector || "—"}</div>
-              <div><strong>Persona:</strong> {client.persona || "—"}</div>
-              <div><strong>Ciclo de Vida:</strong> <Badge variant="outline">{client.lifecycle_stage || "Lead"}</Badge></div>
-              <div><strong>Tags:</strong> {client.tags?.map(tag => <Badge key={tag} variant="secondary" className="mr-1">{tag}</Badge>) || "—"}</div>
-              <div><strong>Observações:</strong> {client.notes || "—"}</div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Email</h4>
+              <p className="text-sm">{client.email || "—"}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Telefone</h4>
+              <p className="text-sm">{client.phone || "—"}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">NIF</h4>
+              <p className="text-sm">{client.nif || "—"}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Endereço</h4>
+              <p className="text-sm">{client.address || "—"}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Setor</h4>
+              <p className="text-sm">{client.sector || "—"}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Persona</h4>
+              <p className="text-sm">{client.persona || "—"}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Ciclo de Vida</h4>
+              <Badge variant="outline">{client.lifecycle_stage || "Lead"}</Badge>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Tags</h4>
+              <div className="flex flex-wrap gap-1">
+                {client.tags?.map(tag => (
+                  <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                )) || "—"}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm mb-1">Observações</h4>
+              <p className="text-sm">{client.notes || "—"}</p>
+            </div>
+          </div>
 
           {/* Timeline de Comunicações */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Histórico de Comunicações</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {clientCommunications.length > 0 ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              <Input
+                placeholder="Buscar por assunto ou conteúdo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="email">Emails</SelectItem>
+                  <SelectItem value="call">Chamadas</SelectItem>
+                  <SelectItem value="meeting">Reuniões</SelectItem>
+                  <SelectItem value="note">Notas</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGroupByThread(!groupByThread)}
+              >
+                {groupByThread ? "Desagrupar" : "Agrupar por Thread"}
+              </Button>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto">
+              {groupedCommunications.length > 0 ? (
                 <VerticalTimeline layout="1-column-left" className="vertical-timeline-custom-line">
-                  {clientCommunications.map((comm) => (
+                  {groupedCommunications.map((comm) => (
                     <VerticalTimelineElement
                       key={comm.id}
                       className="vertical-timeline-element--work"
@@ -68,14 +146,17 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ open, onOpenChang
                       <h3 className="vertical-timeline-element-title">{comm.type}</h3>
                       {comm.subject && <h4 className="vertical-timeline-element-subtitle">{comm.subject}</h4>}
                       <p>{comm.notes}</p>
+                      {comm.provider_meta?.threadId && (
+                        <Badge variant="outline" className="mt-2">Thread: {comm.provider_meta.threadId}</Badge>
+                      )}
                     </VerticalTimelineElement>
                   ))}
                 </VerticalTimeline>
               ) : (
-                <p className="text-muted-foreground">Nenhuma comunicação registrada.</p>
+                <p className="text-muted-foreground">Nenhuma comunicação encontrada.</p>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         <DialogFooter>
