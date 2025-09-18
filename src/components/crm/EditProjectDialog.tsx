@@ -108,6 +108,8 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         notes: form.notes,
       };
 
+      console.log("Updating project with data:", updatedProject);
+
       // Call the hook updateEvent to persist to Supabase
       const result = await updateEvent({
         id: updatedProject.id,
@@ -131,8 +133,10 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         updated_at: new Date().toISOString(),
       } as any);
 
+      console.log("Update result:", result);
+
       if (!result) {
-        throw new Error("Falha ao atualizar projeto");
+        throw new Error("Falha ao atualizar projeto - resultado vazio");
       }
 
       // Optional parent callback
