@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { DateRangePicker } from "@/components/common/DateRangePicker";
 import { MultiSelectServices } from "@/components/MultiSelectServices";
+import { Checkbox } from "@/components/ui/checkbox";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 import ClientDetailModal from "@/components/crm/ClientDetailModal";
 import { useState } from "react";
@@ -42,19 +43,38 @@ const ClientsPage = () => {
   const [localizacao, setLocalizacao] = useState("");
   const [nif, setNif] = useState("");
 
-  // Filtros - Relacionamento Comercial
+  // Relacionamento Comercial
   const [cicloVida, setCicloVida] = useState("");
   const [dataCriacao, setDataCriacao] = useState<any>(undefined);
   const [ultimaAtividade, setUltimaAtividade] = useState<any>(undefined);
   const [responsavel, setResponsavel] = useState("");
   const [canalOrigem, setCanalOrigem] = useState("");
 
-  // Filtros - Projetos Associados
+  // Projetos Associados
   const [numeroProjetos, setNumeroProjetos] = useState("");
   const [statusProjetos, setStatusProjetos] = useState<string[]>([]);
   const [receitaMin, setReceitaMin] = useState("");
   const [receitaMax, setReceitaMax] = useState("");
   const [frequenciaRecorrencia, setFrequenciaRecorrencia] = useState("");
+
+  // Toggles para ativar filtros
+  const [activeFilters, setActiveFilters] = useState({
+    empresa: false,
+    cargo: false,
+    localizacao: false,
+    nif: false,
+    cicloVida: false,
+    dataCriacao: false,
+    ultimaAtividade: false,
+    responsavel: false,
+    canalOrigem: false,
+    numeroProjetos: false,
+    statusProjetos: false,
+    receita: false,
+    frequenciaRecorrencia: false,
+  });
+
+  const [filteredClients, setFilteredClients] = useState(clients);
 
   const openView = (clientId: string) => {
     setSelectedClientId(clientId);
@@ -114,38 +134,40 @@ const ClientsPage = () => {
     return map;
   }, [communications]);
 
-  // Filtered clients
-  const filteredClients = React.useMemo(() => {
-    return clients.filter((c) => {
+  const applyFilters = () => {
+    const filtered = clients.filter((c) => {
       // Relacionados ao Cliente
-      const matchesEmpresa = !empresa || (c.company || "").toLowerCase().includes(empresa.toLowerCase());
-      const matchesCargo = !cargo || c.persona === cargo;
-      const matchesLocalizacao = !localizacao || (c.address || "").toLowerCase().includes(localizacao.toLowerCase());
-      const matchesNif = !nif || (c.nif || "").includes(nif);
+      if (activeFilters.empresa && empresa && !(c.company || "").toLowerCase().includes(empresa.toLowerCase())) return false;
+      if (activeFilters.cargo && cargo && c.persona !== cargo) return false;
+      if (activeFilters.localizacao && localizacao && !(c.address || "").toLowerCase().includes(localizacao.toLowerCase())) return false;
+      if (activeFilters.nif && nif && !(c.nif || "").includes(nif)) return false;
 
       // Relacionamento Comercial
-      const matchesCiclo = !cicloVida || c.lifecycle_stage === cicloVida;
-      const matchesDataCriacao = !dataCriacao?.from || !dataCriacao?.to || (c.created_at && isWithinInterval(parseISO(c.created_at), { start: dataCriacao.from, end: dataCriacao.to }));
+      if (activeFilters.cicloVida && cicloVida && c.lifecycle_stage !== cicloVida) return false;
+      if (activeFilters.dataCriacao && dataCriacao?.from && dataCriacao?.to && (!c.created_at || !isWithinInterval(parseISO(c.created_at), { start: dataCriacao.from, end: dataCriacao.to }))) return false;
       const clientComms = clientCommunicationsMap[c.id] || [];
       const lastActivity = clientComms.length > 0 ? clientComms[0].date : null;
-      const matchesUltimaAtividade = !ultimaAtividade?.from || !ultimaAtividade?.to || (lastActivity && isWithinInterval(parseISO(lastActivity), { start: ultimaAtividade.from, end: ultimaAtividade.to }));
-      const matchesResponsavel = !responsavel; // Placeholder - assume no field
-      const matchesCanal = !canalOrigem; // Placeholder - assume no field
+      if (activeFilters.ultimaAtividade && ultimaAtividade?.from && ultimaAtividade?.to && (!lastActivity || !isWithinInterval(parseISO(lastActivity), { start: ultimaAtividade.from, end: ultimaAtividade.to }))) return false;
+      if (activeFilters.responsavel && responsavel && !c.responsavel?.toLowerCase().includes(responsavel.toLowerCase())) return false; // Placeholder
+      if (activeFilters.canalOrigem && canalOrigem && c.canal_origem !== canalOrigem) return false; // Placeholder
 
       // Projetos Associados
       const clientEvents = clientEventsMap[c.id] || [];
       const numProjetos = clientEvents.length;
-      const matchesNumero = !numeroProjetos || (numeroProjetos === "0" && numProjetos === 0) || (numeroProjetos === "1" && numProjetos === 1) || (numeroProjetos === "2+" && numProjetos >= 2);
-      const matchesStatus = statusProjetos.length === 0 || clientEvents.some(e => statusProjetos.includes(e.status));
+      if (activeFilters.numeroProjetos && numeroProjetos) {
+        if (numeroProjetos === "0" && numProjetos !== 0) return false;
+        if (numeroProjetos === "1" && numProjetos !== 1) return false;
+        if (numeroProjetos === "2+" && numProjetos < 2) return false;
+      }
+      if (activeFilters.statusProjetos && statusProjetos.length > 0 && !clientEvents.some(e => statusProjetos.includes(e.status))) return false;
       const totalRevenue = clientEvents.reduce((sum, e) => sum + (e.estimated_value || 0), 0);
-      const matchesReceita = (!receitaMin || totalRevenue >= Number(receitaMin)) && (!receitaMax || totalRevenue <= Number(receitaMax));
-      const matchesFrequencia = !frequenciaRecorrencia; // Placeholder - assume no field
+      if (activeFilters.receita && ((receitaMin && totalRevenue < Number(receitaMin)) || (receitaMax && totalRevenue > Number(receitaMax)))) return false;
+      if (activeFilters.frequenciaRecorrencia && frequenciaRecorrencia && c.frequencia_recorrencia !== frequenciaRecorrencia) return false; // Placeholder
 
-      return matchesEmpresa && matchesCargo && matchesLocalizacao && matchesNif &&
-             matchesCiclo && matchesDataCriacao && matchesUltimaAtividade && matchesResponsavel && matchesCanal &&
-             matchesNumero && matchesStatus && matchesReceita && matchesFrequencia;
+      return true;
     });
-  }, [clients, empresa, cargo, localizacao, nif, cicloVida, dataCriacao, ultimaAtividade, responsavel, canalOrigem, numeroProjetos, statusProjetos, receitaMin, receitaMax, frequenciaRecorrencia, clientEventsMap, clientCommunicationsMap]);
+    setFilteredClients(filtered);
+  };
 
   const clearFilters = () => {
     setEmpresa("");
@@ -162,11 +184,25 @@ const ClientsPage = () => {
     setReceitaMin("");
     setReceitaMax("");
     setFrequenciaRecorrencia("");
+    setActiveFilters({
+      empresa: false,
+      cargo: false,
+      localizacao: false,
+      nif: false,
+      cicloVida: false,
+      dataCriacao: false,
+      ultimaAtividade: false,
+      responsavel: false,
+      canalOrigem: false,
+      numeroProjetos: false,
+      statusProjetos: false,
+      receita: false,
+      frequenciaRecorrencia: false,
+    });
+    setFilteredClients(clients);
   };
 
-  const activeFiltersCount = [
-    empresa, cargo, localizacao, nif, cicloVida, dataCriacao, ultimaAtividade, responsavel, canalOrigem, numeroProjetos, statusProjetos.length, receitaMin, receitaMax, frequenciaRecorrencia
-  ].filter(v => v && (Array.isArray(v) ? v.length > 0 : true)).length;
+  const activeFiltersCount = Object.values(activeFilters).filter(Boolean).length;
 
   // Service name map for display
   const serviceNameById = React.useMemo(() => {
@@ -174,6 +210,10 @@ const ClientsPage = () => {
     services.forEach(s => (map[s.id] = s.name));
     return map;
   }, [services]);
+
+  React.useEffect(() => {
+    setFilteredClients(clients);
+  }, [clients]);
 
   return (
     <>
@@ -210,20 +250,26 @@ const ClientsPage = () => {
                 <Badge variant="secondary">{activeFiltersCount} filtro(s) ativo(s)</Badge>
               )}
             </CardTitle>
-            <CardDescription>Refine a lista de clientes por critérios específicos.</CardDescription>
+            <CardDescription>Selecione e configure os filtros que deseja aplicar.</CardDescription>
           </CardHeader>
           <CardContent>
             <Accordion type="multiple" defaultValue={["cliente", "relacionamento", "projetos"]} className="w-full">
               <AccordionItem value="cliente">
                 <AccordionTrigger>Relacionados ao Cliente</AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.empresa} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, empresa: !!checked }))} />
                       <label className="text-sm font-medium">Empresa</label>
-                      <Input placeholder="Buscar empresa..." value={empresa} onChange={(e) => setEmpresa(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
+                    {activeFilters.empresa && (
+                      <Input placeholder="Buscar empresa..." value={empresa} onChange={(e) => setEmpresa(e.target.value)} />
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.cargo} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, cargo: !!checked }))} />
                       <label className="text-sm font-medium">Cargo/Departamento</label>
+                    </div>
+                    {activeFilters.cargo && (
                       <Select value={cargo} onValueChange={setCargo}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione" />
@@ -234,15 +280,21 @@ const ClientsPage = () => {
                           <SelectItem value="Produção">Produção</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div className="space-y-2">
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.localizacao} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, localizacao: !!checked }))} />
                       <label className="text-sm font-medium">Localização</label>
+                    </div>
+                    {activeFilters.localizacao && (
                       <Input placeholder="Cidade/país..." value={localizacao} onChange={(e) => setLocalizacao(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.nif} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, nif: !!checked }))} />
                       <label className="text-sm font-medium">NIF</label>
-                      <Input placeholder="Número fiscal..." value={nif} onChange={(e) => setNif(e.target.value)} />
                     </div>
+                    {activeFilters.nif && (
+                      <Input placeholder="Número fiscal..." value={nif} onChange={(e) => setNif(e.target.value)} />
+                    )}
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -250,9 +302,12 @@ const ClientsPage = () => {
               <AccordionItem value="relacionamento">
                 <AccordionTrigger>Relacionamento Comercial</AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.cicloVida} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, cicloVida: !!checked }))} />
                       <label className="text-sm font-medium">Ciclo de Vida</label>
+                    </div>
+                    {activeFilters.cicloVida && (
                       <Select value={cicloVida} onValueChange={setCicloVida}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione" />
@@ -265,21 +320,33 @@ const ClientsPage = () => {
                           <SelectItem value="Perdido">Perdido</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div className="space-y-2">
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.dataCriacao} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, dataCriacao: !!checked }))} />
                       <label className="text-sm font-medium">Data de Criação</label>
+                    </div>
+                    {activeFilters.dataCriacao && (
                       <DateRangePicker date={dataCriacao} onDateChange={setDataCriacao} />
-                    </div>
-                    <div className="space-y-2">
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.ultimaAtividade} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, ultimaAtividade: !!checked }))} />
                       <label className="text-sm font-medium">Última Atividade</label>
+                    </div>
+                    {activeFilters.ultimaAtividade && (
                       <DateRangePicker date={ultimaAtividade} onDateChange={setUltimaAtividade} />
-                    </div>
-                    <div className="space-y-2">
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.responsavel} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, responsavel: !!checked }))} />
                       <label className="text-sm font-medium">Responsável</label>
-                      <Input placeholder="Nome do responsável..." value={responsavel} onChange={(e) => setResponsavel(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
+                    {activeFilters.responsavel && (
+                      <Input placeholder="Nome do responsável..." value={responsavel} onChange={(e) => setResponsavel(e.target.value)} />
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.canalOrigem} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, canalOrigem: !!checked }))} />
                       <label className="text-sm font-medium">Canal de Origem</label>
+                    </div>
+                    {activeFilters.canalOrigem && (
                       <Select value={canalOrigem} onValueChange={setCanalOrigem}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione" />
@@ -291,7 +358,7 @@ const ClientsPage = () => {
                           <SelectItem value="Email marketing">Email marketing</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
+                    )}
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -299,9 +366,12 @@ const ClientsPage = () => {
               <AccordionItem value="projetos">
                 <AccordionTrigger>Projetos Associados</AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.numeroProjetos} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, numeroProjetos: !!checked }))} />
                       <label className="text-sm font-medium">Número de Projetos</label>
+                    </div>
+                    {activeFilters.numeroProjetos && (
                       <Select value={numeroProjetos} onValueChange={setNumeroProjetos}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione" />
@@ -312,20 +382,29 @@ const ClientsPage = () => {
                           <SelectItem value="2+">2 ou mais</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div className="space-y-2">
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.statusProjetos} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, statusProjetos: !!checked }))} />
                       <label className="text-sm font-medium">Status dos Projetos</label>
-                      <MultiSelectServices selected={statusProjetos} onChange={setStatusProjetos} placeholder="Selecione status..." />
                     </div>
-                    <div className="space-y-2">
+                    {activeFilters.statusProjetos && (
+                      <MultiSelectServices selected={statusProjetos} onChange={setStatusProjetos} placeholder="Selecione status..." />
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.receita} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, receita: !!checked }))} />
                       <label className="text-sm font-medium">Receita Total (AOA)</label>
+                    </div>
+                    {activeFilters.receita && (
                       <div className="flex gap-2">
                         <Input placeholder="Min" value={receitaMin} onChange={(e) => setReceitaMin(e.target.value)} />
                         <Input placeholder="Max" value={receitaMax} onChange={(e) => setReceitaMax(e.target.value)} />
                       </div>
-                    </div>
-                    <div className="space-y-2">
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox checked={activeFilters.frequenciaRecorrencia} onCheckedChange={(checked) => setActiveFilters(prev => ({ ...prev, frequenciaRecorrencia: !!checked }))} />
                       <label className="text-sm font-medium">Frequência de Recorrência</label>
+                    </div>
+                    {activeFilters.frequenciaRecorrencia && (
                       <Select value={frequenciaRecorrencia} onValueChange={setFrequenciaRecorrencia}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione" />
@@ -336,14 +415,15 @@ const ClientsPage = () => {
                           <SelectItem value="Trimestral">Trimestral</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
+                    )}
                   </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
 
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-between">
               <Button variant="outline" onClick={clearFilters}>Limpar Filtros</Button>
+              <Button onClick={applyFilters}>Aplicar Filtros</Button>
             </div>
           </CardContent>
         </Card>
