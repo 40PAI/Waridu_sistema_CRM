@@ -46,7 +46,6 @@ export default function PipelinePage() {
   };
 
   const handleSaveProject = async (p: EventProject) => {
-    // Reaproveita updateEvent (já persiste campos CRM no hook)
     await updateEvent(p as any);
   };
 
@@ -58,6 +57,8 @@ export default function PipelinePage() {
     estimated_value?: number;
     startDate: string;
     endDate: string;
+    startTime?: string;
+    endTime?: string;
     location?: string;
     notes?: string;
   }) => {
@@ -66,8 +67,8 @@ export default function PipelinePage() {
       startDate: payload.startDate,
       endDate: payload.endDate,
       location: payload.location || "",
-      startTime: "",
-      endTime: "",
+      startTime: payload.startTime || "",
+      endTime: payload.endTime || "",
       revenue: undefined,
       // CRM
       pipeline_status: payload.pipeline_status,

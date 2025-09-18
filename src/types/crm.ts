@@ -28,6 +28,8 @@ export type CreatePayload = {
   estimated_value?: number;
   startDate: string;
   endDate: string;
+  startTime?: string; // novo
+  endTime?: string;   // novo
   location?: string;
   notes?: string;
 };

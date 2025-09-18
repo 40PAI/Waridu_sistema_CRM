@@ -35,6 +35,8 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
     estimated_value: undefined,
     startDate: new Date().toISOString().slice(0, 10),
     endDate: new Date().toISOString().slice(0, 10),
+    startTime: "",
+    endTime: "",
     location: "",
     notes: "",
   });
@@ -50,7 +52,10 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
     }));
 
   const submit = async () => {
-    if (!form.name) return showError("Nome do projeto é obrigatório");
+    // Alinhado com CreateEvent: Nome, Data de Início e Local são obrigatórios.
+    if (!form.name?.trim()) return showError("Por favor, preencha os campos obrigatórios: Nome, Data de Início e Local.");
+    if (!form.startDate) return showError("Por favor, preencha os campos obrigatórios: Nome, Data de Início e Local.");
+    if (!form.location?.trim()) return showError("Por favor, preencha os campos obrigatórios: Nome, Data de Início e Local.");
     if (!form.client_id) return showError("Selecione um cliente");
 
     try {
@@ -64,6 +69,8 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
         estimated_value: undefined,
         startDate: new Date().toISOString().slice(0, 10),
         endDate: new Date().toISOString().slice(0, 10),
+        startTime: "",
+        endTime: "",
         location: "",
         notes: "",
       });
@@ -121,13 +128,21 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="start-date">Início</Label>
-            <Input id="start-date" type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} />
+            <Label htmlFor="event-start-date">Data de Início</Label>
+            <Input id="event-start-date" type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="event-start-time">Hora de Início</Label>
+            <Input id="event-start-time" type="time" value={form.startTime || ""} onChange={(e) => updateField("startTime", e.target.value)} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="end-date">Fim</Label>
-            <Input id="end-date" type="date" value={form.endDate} onChange={(e) => updateField("endDate", e.target.value)} />
+            <Label htmlFor="event-end-date">Data de Fim</Label>
+            <Input id="event-end-date" type="date" value={form.endDate} onChange={(e) => updateField("endDate", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="event-end-time">Hora de Fim</Label>
+            <Input id="event-end-time" type="time" value={form.endTime || ""} onChange={(e) => updateField("endTime", e.target.value)} />
           </div>
 
           <div className="md:col-span-2 space-y-2">
@@ -143,12 +158,12 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="location">Localização</Label>
-            <Input id="location" value={form.location ?? ""} onChange={(e) => updateField("location", e.target.value)} placeholder="Ex.: CCTA, Talatona" />
+            <Label htmlFor="event-location">Local do Evento</Label>
+            <Input id="event-location" value={form.location ?? ""} onChange={(e) => updateField("location", e.target.value)} placeholder="Ex.: CCTA, Talatona" />
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="notes">Notas</Label>
+            <Label htmlFor="notes">Observações</Label>
             <Textarea id="notes" rows={3} value={form.notes ?? ""} onChange={(e) => updateField("notes", e.target.value)} placeholder="Observações, follow-up, urgências..." />
           </div>
         </div>
