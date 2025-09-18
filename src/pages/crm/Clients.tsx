@@ -14,7 +14,7 @@ import CreateClientModal from "@/components/crm/CreateClientModal";
 import ClientDetailModal from "@/components/crm/ClientDetailModal";
 import { useState } from "react";
 import { showSuccess } from "@/utils/toast";
-import MultiSelectServices from "@/components/MultiSelectServices";
+import { MultiSelectServices } from "@/components/MultiSelectServices";
 
 const ClientsPage = () => {
   const { clients, fetchClients } = useClients();
