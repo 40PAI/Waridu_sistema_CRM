@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 import ClientDetailModal from "@/components/crm/ClientDetailModal";
+import { CreateProjectDialog } from "@/components/crm/CreateProjectDialog";
 import { useState } from "react";
+import { showSuccess } from "@/utils/toast";
 
 const ClientsPage = () => {
   const { clients, fetchClients } = useClients();
@@ -22,6 +24,8 @@ const ClientsPage = () => {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
+  const [createdClientId, setCreatedClientId] = useState<string | null>(null);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
   // Modal state for "Ver"
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -51,6 +55,24 @@ const ClientsPage = () => {
     setIsCreateOpen(true);
   };
 
+  const handleClientCreated = (clientId: string) => {
+    setCreatedClientId(clientId);
+    // Show suggestion to create project
+    showSuccess("Cliente criado! Quer criar um projeto para ele?");
+  };
+
+  const handleCreateProjectForClient = () => {
+    if (createdClientId) {
+      setIsProjectModalOpen(true);
+    }
+  };
+
+  const handleProjectCreated = async (payload: any) => {
+    // Project creation logic here if needed
+    setIsProjectModalOpen(false);
+    setCreatedClientId(null);
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -64,6 +86,18 @@ const ClientsPage = () => {
             <Button onClick={handleCreateClient}>+ Novo Cliente</Button>
           </div>
         </div>
+
+        {createdClientId && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="pt-6">
+              <p className="text-sm text-green-800">Cliente criado com sucesso! Quer criar um projeto para ele?</p>
+              <div className="flex gap-2 mt-2">
+                <Button size="sm" onClick={handleCreateProjectForClient}>Criar Projeto</Button>
+                <Button size="sm" variant="outline" onClick={() => setCreatedClientId(null)}>Depois</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -130,10 +164,7 @@ const ClientsPage = () => {
             fetchClients();
           }
         }}
-        onCreated={() => {
-          // refresh clients list
-          fetchClients();
-        }}
+        onCreated={handleClientCreated}
         client={editingClient}
       />
 
@@ -142,6 +173,15 @@ const ClientsPage = () => {
         onOpenChange={setIsViewOpen}
         client={selectedClient}
         communications={selectedClientCommunications}
+      />
+
+      <CreateProjectDialog
+        open={isProjectModalOpen}
+        onOpenChange={setIsProjectModalOpen}
+        clients={clients.filter(c => c.id === createdClientId)}
+        services={services}
+        onCreate={handleProjectCreated}
+        preselectedClientId={createdClientId || undefined}
       />
     </>
   );

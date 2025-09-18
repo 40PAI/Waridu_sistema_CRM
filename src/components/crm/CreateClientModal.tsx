@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,17 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { showError, showSuccess } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
-import { useServices } from "@/hooks/useServices";
-import { CreateProjectDialog } from "@/components/crm/CreateProjectDialog";
-import { useEvents } from "@/hooks/useEvents";
-import { useNavigate } from "react-router-dom";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // optional callback so parent can refresh or react after new client created
   onCreated?: (clientId: string) => void;
-  // optional client for editing
   client?: any;
 }
 
@@ -39,9 +32,6 @@ function isEmailValid(email: string) {
 
 export default function CreateClientModal({ open, onOpenChange, onCreated, client }: Props) {
   const { upsertClient, clients } = useClients();
-  const { services } = useServices();
-  const { fetchEvents } = useEvents();
-  const navigate = useNavigate();
 
   const [name, setName] = React.useState("");
   const [company, setCompany] = React.useState("");
@@ -56,8 +46,6 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [saving, setSaving] = React.useState(false);
-  const [createdClientId, setCreatedClientId] = React.useState<string | null>(null);
-  const [openCreateProject, setOpenCreateProject] = React.useState(false);
 
   const isEditing = !!client;
 
@@ -84,8 +72,6 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
       }
       setErrors({});
       setSaving(false);
-      setCreatedClientId(null);
-      setOpenCreateProject(false);
     }
   }, [open, client]);
 
@@ -119,7 +105,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = async (createProjectAfter = false) => {
+  const handleSave = async () => {
     if (!validateBeforeSave()) return;
     setSaving(true);
     try {
@@ -144,14 +130,8 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
       }
 
       showSuccess(isEditing ? "Cliente atualizado com sucesso!" : "Cliente criado com sucesso!");
-      setCreatedClientId(savedClient.id);
       onCreated?.(savedClient.id);
-
-      if (createProjectAfter) {
-        setOpenCreateProject(true);
-      } else {
-        onOpenChange(false);
-      }
+      onOpenChange(false);
     } catch (err: any) {
       console.error("Error saving client:", err);
       showError(err?.message || "Erro ao salvar cliente.");
@@ -160,117 +140,74 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
     }
   };
 
-  const SpinnerSmall = () => (
-    <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-600 mr-2" />
-  );
-
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl mx-4 max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
-            <CardDescription>Preencha os dados do cliente. Campos marcados com * são obrigatórios.</CardDescription>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl mx-4 max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
+        </DialogHeader>
 
-          <div className="grid gap-3 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="client-name">Nome completo *</Label>
-              <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
-              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="client-company">Empresa *</Label>
-              <Input id="client-company" value={company} onChange={(e) => setCompany(e.target.value)} />
-              {errors.company && <p className="text-xs text-destructive">{errors.company}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="client-email">E-mail *</Label>
-              <Input id="client-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="client-phone">Telefone/Contacto *</Label>
-              <Input id="client-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="client-nif">NIF *</Label>
-              <Input id="client-nif" value={nif} onChange={(e) => setNif(e.target.value)} />
-              {errors.nif && <p className="text-xs text-destructive">{errors.nif}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="client-position">Cargo</Label>
-              <Input id="client-position" value={position} onChange={(e) => setPosition(e.target.value)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="client-notes">Observações</Label>
-              <Textarea id="client-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
-            </div>
-
-            <div>
-              <Label>Serviços de interesse</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                {SERVICE_OPTIONS.map((s) => (
-                  <label key={s} className="flex items-center gap-2">
-                    <Checkbox checked={!!serviceChecks[s]} onCheckedChange={() => toggleService(s)} />
-                    <span className="text-sm">{s}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+        <div className="grid gap-3 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="client-name">Nome completo *</Label>
+            <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
+            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 
-          <DialogFooter className="flex justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <div className="space-y-2">
+            <Label htmlFor="client-company">Empresa *</Label>
+            <Input id="client-company" value={company} onChange={(e) => setCompany(e.target.value)} />
+            {errors.company && <p className="text-xs text-destructive">{errors.company}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client-email">E-mail *</Label>
+            <Input id="client-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client-phone">Telefone/Contacto *</Label>
+            <Input id="client-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client-nif">NIF *</Label>
+            <Input id="client-nif" value={nif} onChange={(e) => setNif(e.target.value)} />
+            {errors.nif && <p className="text-xs text-destructive">{errors.nif}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client-position">Cargo</Label>
+            <Input id="client-position" value={position} onChange={(e) => setPosition(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client-notes">Observações</Label>
+            <Textarea id="client-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
+          </div>
+
+          <div>
+            <Label>Serviços de interesse</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              {SERVICE_OPTIONS.map((s) => (
+                <label key={s} className="flex items-center gap-2">
+                  <Checkbox checked={!!serviceChecks[s]} onCheckedChange={() => toggleService(s)} />
+                  <span className="text-sm">{s}</span>
+                </label>
+              ))}
             </div>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => handleSave(true)}
-                disabled={saving}
-              >
-                Salvar e Criar Projeto
-              </Button>
-
-              <Button onClick={() => handleSave(false)} disabled={saving}>
-                {saving ? (
-                  <>
-                    <SpinnerSmall /> Salvando...
-                  </>
-                ) : (
-                  "Salvar"
-                )}
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {createdClientId && (
-        <CreateProjectDialog
-          open={openCreateProject}
-          onOpenChange={(v) => {
-            setOpenCreateProject(v);
-            if (!v) {
-              onOpenChange(false);
-            }
-          }}
-          clients={[{ id: createdClientId, name: name } as any]}
-          services={services.map((s: any) => ({ id: s.id, name: s.name }))}
-          onCreate={async (_payload) => {
-            navigate(`/crm/projects/new?client=${createdClientId}`);
-          }}
-        />
-      )}
-    </>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

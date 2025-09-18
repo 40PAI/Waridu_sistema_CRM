@@ -141,6 +141,11 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
                       {opt.label}
                     </SelectItem>
                   ))}
+                  {clientOptions.length === 0 && (
+                    <SelectItem value="" disabled>
+                      Nenhum cliente encontrado. Crie um cliente primeiro.
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             )}
