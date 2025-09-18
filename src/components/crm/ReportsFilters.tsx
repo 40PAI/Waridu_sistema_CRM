@@ -1,3 +1,11 @@
+"use client";
+
+import * as React from "react";
+import type { DateRange } from "react-day-picker";
+import { DateRangePicker } from "@/components/common/DateRangePicker";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+
 interface ReportsFiltersProps {
   dateRange?: DateRange;
   onDateChange: (date: DateRange | undefined) => void;
@@ -12,18 +20,18 @@ interface ReportsFiltersProps {
   onLifecycleChange?: (v: string) => void;
 }
 
-const ReportsFilters: React.FC<ReportsFiltersProps> = ({ 
-  dateRange, 
-  onDateChange, 
-  statusFilter, 
-  onStatusChange, 
+const ReportsFilters: React.FC<ReportsFiltersProps> = ({
+  dateRange,
+  onDateChange,
+  statusFilter,
+  onStatusChange,
   onClear,
   sectorFilter = "all",
   onSectorChange,
   personaFilter = "all",
   onPersonaChange,
   lifecycleFilter = "all",
-  onLifecycleChange
+  onLifecycleChange,
 }) => {
   return (
     <div className="mb-4">
@@ -58,7 +66,6 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = ({
                 <SelectItem value="Tecnologia">Tecnologia</SelectItem>
                 <SelectItem value="Financeiro">Financeiro</SelectItem>
                 <SelectItem value="Saúde">Saúde</SelectItem>
-                {/* Add more as needed */}
               </SelectContent>
             </Select>
           </div>
@@ -75,7 +82,6 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = ({
                 <SelectItem value="CEO">CEO</SelectItem>
                 <SelectItem value="CTO">CTO</SelectItem>
                 <SelectItem value="Marketing">Marketing</SelectItem>
-                {/* Add more as needed */}
               </SelectContent>
             </Select>
           </div>
@@ -104,3 +110,5 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = ({
     </div>
   );
 };
+
+export default ReportsFilters;
