@@ -3,6 +3,7 @@
 import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
 import { CreateProjectDialog } from "@/components/crm/CreateProjectDialog";
+import { EditProjectDialog } from "@/components/crm/EditProjectDialog";
 import useEvents from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
@@ -16,6 +17,8 @@ export default function PipelinePage() {
   const { services } = useServices();
 
   const [openCreateProject, setOpenCreateProject] = React.useState(false);
+  const [openEditProject, setOpenEditProject] = React.useState(false);
+  const [editingProject, setEditingProject] = React.useState<EventProject | null>(null);
 
   const projects: EventProject[] = React.useMemo(() => {
     return (events || [])
@@ -55,6 +58,11 @@ export default function PipelinePage() {
     await updateEvent(fullEvent);
   };
 
+  const handleEditProject = (project: EventProject) => {
+    setEditingProject(project);
+    setOpenEditProject(true);
+  };
+
   const handleCreateProject = async (payload: any) => {
     const eventPayload = {
       name: payload.name,
@@ -82,7 +90,7 @@ export default function PipelinePage() {
           Novo Projeto
         </Button>
       </div>
-      {loading ? <p>Carregando...</p> : <PipelineKanban projects={projects} onUpdateProject={handleUpdateProject} />}
+      {loading ? <p>Carregando...</p> : <PipelineKanban projects={projects} onUpdateProject={handleUpdateProject} onEditProject={handleEditProject} />}
 
       <CreateProjectDialog
         open={openCreateProject}
@@ -90,6 +98,13 @@ export default function PipelinePage() {
         clients={clients}
         services={services}
         onCreate={handleCreateProject}
+      />
+
+      <EditProjectDialog
+        open={openEditProject}
+        onOpenChange={setOpenEditProject}
+        project={editingProject}
+        onSave={handleUpdateProject}
       />
     </div>
   );
