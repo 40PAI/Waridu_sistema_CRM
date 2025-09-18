@@ -7,7 +7,7 @@ import type { Event, Roster, Expense } from "@/types";
  * useEvents hook
  *
  * - loads events from Supabase (mapping DB snake_case -> camelCase)
- * - provides updateEvent (full event update) and updateEventDetails (roster/expenses)
+ * - provides updateEvent (full event update or insert) and updateEventDetails (roster/expenses)
  * - returns events, loading, error and helper funcs
  */
 
@@ -73,7 +73,7 @@ export const useEvents = () => {
   }, [fetchEvents]);
 
   /**
-   * updateEvent - persist a full event to Supabase
+   * updateEvent - persist a full event to Supabase (insert if no id, update if id exists)
    * Accepts an Event (app shape) and writes snake_case columns to DB.
    */
   const updateEvent = useCallback(
@@ -100,23 +100,36 @@ export const useEvents = () => {
           updated_at: new Date().toISOString(),
         };
 
-        const { error: updateErr } = await supabase
-          .from("events")
-          .update(payload)
-          .eq("id", updatedEvent.id);
+        let result;
+        if (updatedEvent.id) {
+          // Update existing event
+          const { error: updateErr } = await supabase
+            .from("events")
+            .update(payload)
+            .eq("id", updatedEvent.id);
+          if (updateErr) throw updateErr;
+          result = { id: updatedEvent.id };
+        } else {
+          // Insert new event
+          const { data, error: insertErr } = await supabase
+            .from("events")
+            .insert(payload)
+            .select()
+            .single();
+          if (insertErr) throw insertErr;
+          result = data;
+        }
 
-        if (updateErr) throw updateErr;
-
-        showSuccess("Evento atualizado com sucesso!");
-        // Optimistically refresh the list
+        showSuccess(updatedEvent.id ? "Evento atualizado com sucesso!" : "Evento criado com sucesso!");
+        // Refresh the list
         await fetchEvents();
-        return true;
+        return result;
       } catch (err: any) {
-        console.error("Error updating event:", err);
-        const msg = err instanceof Error ? err.message : "Erro ao atualizar evento.";
+        console.error("Error saving event:", err);
+        const msg = err instanceof Error ? err.message : "Erro ao salvar evento.";
         showError(msg);
         setError(msg);
-        return false;
+        return null;
       }
     },
     [fetchEvents],
