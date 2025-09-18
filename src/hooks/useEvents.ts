@@ -161,7 +161,7 @@ export const useEvents = () => {
         const msg = err instanceof Error ? err.message : "Erro ao salvar evento.";
         showError(msg);
         setError(msg);
-        return null;
+        throw err; // Re-throw to be caught by caller
       }
     },
     [fetchEvents],
