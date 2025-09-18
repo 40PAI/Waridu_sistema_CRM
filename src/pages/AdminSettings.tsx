@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Role } from "@/config/roles"; // use Role type from config
+import type { Role } from "@/types"; // use Role type from centralized types (DB shape)
 import { Edit, Trash2, Plus } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import {
@@ -29,7 +29,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { RoleManager } from "@/components/settings/RoleManager";
 import CategoryManager from "@/components/settings/CategoryManager";
-import { Switch } from "@/components/ui/switch"; // <-- ensure Switch is imported
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Location {
   id: string;
@@ -183,20 +185,21 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
                   Novo Serviço
                 </Button>
               </div>
-              <table className="min-w-full divide-y">
-                <thead>
-                  <tr>
-                    <th className="text-left p-2">Nome</th>
-                    <th className="text-left p-2">Descrição</th>
-                    <th className="text-right p-2">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {services.map(service => (
-                    <tr key={service.id} className="border-t">
-                      <td className="p-2 font-medium">{service.name}</td>
-                      <td className="p-2">{service.description || "—"}</td>
-                      <td className="p-2 text-right space-x-2">
+                    <TableRow key={service.id}>
+                      <TableCell className="font-medium">{service.name}</TableCell>
+                      <TableCell>{service.description || "—"}</TableCell>
+                      <TableCell className="text-right space-x-2">
                         <Button variant="outline" size="sm" onClick={() => handleEditService(service)}>
                           <Edit className="h-4 w-4 mr-1" />
                           Editar
@@ -223,16 +226,12 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                  {services.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="p-4 text-center">Nenhum serviço cadastrado.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
+
             </CardContent>
           </Card>
         ) : (
