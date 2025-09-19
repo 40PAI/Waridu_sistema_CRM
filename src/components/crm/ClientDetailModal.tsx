@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Edit, Plus, MoreHorizontal, ArrowLeft } from "lucide-react";
 import type { Client } from "@/hooks/useClients";
-import ClientDetailModal from "@/components/crm/ClientDetailModal";
 import { useClients } from "@/hooks/useClients";
 import { useCommunications } from "@/hooks/useCommunications";
 import QuickActions from "@/components/crm/QuickActions";
@@ -20,7 +19,6 @@ import ClientMetrics from "@/components/crm/ClientMetrics";
 import ClientInfoCard from "@/components/crm/ClientInfoCard";
 import ClientProjectsList from "@/components/crm/ClientProjectsList";
 import ClientCommunications from "@/components/crm/ClientCommunications";
-import ClientDetailModalComponent from "@/components/crm/ClientDetailModal";
 import { useServices } from "@/hooks/useServices";
 
 interface ClientDetailModalProps {
