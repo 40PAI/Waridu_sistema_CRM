@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Employee } from "@/components/employees/EmployeeDialog";
 import { showError, showSuccess } from "@/utils/toast";
 import * as employeesService from "@/services/employeesService";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Deterministic hash function to produce an integer from a string id.
@@ -39,7 +40,9 @@ export const useEmployees = () => {
           status: emp.status,
           technicianCategoryId: emp.technician_category || null,
           userId: emp.user_id || null,
-        };
+          first_name: emp.first_name || null,
+          last_name: emp.last_name || null,
+        } as Employee;
       });
 
       setEmployees(formattedEmployees);
@@ -54,7 +57,55 @@ export const useEmployees = () => {
   };
 
   useEffect(() => {
-    fetchEmployees();
+    let mounted = true;
+    let subscription: any = null;
+
+    const init = async () => {
+      try {
+        // Check if there's an active session first — avoids RLS returning empty results
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.user) {
+          // session exists, fetch immediately
+          await fetchEmployees();
+          return;
+        }
+
+        // No session yet: subscribe to auth changes and fetch when a session appears
+        const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+          if (!mounted) return;
+          if (session?.user) {
+            try {
+              await fetchEmployees();
+            } catch (e) {
+              // fetchEmployees already logs
+            }
+          } else {
+            // If signed out, clear employees to reflect auth state
+            setEmployees([]);
+          }
+        });
+        subscription = listener;
+      } catch (err) {
+        console.error("Unexpected error initializing employees hook:", err);
+        if (mounted) {
+          setError(err instanceof Error ? err.message : "Erro inesperado");
+        }
+      }
+    };
+
+    init();
+
+    return () => {
+      mounted = false;
+      if (subscription && subscription.subscription) {
+        try {
+          subscription.subscription.unsubscribe();
+        } catch {
+          // ignore
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const saveEmployee = async (employeeData: Omit<Employee, 'id' | 'avatar'> & { id?: string }) => {
