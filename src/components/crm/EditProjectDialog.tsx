@@ -17,6 +17,7 @@ import { useServices } from "@/hooks/useServices";
 import { useEvents } from "@/hooks/useEvents";
 import { useUsers } from "@/hooks/useUsers"; // Import useUsers
 import { showError, showSuccess } from "@/utils/toast";
+import { MultiSelectServices } from "@/components/MultiSelectServices"; // <-- added import
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -106,7 +107,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         status: project.status,
         tags: project.tags || [],
         notes: project.notes || "",
-        responsible_id: project.responsible_id || "", // Load existing responsible_id
+        responsible_id: (project as any).responsible_id || "", // Load existing responsible_id
       };
       setForm(formData);
       editForm.reset(formData);
@@ -149,7 +150,8 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         status: data.status,
         tags: data.tags,
         notes: data.notes,
-        responsible_id: data.responsible_id, // Include responsible_id
+        // cast to any to allow assignment; EventProject type augmented
+        ...(data.responsible_id ? { responsible_id: data.responsible_id } : {}),
       };
 
       console.log("Updating project with data:", updatedProject);
@@ -174,7 +176,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         client_id: updatedProject.client_id,
         notes: updatedProject.notes,
         tags: updatedProject.tags,
-        responsible_id: updatedProject.responsible_id, // Save the responsible ID
+        responsible_id: (updatedProject as any).responsible_id, // Save the responsible ID
         updated_at: new Date().toISOString(),
       } as any);
 
@@ -299,7 +301,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                       </Select>
                     </FormControl>
 
-                    {/* Descrição explicativa */}
                     <p className="text-xs text-muted-foreground mt-1">
                       Escolha o responsável comercial da equipa; será enviado o seu id (UUID). Isto determina a pessoa que ficará como ponto de contacto comercial para este projeto. Apenas usuários com role 'Comercial' são mostrados.
                     </p>

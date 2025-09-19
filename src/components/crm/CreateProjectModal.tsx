@@ -19,6 +19,10 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 // UUID regex for basic client/responsible validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -117,7 +121,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       end_date: endISO,
       start_time: data.startTime ? `${data.startTime}:00` : null,
       end_time: data.endTime ? `${data.endTime}:00` : null,
-      location: null, // Not used in CRM projects
+      location: null,
       pipeline_status: data.pipelineStatus,
       estimated_value: data.estimatedValue ?? null,
       service_ids: data.serviceIds,
@@ -125,7 +129,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       description: data.notes || null,
       status: "Planejado",
       updated_at: new Date().toISOString(),
-      responsible_id: data.responsibleId, // Save the responsible ID
+      responsible_id: data.responsibleId,
     };
 
     try {
@@ -184,12 +188,9 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                         </Button>
                       </div>
                     </FormControl>
-
-                    {/* Descrição explicativa */}
                     <p className="text-xs text-muted-foreground mt-1">
                       Selecione o cliente existente pelo seu nome; o formulário irá enviar o id (UUID) associado ao cliente. Se o cliente ainda não existir, clique em "Criar Novo Cliente".
                     </p>
-
                     <FormMessage />
                   </FormItem>
                 )}
@@ -215,12 +216,9 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                         </SelectContent>
                       </Select>
                     </FormControl>
-
-                    {/* Descrição explicativa */}
                     <p className="text-xs text-muted-foreground mt-1">
                       Escolha o responsável comercial da equipa; será enviado o seu id (UUID). Isto determina a pessoa que ficará como ponto de contacto comercial para este projeto. Apenas usuários com role 'Comercial' são mostrados.
                     </p>
-
                     <FormMessage />
                   </FormItem>
                 )}
