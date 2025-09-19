@@ -21,19 +21,30 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Plus, Upload } from "lucide-react";
 import CreateClientModal from "./CreateClientModal"; // Reuse existing modal
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const projectSchema = z.object({
-  clientId: z.string().min(1, "Cliente é obrigatório"),
+  clientId: z.string().min(1, "Cliente é obrigatório").refine((val) => UUID_REGEX.test(val), "ID do cliente inválido"),
   name: z.string().min(1, "Nome do projeto é obrigatório"),
-  serviceIds: z.array(z.string()).min(1, "Selecione pelo menos um serviço"),
+  serviceIds: z.array(z.string().refine((val) => UUID_REGEX.test(val), "ID do serviço inválido")).min(1, "Selecione pelo menos um serviço"),
   startDate: z.string().min(1, "Data de início é obrigatória"),
   endDate: z.string().optional(),
   location: z.string().optional(),
-  estimatedValue: z.number().optional(),
+  estimatedValue: z.number().min(0, "Valor deve ser positivo").optional(),
   notes: z.string().optional(),
   pipelineStatus: z.enum(["1º Contato", "Orçamento", "Negociação", "Confirmado"], { required_error: "Status inicial é obrigatório" }),
   responsibleId: z.string().optional(),
   nextAction: z.string().optional(),
   nextActionDate: z.string().optional(),
+}).refine((data) => {
+  if (data.endDate && data.startDate) {
+    return new Date(data.endDate) >= new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: "Data de fim deve ser posterior à data de início",
+  path: ["endDate"],
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -80,6 +91,26 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     },
   });
 
+  // Reset form when modal opens/closes
+  React.useEffect(() => {
+    if (open) {
+      form.reset({
+        clientId: preselectedClientId || "",
+        name: "",
+        serviceIds: [],
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: "",
+        location: "",
+        estimatedValue: undefined,
+        notes: "",
+        pipelineStatus: "1º Contato",
+        responsibleId: "",
+        nextAction: "",
+        nextActionDate: "",
+      });
+    }
+  }, [open, preselectedClientId, form]);
+
   // Filter commercial users for responsible dropdown
   const commercialUsers = React.useMemo(() => {
     // Assuming we have a way to get users with role 'Comercial'
@@ -107,7 +138,9 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   };
 
   const onSubmit = async (data: ProjectFormData) => {
+    if (saving) return; // Prevent double submission
     setSaving(true);
+
     try {
       const eventPayload = {
         name: data.name,
@@ -120,10 +153,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         service_ids: data.serviceIds,
         client_id: data.clientId,
         status: "Planejado",
-        // Novos campos adicionados
-        responsible_id: data.responsibleId,
-        next_action: data.nextAction,
-        next_action_date: data.nextActionDate,
+        // Removed non-existent fields: responsible_id, next_action, next_action_date
       };
 
       const result = await updateEvent(eventPayload as any);

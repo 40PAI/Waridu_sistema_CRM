@@ -60,6 +60,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<PipelineStatus | null>(null);
   const [localProjects, setLocalProjects] = React.useState<EventProject[]>(projects);
+  const [updating, setUpdating] = React.useState<string | null>(null);
 
   React.useEffect(() => setLocalProjects(projects), [projects]);
 
@@ -102,6 +103,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
 
     // UI otimista: atualiza localmente primeiro
     setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, pipeline_status: targetColumnId } : p)));
+    setUpdating(String(project.id));
 
     try {
       // Salva no Supabase automaticamente
@@ -121,6 +123,8 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       showError(`Erro ao salvar: ${error.message || "Tente novamente"}`);
       // Reverte a mudança local em caso de erro
       setLocalProjects(projects);
+    } finally {
+      setUpdating(null);
     }
   };
 
@@ -142,7 +146,14 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
                 <SortableContext items={projectsByColumn[column.id].map((p) => p.id)} strategy={verticalListSortingStrategy}>
                   {projectsByColumn[column.id].map((project) => (
                     <div key={project.id} id={String(project.id)} className="mb-3">
-                      <SortableProjectCard project={project} onEditClick={onEditProject} onViewClick={onViewProject} />
+                      <SortableProjectCard
+                        project={project}
+                        onEditClick={onEditProject}
+                        onViewClick={onViewProject}
+                      />
+                      {updating === String(project.id) && (
+                        <div className="text-xs text-muted-foreground mt-1">Atualizando...</div>
+                      )}
                     </div>
                   ))}
                 </SortableContext>

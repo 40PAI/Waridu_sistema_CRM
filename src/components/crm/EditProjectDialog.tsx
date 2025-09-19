@@ -7,12 +7,43 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { showError, showSuccess } from "@/utils/toast";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import type { EventProject, PipelineStatus } from "@/types/crm";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
-import useEvents from "@/hooks/useEvents";
+import { useEvents } from "@/hooks/useEvents";
+import { showError, showSuccess } from "@/utils/toast";
+
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const editProjectSchema = z.object({
+  id: z.number(),
+  name: z.string().min(1, "Nome do projeto é obrigatório"),
+  client_id: z.string().min(1, "Cliente é obrigatório").refine((val) => UUID_REGEX.test(val), "ID do cliente inválido"),
+  pipeline_status: z.enum(["1º Contato", "Orçamento", "Negociação", "Confirmado", "Cancelado"], { required_error: "Status é obrigatório" }),
+  service_ids: z.array(z.string().refine((val) => UUID_REGEX.test(val), "ID do serviço inválido")).min(1, "Selecione pelo menos um serviço"),
+  estimated_value: z.number().min(0, "Valor deve ser positivo").optional(),
+  startDate: z.string().min(1, "Data de início é obrigatória"),
+  endDate: z.string().optional(),
+  location: z.string().optional(),
+  status: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  notes: z.string().optional(),
+}).refine((data) => {
+  if (data.endDate && data.startDate) {
+    return new Date(data.endDate) >= new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: "Data de fim deve ser posterior à data de início",
+  path: ["endDate"],
+});
+
+type EditProjectFormData = z.infer<typeof editProjectSchema>;
 
 interface EditProjectDialogProps {
   open: boolean;
@@ -37,9 +68,27 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
   const [form, setForm] = React.useState<Partial<EventProject>>({});
   const [loading, setLoading] = React.useState(false);
 
+  const editForm = useForm<EditProjectFormData>({
+    resolver: zodResolver(editProjectSchema),
+    defaultValues: {
+      id: 0,
+      name: "",
+      client_id: "",
+      pipeline_status: "1º Contato",
+      service_ids: [],
+      estimated_value: undefined,
+      startDate: "",
+      endDate: "",
+      location: "",
+      status: "",
+      tags: [],
+      notes: "",
+    },
+  });
+
   React.useEffect(() => {
     if (open && project) {
-      setForm({
+      const formData = {
         id: project.id,
         name: project.name,
         client_id: project.client_id,
@@ -52,9 +101,11 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         status: project.status,
         tags: project.tags,
         notes: project.notes,
-      });
+      };
+      setForm(formData);
+      editForm.reset(formData);
     }
-  }, [open, project]);
+  }, [open, project, editForm]);
 
   const updateField = (key: keyof EventProject, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -69,43 +120,24 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
     }));
   };
 
-  const submit = async () => {
-    if (!form.name?.trim()) {
-      showError("Nome do projeto é obrigatório.");
-      return;
-    }
-    if (!form.client_id) {
-      showError("Cliente é obrigatório.");
-      return;
-    }
-    if (!form.service_ids?.length) {
-      showError("Selecione pelo menos um serviço.");
-      return;
-    }
-    if (!form.pipeline_status) {
-      showError("Status do pipeline é obrigatório.");
-      return;
-    }
-    if (!form.startDate) {
-      showError("Data de início é obrigatória.");
-      return;
-    }
-
+  const submit = async (data: EditProjectFormData) => {
+    if (loading) return; // Prevent double submission
     setLoading(true);
+
     try {
       const updatedProject: EventProject = {
-        id: form.id!,
-        name: form.name.trim(),
-        client_id: form.client_id,
-        pipeline_status: form.pipeline_status,
-        service_ids: form.service_ids,
-        estimated_value: form.estimated_value,
-        startDate: form.startDate,
-        endDate: form.endDate || form.startDate,
-        location: form.location || "",
-        status: form.status || "Planejado",
-        tags: form.tags,
-        notes: form.notes,
+        id: data.id,
+        name: data.name,
+        client_id: data.client_id,
+        pipeline_status: data.pipeline_status,
+        service_ids: data.service_ids,
+        estimated_value: data.estimated_value,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        location: data.location,
+        status: data.status,
+        tags: data.tags,
+        notes: data.notes,
       };
 
       console.log("Updating project with data:", updatedProject);
@@ -133,11 +165,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         updated_at: new Date().toISOString(),
       } as any);
 
-      console.log("Update result:", result);
-
-      if (!result) {
-        throw new Error("Falha ao atualizar projeto - resultado vazio");
-      }
+      if (!result) throw new Error("Falha ao atualizar projeto");
 
       // Optional parent callback
       if (onSave) {
@@ -170,128 +198,183 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
           <DialogTitle>Editar Projeto: {project.name}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-project-name">Nome do Projeto *</Label>
-              <Input 
-                id="edit-project-name" 
-                value={form.name || ""} 
-                onChange={(e) => updateField("name", e.target.value)} 
-                placeholder="Ex.: Evento BFA – Conferência" 
+        <Form {...editForm}>
+          <form onSubmit={editForm.handleSubmit(submit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do Projeto *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex.: Evento BFA – Conferência" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="client_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cliente *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um cliente" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {clientOptions.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-client-id">Cliente *</Label>
-              <Select value={form.client_id || ""} onValueChange={(v) => updateField("client_id", v)}>
-                <SelectTrigger id="edit-client-id">
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-pipeline-status">Status *</Label>
-              <Select value={form.pipeline_status || ""} onValueChange={(v) => updateField("pipeline_status", v as PipelineStatus)}>
-                <SelectTrigger id="edit-pipeline-status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PIPELINE_STATUSES.map(status => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-estimated-value">Valor Estimado (AOA)</Label>
-              <Input 
-                id="edit-estimated-value" 
-                type="number" 
-                value={form.estimated_value || ""} 
-                onChange={(e) => updateField("estimated_value", Number(e.target.value))} 
-                placeholder="0" 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={editForm.control}
+                name="pipeline_status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {PIPELINE_STATUSES.map(status => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="estimated_value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor Estimado (AOA)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                        placeholder="0"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-start-date">Data de Início *</Label>
-              <Input 
-                id="edit-start-date" 
-                type="date" 
-                value={form.startDate || ""} 
-                onChange={(e) => updateField("startDate", e.target.value)} 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={editForm.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Início *</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Fim</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-end-date">Data de Fim</Label>
-              <Input 
-                id="edit-end-date" 
-                type="date" 
-                value={form.endDate || ""} 
-                onChange={(e) => updateField("endDate", e.target.value)} 
-              />
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-location">Local</Label>
-            <Input 
-              id="edit-location" 
-              value={form.location || ""} 
-              onChange={(e) => updateField("location", e.target.value)} 
-              placeholder="Ex.: CCTA, Talatona" 
+            <FormField
+              control={editForm.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Local</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex.: CCTA, Talatona" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label>Serviços Contratados *</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {services.map((s) => (
-                <label key={s.id} className="flex items-center gap-2">
-                  <Checkbox 
-                    checked={form.service_ids?.includes(s.id)} 
-                    onCheckedChange={() => toggleService(s.id)} 
-                  />
-                  <span className="text-sm">{s.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-notes">Notas</Label>
-            <Textarea 
-              id="edit-notes" 
-              rows={3} 
-              value={form.notes || ""} 
-              onChange={(e) => updateField("notes", e.target.value)} 
-              placeholder="Observações, follow-up, urgências..." 
+            <FormField
+              control={editForm.control}
+              name="service_ids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Serviços Contratados *</FormLabel>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {services.map((s) => (
+                      <label key={s.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={field.value?.includes(s.id)}
+                          onChange={() => toggleService(s.id)}
+                        />
+                        <span className="text-sm">{s.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={loading}>
-            {loading ? "Salvando..." : "Salvar Alterações"}
-          </Button>
-        </DialogFooter>
+            <FormField
+              control={editForm.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notas</FormLabel>
+                  <FormControl>
+                    <Textarea rows={3} placeholder="Observações, follow-up, urgências..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -21,6 +21,30 @@ const getStatusBadge = (status?: string) => {
   switch (status) {
     case "1º Contato": return "bg-gray-100 text-gray-800";
     case "Orçamento": return "bg-blue-100 text-blue-800";
+    case "Negociação": return "<dyad-write path="src/components/crm/SortableProjectCard.tsx" description="Complete the SortableProjectCard with better error handling and accessibility improvements.">
+"use client";
+
+import * as React from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar, DollarSign, MapPin, Pencil, Eye } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { EventProject } from "@/types/crm";
+
+export interface SortableProjectCardProps {
+  project: EventProject;
+  onEditClick?: (project: EventProject) => void;
+  onViewClick?: (project: EventProject) => void;
+}
+
+const getStatusBadge = (status?: string) => {
+  switch (status) {
+    case "1º Contato": return "bg-gray-100 text-gray-800";
+    case "Orçamento": return "bg-blue-100 text-blue-800";
     case "Negociação": return "bg-yellow-100 text-yellow-800";
     case "Confirmado": return "bg-green-100 text-green-800";
     case "Cancelado": return "bg-red-100 text-red-800";
