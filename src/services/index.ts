@@ -1,3 +1,5 @@
-export * as eventsService from "./eventsService";
-export * as materialsService from "./materialsService";
-export * as employeesService from "./employeesService";
+import eventsService from "./eventsService";
+import * as materialsService from "./materialsService";
+import * as employeesService from "./employeesService";
+
+export { eventsService, materialsService, employeesService };
