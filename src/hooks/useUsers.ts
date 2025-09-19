@@ -20,31 +20,41 @@ export interface UserWithProfile {
   last_sign_in_at: string | null;
 }
 
-export const useUsers = () => {
+/**
+ * Fetches users with their profiles and employee data.
+ * @param roleFilter - Optional role to filter users by (e.g., 'Comercial'). If null/undefined, returns all users.
+ */
+export const useUsers = (roleFilter?: string | null) => {
   const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [roleFilter]); // Re-fetch if roleFilter changes
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // 1) Buscar perfis (tabela public.profiles) - apenas colunas simples
-      const { data: profiles, error: profilesError } = await supabase
+      // Build the query with optional role filter
+      let query = supabase
         .from("profiles")
         .select("id, first_name, last_name, role, banned_until, avatar_url")
         .order("first_name", { ascending: true });
+
+      if (roleFilter) {
+        query = query.eq("role", roleFilter);
+      }
+
+      const { data: profiles, error: profilesError } = await query;
 
       if (profilesError) throw profilesError;
 
       const profileIds: string[] = (profiles || []).map((p: any) => p.id).filter(Boolean);
 
-      // 2) Buscar employees onde user_id IN (profileIds) — evita select aninhado problemático
+      // Fetch employees where user_id IN (profileIds)
       let employeesByUserId: Record<string, any> = {};
       if (profileIds.length > 0) {
         const { data: employees, error: empError } = await supabase
@@ -53,7 +63,6 @@ export const useUsers = () => {
           .in("user_id", profileIds);
 
         if (empError) {
-          // não falhar totalmente só por causa do join: log e continue com profiles
           console.error("Warning: could not fetch employees relation:", empError);
         } else {
           employeesByUserId = (employees || []).reduce<Record<string, any>>((acc, emp: any) => {
@@ -63,7 +72,7 @@ export const useUsers = () => {
         }
       }
 
-      // Mapear para formato consumido pela UI
+      // Map to the expected format
       const formattedUsers: UserWithProfile[] = (profiles || []).map((prof: any) => {
         const now = new Date();
         const bannedUntil = prof.banned_until ? new Date(prof.banned_until) : null;
