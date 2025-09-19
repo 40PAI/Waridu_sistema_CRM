@@ -15,7 +15,7 @@ export interface UserWithProfile {
     name: string;
     email: string;
     status: string;
-  };
+  } | null;
   status: 'active' | 'banned' | 'deleted';
   last_sign_in_at: string | null;
 }
@@ -34,56 +34,68 @@ export const useUsers = () => {
       setLoading(true);
       setError(null);
 
-      // Select profiles and their linked employee row (via employees!user_id)
-      // NOTE: we removed auth.users reference here to avoid PostgREST 400 errors.
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          first_name,
-          last_name,
-          role,
-          banned_until,
-          avatar_url,
-          employees!user_id(id, name, email, status)
-        `)
-        .order('first_name', { ascending: true });
+      // 1) Buscar perfis (tabela public.profiles) - apenas colunas simples
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, role, banned_until, avatar_url")
+        .order("first_name", { ascending: true });
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      const formattedUsers: UserWithProfile[] = (data || []).map((user: any) => {
+      const profileIds: string[] = (profiles || []).map((p: any) => p.id).filter(Boolean);
+
+      // 2) Buscar employees onde user_id IN (profileIds) — evita select aninhado problemático
+      let employeesByUserId: Record<string, any> = {};
+      if (profileIds.length > 0) {
+        const { data: employees, error: empError } = await supabase
+          .from("employees")
+          .select("id, name, email, status, user_id")
+          .in("user_id", profileIds);
+
+        if (empError) {
+          // não falhar totalmente só por causa do join: log e continue com profiles
+          console.error("Warning: could not fetch employees relation:", empError);
+        } else {
+          employeesByUserId = (employees || []).reduce<Record<string, any>>((acc, emp: any) => {
+            if (emp.user_id) acc[emp.user_id] = emp;
+            return acc;
+          }, {});
+        }
+      }
+
+      // Mapear para formato consumido pela UI
+      const formattedUsers: UserWithProfile[] = (profiles || []).map((prof: any) => {
         const now = new Date();
-        const bannedUntil = user.banned_until ? new Date(user.banned_until) : null;
+        const bannedUntil = prof.banned_until ? new Date(prof.banned_until) : null;
         let status: 'active' | 'banned' | 'deleted' = 'active';
         if (bannedUntil && bannedUntil > now) status = 'banned';
-        // Note: 'deleted' would be determined if auth.users entry was missing; we keep 'active' by default.
 
-        // email/last_sign_in_at are not reliably available from profiles join without querying auth schema (not allowed).
-        // Use employees.email if present as a reasonable fallback for display.
-        const employeeRow = user.employees || null;
-        const emailFromEmployee = employeeRow?.email || '';
+        const employeeRow = employeesByUserId[prof.id] || null;
+        const emailFromEmployee = employeeRow?.email || "";
 
         return {
-          id: user.id,
+          id: prof.id,
           email: emailFromEmployee,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          role: user.role,
-          banned_until: user.banned_until,
-          avatar_url: user.avatar_url,
-          employee: employeeRow ? {
-            id: employeeRow.id,
-            name: employeeRow.name,
-            email: employeeRow.email,
-            status: employeeRow.status,
-          } : undefined,
+          first_name: prof.first_name,
+          last_name: prof.last_name,
+          role: prof.role,
+          banned_until: prof.banned_until,
+          avatar_url: prof.avatar_url,
+          employee: employeeRow
+            ? {
+                id: employeeRow.id,
+                name: employeeRow.name,
+                email: employeeRow.email,
+                status: employeeRow.status,
+              }
+            : null,
           status,
-          last_sign_in_at: null, // not available from public query
-        };
+          last_sign_in_at: null,
+        } as UserWithProfile;
       });
 
       setUsers(formattedUsers);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching users:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro ao carregar usuários.";
       setError(errorMessage);
