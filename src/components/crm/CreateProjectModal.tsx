@@ -109,7 +109,6 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} ${c.company ? `— ${c.company}` : ""} (${c.email || "sem email"})` })), [clients]);
   const userOptions = React.useMemo(() => users.map(u => ({ value: u.id, label: `${u.profile?.first_name || ""} ${u.profile?.last_name || ""} (${u.email})` })), [users]);
-  const serviceItems = services;
 
   const handleSubmit = async (data: ProjectFormData) => {
     setSaving(true);
@@ -188,6 +187,12 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                           </Button>
                         </div>
                       </FormControl>
+
+                      {/* Descrição explicativa (restaurada como na versão anterior) */}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Seleccione o cliente existente pelo seu nome; o formulário irá enviar o id (UUID) associado ao cliente. Se o cliente ainda não existir, clique em "Criar Novo Cliente".
+                      </p>
+
                       <FormMessage />
                     </FormItem>
                   )}
@@ -213,6 +218,12 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                           </SelectContent>
                         </Select>
                       </FormControl>
+
+                      {/* Descrição explicativa (restaurada como na versão anterior) */}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Escolha o responsável comercial da equipa; será enviado o seu id (UUID). Isto determina a pessoa que ficará como ponto de contacto comercial para este projeto.
+                      </p>
+
                       <FormMessage />
                     </FormItem>
                   )}
