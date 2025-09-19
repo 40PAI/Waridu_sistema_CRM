@@ -120,7 +120,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         service_ids: data.serviceIds,
         client_id: data.clientId,
         status: "Planejado",
-        // Optional fields
+        // Novos campos adicionados
         responsible_id: data.responsibleId,
         next_action: data.nextAction,
         next_action_date: data.nextActionDate,
@@ -303,7 +303,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecione o status" />
+                            <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
