@@ -6,11 +6,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { clientSchema, type ClientFormData } from "@/schemas/clientSchema";
 import { showSuccess, showError } from "@/utils/toast";
+import { useClients } from "@/hooks/useClients";
+import { MultiSelectServices } from "@/components/MultiSelectServices";
 
 interface ClientFormProps {
   onSubmit: (data: ClientFormData) => Promise<void>;
@@ -30,7 +31,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
       notes: initialData?.notes || "",
       sector: initialData?.sector,
       persona: initialData?.persona,
-      tags: initialData?.tags || [],
+      service_ids: initialData?.service_ids || [], // <-- use service_ids (array of service ids)
     },
   });
 
@@ -122,18 +123,9 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Setor</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o setor" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Tecnologia">Tecnologia</SelectItem>
-                  <SelectItem value="Financeiro">Financeiro</SelectItem>
-                  <SelectItem value="Saúde">Saúde</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Input placeholder="Setor (ex: Tecnologia)" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -145,18 +137,9 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Persona</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a persona" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="CEO">CEO</SelectItem>
-                  <SelectItem value="CTO">CTO</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Input placeholder="Persona (ex: CEO)" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -170,6 +153,20 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
               <FormLabel>Observações</FormLabel>
               <FormControl>
                 <Textarea placeholder="Notas sobre o cliente..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="service_ids"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Serviços de Interesse</FormLabel>
+              <FormControl>
+                <MultiSelectServices selected={field.value} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>
