@@ -39,13 +39,19 @@ export const useMaterials = () => {
 
       if (locationsError) throw locationsError;
 
+      // Create a map of all locations with 0 quantity
+      const locationMap: Record<string, string> = {};
+      (locationsData || []).forEach((loc: any) => {
+        locationMap[loc.id] = loc.name;
+      });
+
       // Format materials with location distribution
       const formattedMaterials: InventoryMaterial[] = (materialsData || []).map((mat: any) => {
         const locations: Record<string, number> = {};
         
-        // Create a map of all locations with 0 quantity
-        locationsData?.forEach((loc: any) => {
-          locations[loc.id] = 0;
+        // Initialize all locations with 0
+        Object.keys(locationMap).forEach(locId => {
+          locations[locId] = 0;
         });
         
         // Update with actual quantities
@@ -153,12 +159,7 @@ export const useMaterials = () => {
       }
 
       // Check session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error("Session error:", sessionError);
-        showError("Erro de sessão. Tente novamente.");
-        return;
-      }
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         showError("Sessão expirada. Faça login novamente.");
         return;

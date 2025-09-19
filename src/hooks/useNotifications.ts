@@ -2,18 +2,11 @@ import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { showError, showSuccess } from "@/utils/toast";
+import type { Notification } from "@/types";
 
 export type NotificationType = 'task' | 'event' | 'system' | 'issue' | 'material';
 
-export interface AppNotification {
-  id: string;
-  title: string;
-  description: string | null;
-  type: NotificationType;
-  read: boolean;
-  user_id: string;
-  created_at: string;
-}
+export interface AppNotification extends Notification {}
 
 export function useNotifications() {
   const { user } = useAuth();
@@ -107,6 +100,20 @@ export function useNotifications() {
     showSuccess("Todas as notificações marcadas como lidas.");
   };
 
+  const createNotification = async (notification: Omit<AppNotification, 'id' | 'created_at'>) => {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert(notification)
+      .select()
+      .single();
+    if (error) {
+      console.error("Erro ao criar notificação:", error);
+      showError("Erro ao criar notificação.");
+      return null;
+    }
+    return data as AppNotification;
+  };
+
   return {
     notifications,
     unreadCount,
@@ -114,5 +121,6 @@ export function useNotifications() {
     refresh: fetchNotifications,
     markAsRead,
     markAllAsRead,
+    createNotification,
   };
 }

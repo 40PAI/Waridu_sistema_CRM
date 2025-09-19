@@ -141,3 +141,78 @@ export type TechnicianCategory = {
   categoryName: string;
   dailyRate: number;
 };
+
+/* Client types for CRM */
+export type LifecycleStage = "Lead" | "MQL" | "SQL" | "Ativo" | "Perdido";
+
+export interface Client {
+  id: string;
+  name: string;
+  company?: string | null;
+  nif?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  sector?: string | null;
+  persona?: string | null;
+  service_ids?: string[]; // Changed from tags to service_ids
+  lifecycle_stage?: LifecycleStage;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+/* Service types */
+export interface Service {
+  id: string;
+  name: string;
+  description?: string | null;
+  status?: string | boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+/* Communication types */
+export interface Communication {
+  id: string;
+  client_id?: string;
+  project_id?: number;
+  type: 'email' | 'call' | 'meeting' | 'note';
+  date: string;
+  subject?: string;
+  notes?: string;
+  user_id: string;
+  created_at: string;
+  // provider information (e.g. gmail) — optional, included when synced from provider
+  provider?: string;
+  provider_meta?: {
+    threadId?: string;
+    messageId?: string;
+    headers?: Record<string, string>;
+    [key: string]: any;
+  } | null;
+  is_internal?: boolean;
+}
+
+/* Task types */
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  done: boolean;
+  assigned_to: string;
+  event_id?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/* Notification types */
+export interface Notification {
+  id: string;
+  title: string;
+  description: string | null;
+  type: 'task' | 'event' | 'system' | 'issue' | 'material';
+  read: boolean;
+  user_id: string;
+  created_at: string;
+}

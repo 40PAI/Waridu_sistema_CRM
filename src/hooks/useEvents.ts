@@ -53,7 +53,15 @@ export const useEvents = () => {
       setError(null);
       const { data, error: dbErr } = await supabase
         .from("events")
-        .select("*, responsible_id, next_action, next_action_date, follow_ups") // Include new fields
+        .select(`
+          *,
+          responsible_id,
+          next_action,
+          next_action_date,
+          follow_ups,
+          follow_ups_count,
+          follow_ups_completed
+        `)
         .order("start_date", { ascending: true });
 
       if (dbErr) throw dbErr;
@@ -94,6 +102,8 @@ export const useEvents = () => {
           revenue: updatedEvent.revenue ?? null,
           status: updatedEvent.status,
           description: updatedEvent.description ?? null,
+          roster: updatedEvent.roster ?? null,
+          expenses: updatedEvent.expenses ?? null,
           // CRM fields
           pipeline_status: (updatedEvent as any).pipeline_status ?? null,
           estimated_value: (updatedEvent as any).estimated_value ?? null,

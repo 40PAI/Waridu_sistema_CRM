@@ -31,7 +31,16 @@ export const useEmployees = () => {
       setError(null);
       const { data, error } = await supabase
         .from('employees')
-        .select('*')
+        .select(`
+          id,
+          name,
+          role,
+          email,
+          status,
+          cost_per_day,
+          technician_category,
+          user_id
+        `)
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -49,6 +58,7 @@ export const useEmployees = () => {
           avatar: emp.avatar || emp.avatar_url || fallbackAvatar,
           status: emp.status,
           technicianCategoryId: emp.technician_category || null,
+          userId: emp.user_id || null,
         };
       });
 
@@ -74,6 +84,7 @@ export const useEmployees = () => {
             email: employeeData.email,
             status: employeeData.status,
             technician_category: employeeData.technicianCategoryId || null,
+            user_id: employeeData.userId || null,
           })
           .eq('id', employeeData.id);
 
@@ -88,6 +99,7 @@ export const useEmployees = () => {
             email: employeeData.email,
             status: employeeData.status,
             technician_category: employeeData.technicianCategoryId || null,
+            user_id: employeeData.userId || null,
           });
 
         if (error) throw error;
