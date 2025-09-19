@@ -22,7 +22,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { DroppableColumn } from "./DroppableColumn";
 import { SortableProjectCard } from "./SortableProjectCard";
 import type { EventProject, PipelineStatus } from "@/types/crm";
-import { supabase } from "@/integrations/supabase/client";
+import { eventsService } from "@/services";
 
 interface PipelineKanbanProps {
   projects: EventProject[];
@@ -101,28 +101,27 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const project = localProjects.find((p) => p.id === Number(active.id));
     if (!project) return;
 
-    // UI otimista: atualiza localmente primeiro
+    // UI optimistic update
+    const previousProjects = localProjects;
     setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, pipeline_status: targetColumnId } : p)));
     setUpdating(String(project.id));
 
     try {
-      // Salva no Supabase automaticamente
-      const { error } = await supabase
-        .from('events')
-        .update({
-          pipeline_status: targetColumnId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', project.id);
+      // Use eventsService.upsertEvent to ensure payload is sanitized and well-formed
+      const payload: any = {
+        id: project.id,
+        pipeline_status: targetColumnId,
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
+      await eventsService.upsertEvent(payload);
 
       showSuccess("Projeto movido com sucesso!");
     } catch (error: any) {
       console.error("Error saving pipeline:", error);
-      showError(`Erro ao salvar: ${error.message || "Tente novamente"}`);
-      // Reverte a mudança local em caso de erro
-      setLocalProjects(projects);
+      showError(`Erro ao salvar: ${error?.message || "Tente novamente"}`);
+      // Revert optimistic update
+      setLocalProjects(previousProjects);
     } finally {
       setUpdating(null);
     }
