@@ -1,12 +1,84 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Event, Roster, Expense } from "@/types";
+import type { Roster, Expense } from "@/types";
 
 /**
  * Minimal events service used by hooks/components.
  * - fetchEvents(): returns rows from events table
- * - upsertEvent(payload): insert or update an event row
+ * - upsertEvent(payload): insert or update an event row (payload should use snake_case keys)
  * - updateEventDetails(eventId, details): update roster/expenses for an event
+ *
+ * This implementation sanitizes payloads to only include allowed columns (avoids 400 from PostgREST
+ * when unknown columns are present), strips undefined values and validates UUID fields to provide
+ * clearer error messages before calling Supabase.
  */
+
+const ALLOWED_COLUMNS = new Set([
+  "name",
+  "start_date",
+  "end_date",
+  "location",
+  "start_time",
+  "end_time",
+  "revenue",
+  "status",
+  "description",
+  "roster",
+  "expenses",
+  "pipeline_status",
+  "estimated_value",
+  "service_ids",
+  "client_id",
+  "notes",
+  "tags",
+  "follow_ups",
+  "responsible_id",
+  "next_action",
+  "next_action_date",
+  "updated_at",
+]);
+
+function sanitizePayload(payload: Record<string, any>) {
+  const out: Record<string, any> = {};
+  Object.entries(payload || {}).forEach(([k, v]) => {
+    if (!ALLOWED_COLUMNS.has(k)) return;
+    // strip undefined values (PostgREST can reject unexpected types)
+    if (v === undefined) return;
+    out[k] = v;
+  });
+  return out;
+}
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(v: unknown) {
+  return typeof v === "string" && UUID_REGEX.test(v);
+}
+
+/**
+ * Validate UUID fields in payload. Throws an Error with actionable message if invalid.
+ */
+function validateUuidFields(sanitized: Record<string, any>) {
+  const invalids: string[] = [];
+
+  if (sanitized.client_id !== undefined && sanitized.client_id !== null && !isUuid(sanitized.client_id)) {
+    invalids.push(`client_id="${String(sanitized.client_id)}"`);
+  }
+
+  if (sanitized.service_ids !== undefined && sanitized.service_ids !== null) {
+    if (!Array.isArray(sanitized.service_ids)) {
+      invalids.push(`service_ids is not an array`);
+    } else {
+      const bad = sanitized.service_ids.filter((id: any) => !isUuid(id));
+      if (bad.length > 0) {
+        invalids.push(`service_ids invalid entries: [${bad.map(String).join(", ")}]`);
+      }
+    }
+  }
+
+  if (invalids.length > 0) {
+    throw new Error(`Invalid UUID fields in payload: ${invalids.join("; ")}`);
+  }
+}
 
 export const fetchEvents = async (): Promise<any[]> => {
   const { data, error } = await supabase
@@ -19,24 +91,49 @@ export const fetchEvents = async (): Promise<any[]> => {
 };
 
 export const upsertEvent = async (payload: any): Promise<any> => {
-  // If payload contains id -> update, otherwise insert
-  if (payload?.id) {
-    const { data, error } = await supabase
-      .from("events")
-      .update(payload)
-      .eq("id", payload.id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  } else {
-    const { data, error } = await supabase
-      .from("events")
-      .insert(payload)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
+  try {
+    // Clone and sanitize payload: only allowed columns and no undefined values
+    const sanitized = sanitizePayload(payload);
+
+    // Validate UUID fields before making the request to Supabase.
+    // This provides an early, clear error instead of a generic 400 from PostgREST.
+    validateUuidFields(sanitized);
+
+    if (payload?.id) {
+      // When updating, don't include id in set payload
+      const { id, ...rest } = sanitized;
+      const { data, error } = await supabase
+        .from("events")
+        .update(rest)
+        .eq("id", payload.id)
+        .select()
+        .single();
+
+      if (error) {
+        // Attach details for easier debugging
+        const msg = `Supabase update error: ${error.message || "unknown"}${error.details ? " — " + error.details : ""}`;
+        console.error(msg, { error, payload, sanitized: rest });
+        throw new Error(msg);
+      }
+      return data;
+    } else {
+      const { data, error } = await supabase
+        .from("events")
+        .insert(sanitized)
+        .select()
+        .single();
+
+      if (error) {
+        const msg = `Supabase insert error: ${error.message || "unknown"}${error.details ? " — " + error.details : ""}`;
+        console.error(msg, { error, payload, sanitized });
+        throw new Error(msg);
+      }
+      return data;
+    }
+  } catch (err: any) {
+    // Bubble a helpful error message
+    const message = err?.message || String(err) || "Unknown error in upsertEvent";
+    throw new Error(message);
   }
 };
 
@@ -46,15 +143,25 @@ export const updateEventDetails = async (eventId: number, details: { roster: Ros
     expenses: details.expenses ?? null,
     updated_at: new Date().toISOString(),
   };
-  const { data, error } = await supabase
-    .from("events")
-    .update(payload)
-    .eq("id", eventId)
-    .select()
-    .single();
 
-  if (error) throw error;
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .update(payload)
+      .eq("id", eventId)
+      .select()
+      .single();
+
+    if (error) {
+      const msg = `Supabase updateEventDetails error: ${error.message || "unknown"}${error.details ? " — " + error.details : ""}`;
+      console.error(msg, { error, eventId, payload });
+      throw new Error(msg);
+    }
+    return data;
+  } catch (err: any) {
+    const message = err?.message || String(err) || "Unknown error in updateEventDetails";
+    throw new Error(message);
+  }
 };
 
 export default {
