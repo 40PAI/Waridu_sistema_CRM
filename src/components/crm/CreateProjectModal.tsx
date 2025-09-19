@@ -33,8 +33,10 @@ const projectSchema = z.object({
   pipelineStatus: z.enum(["1º Contato", "Orçamento", "Negociação", "Confirmado"], { required_error: "Status é obrigatório" }),
   startDate: z.string().min(1, "Data de início é obrigatória"),
   startTime: z.string().min(1, "Hora de início é obrigatória"),
-  endTime: z.string().min(1, "Hora de fim é obrigatória"),
+  endDate: z.string().optional(),
+  endTime: z.string().optional(),
   responsibleId: z.string().min(1, "Responsável comercial é obrigatório").refine((v) => UUID_REGEX.test(v), "Selecione um responsável válido."),
+  location: z.string().min(1, "Local é obrigatório"),
   estimatedValue: z.number().min(0).optional(),
   notes: z.string().optional(),
 });
@@ -74,8 +76,10 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       pipelineStatus: "1º Contato",
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
-      endTime: "18:00",
+      endDate: "",
+      endTime: "",
       responsibleId: "",
+      location: "",
       estimatedValue: undefined,
       notes: "",
     },
@@ -90,8 +94,10 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         pipelineStatus: "1º Contato",
         startDate: new Date().toISOString().split("T")[0],
         startTime: "09:00",
-        endTime: "18:00",
+        endDate: "",
+        endTime: "",
         responsibleId: "",
+        location: "",
         estimatedValue: undefined,
         notes: "",
       });
@@ -113,7 +119,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     setSaving(true);
 
     const startISO = toISO(data.startDate, data.startTime);
-    const endISO = data.endTime ? toISO(data.startDate, data.endTime) : startISO;
+    const endISO = data.endDate ? toISO(data.endDate, data.endTime || data.startTime) : startISO;
 
     const payload: Record<string, any> = {
       name: data.name,
@@ -121,7 +127,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       end_date: endISO,
       start_time: data.startTime ? `${data.startTime}:00` : null,
       end_time: data.endTime ? `${data.endTime}:00` : null,
-      location: null,
+      location: data.location,
       pipeline_status: data.pipelineStatus,
       estimated_value: data.estimatedValue ?? null,
       service_ids: data.serviceIds,
