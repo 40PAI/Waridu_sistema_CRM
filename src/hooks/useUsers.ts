@@ -33,6 +33,9 @@ export const useUsers = () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Select profiles and their linked employee row (via employees!user_id)
+      // NOTE: we removed auth.users reference here to avoid PostgREST 400 errors.
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -42,8 +45,7 @@ export const useUsers = () => {
           role,
           banned_until,
           avatar_url,
-          employees!user_id(id, name, email, status),
-          auth.users!id(email, last_sign_in_at)
+          employees!user_id(id, name, email, status)
         `)
         .order('first_name', { ascending: true });
 
@@ -54,24 +56,29 @@ export const useUsers = () => {
         const bannedUntil = user.banned_until ? new Date(user.banned_until) : null;
         let status: 'active' | 'banned' | 'deleted' = 'active';
         if (bannedUntil && bannedUntil > now) status = 'banned';
-        // Note: 'deleted' seria se o user fosse removido de auth.users, mas aqui assumimos ativo
+        // Note: 'deleted' would be determined if auth.users entry was missing; we keep 'active' by default.
+
+        // email/last_sign_in_at are not reliably available from profiles join without querying auth schema (not allowed).
+        // Use employees.email if present as a reasonable fallback for display.
+        const employeeRow = user.employees || null;
+        const emailFromEmployee = employeeRow?.email || '';
 
         return {
           id: user.id,
-          email: user['auth.users']?.email || '',
+          email: emailFromEmployee,
           first_name: user.first_name,
           last_name: user.last_name,
           role: user.role,
           banned_until: user.banned_until,
           avatar_url: user.avatar_url,
-          employee: user.employees ? {
-            id: user.employees.id,
-            name: user.employees.name,
-            email: user.employees.email,
-            status: user.employees.status,
+          employee: employeeRow ? {
+            id: employeeRow.id,
+            name: employeeRow.name,
+            email: employeeRow.email,
+            status: employeeRow.status,
           } : undefined,
           status,
-          last_sign_in_at: user['auth.users']?.last_sign_in_at || null,
+          last_sign_in_at: null, // not available from public query
         };
       });
 
