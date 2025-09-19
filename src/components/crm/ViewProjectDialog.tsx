@@ -56,16 +56,6 @@ export default function ViewProjectDialog({ open, onOpenChange, project }: ViewP
               <Label className="text-sm font-medium">Serviços</Label>
               <p className="text-sm">{serviceNames || "Nenhum serviço"}</p>
             </div>
-            {project.tags && project.tags.length > 0 && (
-              <div className="md:col-span-2">
-                <Label className="text-sm font-medium">Tags</Label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {project.tags.map(tag => (
-                    <Badge key={tag} variant="secondary">{tag}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
             <div className="md:col-span-2">
               <Label className="text-sm font-medium">Notas</Label>
               <p className="text-sm">{project.notes || "Nenhuma nota"}</p>

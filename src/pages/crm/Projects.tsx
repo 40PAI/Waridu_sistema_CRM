@@ -17,7 +17,6 @@ export default function ProjectsPage() {
   const { events, fetchEvents } = useEvents();
   const { services } = useServices();
 
-  // service filter (array of service ids)
   const [serviceFilter, setServiceFilter] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'kanban' | 'create'>('kanban');
 
@@ -34,11 +33,9 @@ export default function ProjectsPage() {
       endDate: e.endDate ?? e.startDate,
       location: e.location ?? "",
       status: e.status ?? "Planejado",
-      tags: e.tags ?? [],
       notes: e.notes ?? "",
     }));
 
-  // filter projects by selected services (match ANY)
   const filteredProjects = useMemo(() => {
     if (!serviceFilter || serviceFilter.length === 0) return allProjects;
     return allProjects.filter((p) => {
@@ -59,7 +56,6 @@ export default function ProjectsPage() {
         id: p.id,
         pipeline_status: p.pipeline_status ?? null,
         notes: p.notes ?? null,
-        tags: p.tags ?? null,
         estimated_value: p.estimated_value ?? null,
       });
       await fetchEvents();

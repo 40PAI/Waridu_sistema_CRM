@@ -29,7 +29,6 @@ export default function PipelinePage() {
         endDate: e.endDate ?? e.startDate,
         location: e.location ?? "",
         status: e.status,
-        tags: e.tags ?? [],
         notes: e.notes ?? "",
       }));
   }, [events]);
@@ -58,7 +57,6 @@ export default function PipelinePage() {
         id: p.id,
         pipeline_status: p.pipeline_status ?? null,
         notes: p.notes ?? null,
-        tags: p.tags ?? null,
         estimated_value: p.estimated_value ?? null,
       });
       await fetchEvents();

@@ -7,11 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { usePipelinePhases } from "@/hooks/usePipelinePhases";
 import type { EventProject } from "@/types/crm";
 import { showError, showSuccess } from "@/utils/toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface EditProjectDialogProps {
   open: boolean;
@@ -24,7 +22,6 @@ export default function EditProjectDialog({ open, onOpenChange, project, onSave 
   const { activePhases } = usePipelinePhases();
   const [status, setStatus] = React.useState(project?.pipeline_status || "1º Contato");
   const [notes, setNotes] = React.useState(project?.notes || "");
-  const [tags, setTags] = React.useState(project?.tags?.join(", ") || "");
   const [estimatedValue, setEstimatedValue] = React.useState(project?.estimated_value || "");
   const [saving, setSaving] = React.useState(false);
 
@@ -32,7 +29,6 @@ export default function EditProjectDialog({ open, onOpenChange, project, onSave 
     if (open && project) {
       setStatus(project.pipeline_status || "1º Contato");
       setNotes(project.notes || "");
-      setTags(project.tags?.join(", ") || "");
       setEstimatedValue(String(project.estimated_value || ""));
     }
   }, [open, project]);
@@ -40,13 +36,10 @@ export default function EditProjectDialog({ open, onOpenChange, project, onSave 
   const handleSave = async () => {
     if (!project) return;
 
-    const tagArray = tags.split(",").map(t => t.trim()).filter(Boolean);
-
     const updatedProject: EventProject = {
       ...project,
       pipeline_status: status,
       notes,
-      tags: tagArray,
       estimated_value: Number(estimatedValue) || undefined,
     };
 
@@ -95,16 +88,6 @@ export default function EditProjectDialog({ open, onOpenChange, project, onSave 
               onChange={(e) => setEstimatedValue(e.target.value)}
               placeholder="Ex: 500000"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tags">Tags (separadas por vírgula)</Label>
-            <Input
-              id="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="urgente, alto valor, VIP"
-            />
-            <p className="text-sm text-muted-foreground">Ex: urgente, alto valor</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="notes">Notas</Label>

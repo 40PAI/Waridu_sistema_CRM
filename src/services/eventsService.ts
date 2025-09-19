@@ -29,17 +29,15 @@ const ALLOWED_COLUMNS = new Set([
   "estimated_value",
   "service_ids",
   "created_at",
-  // removed 'updated_at' to avoid PostgREST PGRST204 when column missing in DB
+  // 'updated_at' intentionally excluded (not all schemas have it)
   "notes",
-  "tags",
 ]);
 
 function sanitizePayload(payload: Record<string, any>) {
   const out: Record<string, any> = {};
   Object.entries(payload || {}).forEach(([k, v]) => {
     if (!ALLOWED_COLUMNS.has(k)) return;
-    // strip undefined values (PostgREST can reject unexpected types)
-    if (v === undefined) return;
+    if (v === undefined) return; // strip undefined
     out[k] = v;
   });
   return out;
@@ -85,13 +83,11 @@ function validateUuidFields(sanitized: Record<string, any>) {
  */
 function normalizeAndValidateTypes(sanitized: Record<string, any>) {
   for (const [k, v] of Object.entries(sanitized)) {
-    // convert Date objects
     if (v instanceof Date) {
       sanitized[k] = v.toISOString();
       continue;
     }
 
-    // service_ids must be array of strings
     if (k === "service_ids") {
       if (v === null) continue;
       if (!Array.isArray(v)) {
@@ -104,18 +100,15 @@ function normalizeAndValidateTypes(sanitized: Record<string, any>) {
       continue;
     }
 
-    // roster and expenses must be JSON serializable
     if (k === "roster" || k === "expenses") {
       try {
-        // quick check — will throw on circular structures
         JSON.stringify(v);
-      } catch (err) {
+      } catch {
         throw new Error(`${k} must be JSON-serializable`);
       }
       continue;
     }
 
-    // primitive expected types check (best-effort)
     if (k === "name" || k === "location" || k === "status" || k === "description" || k === "pipeline_status" || k === "notes") {
       if (v !== null && typeof v !== "string") {
         sanitized[k] = String(v);
@@ -133,7 +126,6 @@ function normalizeAndValidateTypes(sanitized: Record<string, any>) {
       }
     }
 
-    // start_date / end_date / start_time / end_time should be strings (ISO/date/time)
     if ((k === "start_date" || k === "end_date" || k === "start_time" || k === "end_time") && v != null) {
       if (typeof v !== "string") {
         sanitized[k] = String(v);
@@ -154,19 +146,11 @@ export const fetchEvents = async (): Promise<any[]> => {
 
 export const upsertEvent = async (payload: any): Promise<any> => {
   try {
-    // Clone and sanitize payload: only allowed columns and no undefined values
     const sanitized = sanitizePayload(payload);
-
-    // Validate UUID fields before making the request to Supabase.
-    // This provides an early, clear error instead of a generic 400 from PostgREST.
     validateUuidFields(sanitized);
-
-    // Normalize types (dates -> ISO, arrays -> strings, JSON serializability checks)
     normalizeAndValidateTypes(sanitized);
 
-    // If updating, ensure we have keys to update
     if (payload?.id) {
-      // When updating, don't include id in set payload
       const { id, ...rest } = sanitized;
       const keys = Object.keys(rest);
       if (keys.length === 0) {
@@ -187,7 +171,6 @@ export const upsertEvent = async (payload: any): Promise<any> => {
       }
       return data;
     } else {
-      // For inserts, require at least name and start_date (common required fields)
       if (!sanitized.name || !sanitized.start_date) {
         throw new Error("Missing required fields for creating event: 'name' and 'start_date' are required");
       }
@@ -206,7 +189,6 @@ export const upsertEvent = async (payload: any): Promise<any> => {
       return data;
     }
   } catch (err: any) {
-    // Bubble a helpful error message
     const message = err?.message || String(err) || "Unknown error in upsertEvent";
     throw new Error(message);
   }
@@ -216,17 +198,11 @@ export const updateEventDetails = async (eventId: number, details: { roster: Ros
   const payload: any = {
     roster: details.roster ?? null,
     expenses: details.expenses ?? null,
-    // removed updated_at to avoid schema mismatch with tables that don't have it
   };
 
   try {
-    // Validate roster/expenses serializability
-    try {
-      JSON.stringify(payload.roster);
-      JSON.stringify(payload.expenses);
-    } catch {
-      throw new Error("roster and expenses must be JSON-serializable");
-    }
+    JSON.stringify(payload.roster);
+    JSON.stringify(payload.expenses);
 
     const { data, error } = await supabase
       .from("events")
