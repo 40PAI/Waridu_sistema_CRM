@@ -5,24 +5,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DollarSign, Calendar as CalendarIcon, TrendingUp } from "lucide-react";
 import type { Event, Communication } from "@/types";
 
-interface Metrics {
-  totalEstimated: number;
-  confirmedValue: number;
-}
-
-interface ClientStats {
-  totalClients: number;
-  activeClients: number;
-  highValueClients: number;
-}
-
 interface Props {
-  filteredProjectsCount: number;
-  metrics: Metrics;
-  clients: ClientStats;
+  events: Event[];
+  communications: Communication[];
 }
 
-const MetricsCards: React.FC<Props> = ({ filteredProjectsCount, metrics, clients }) => {
+const ClientMetrics: React.FC<Props> = ({ events, communications }) => {
+  const filteredProjectsCount = events.length;
+
+  const metrics = React.useMemo(() => {
+    const totalEstimated = events.reduce((sum, e) => sum + (Number(e.estimated_value) || 0), 0);
+    const confirmedValue = events
+      .filter((e) => e.pipeline_status === "Confirmado")
+      .reduce((sum, e) => sum + (Number(e.estimated_value) || 0), 0);
+    return { totalEstimated, confirmedValue };
+  }, [events]);
+
+  const clients = React.useMemo(() => {
+    // For the single-client view we can provide simple derived stats from communications
+    const totalClients = 1;
+    const activeClients = communications.length > 0 ? 1 : 0;
+    const highValueClients = events.some((e) => (e.estimated_value || 0) > 100000) ? 1 : 0;
+    return { totalClients, activeClients, highValueClients };
+  }, [events, communications]);
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <Card>
@@ -61,4 +67,4 @@ const MetricsCards: React.FC<Props> = ({ filteredProjectsCount, metrics, clients
   );
 };
 
-export default MetricsCards;
+export default ClientMetrics;
