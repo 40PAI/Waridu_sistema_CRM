@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { showError, showSuccess } from "@/utils/toast";
 import type { Event, Roster, Expense } from "@/types";
-import * as eventsService from "@/services/eventsService";
+import { eventsService } from "@/services";
+
+/**
+ * useEvents hook
+ *
+ * - loads events from Supabase (mapping DB snake_case -> camelCase)
+ * - provides updateEvent (full event update or insert) and updateEventDetails (roster/expenses)
+ * - returns events, loading, error and helper funcs
+ */
 
 export const useEvents = () => {
   const [events, setEvents] = useState<Event[]>([]);
