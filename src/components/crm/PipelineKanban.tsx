@@ -119,6 +119,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     }
   };
 
+  // Atualização em tempo real vinda do banco (mantém colunas sincronizadas)
   React.useEffect(() => {
     if (!activePhases.length) return;
 
@@ -148,6 +149,22 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       supabase.removeChannel(channel);
     };
   }, [activePhases]);
+
+  // Salvar via modal (edição): aplica atualização otimista para mover imediatamente
+  const handleSaveProject = async (updated: EventProject) => {
+    setLocalProjects(prev => prev.map(p => (p.id === updated.id ? { ...p, ...updated } : p)));
+    setUpdating(String(updated.id));
+    try {
+      await onUpdateProject(updated);
+      showSuccess("Projeto atualizado!");
+    } catch (err) {
+      showError("Erro ao salvar projeto. Revertendo...");
+      setLocalProjects(projects);
+      throw err;
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   if (loading) {
     return <div className="p-4 text-sm text-muted-foreground">Carregando pipeline...</div>;
@@ -220,7 +237,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
         open={!!editingProject}
         onOpenChange={(open) => setEditingProject(open ? editingProject : null)}
         project={editingProject}
-        onSave={onUpdateProject}
+        onSave={handleSaveProject}
       />
       <ViewProjectDialog
         open={!!viewingProject}
