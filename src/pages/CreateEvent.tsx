@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -210,12 +212,10 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
                 <Label htmlFor="estimated-value">Valor Estimado (AOA)</Label>
                 <Input 
                   id="estimated-value" 
-                  name="estimated-value"
-                  autoComplete="off"
                   type="number" 
-                  placeholder="Ex: 30000" 
                   value={estimatedValue || ''} 
                   onChange={(e) => setEstimatedValue(e.target.value ? Number(e.target.value) : undefined)} 
+                  placeholder="Ex: 30000" 
                 />
               </div>
               <div className="space-y-2">
