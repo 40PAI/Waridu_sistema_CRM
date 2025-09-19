@@ -108,7 +108,9 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   }, [open, preselectedClientId]);
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} ${c.company ? `— ${c.company}` : ""} (${c.email || "sem email"})` })), [clients]);
-  const userOptions = React.useMemo(() => users.map(u => ({ value: u.id, label: `${u.profile?.first_name || ""} ${u.profile?.last_name || ""} (${u.email})` })), [users]);
+
+  // Use flat user fields from useUsers (first_name / last_name) instead of user.profile
+  const userOptions = React.useMemo(() => users.map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email})` })), [users]);
 
   const handleSubmit = async (data: ProjectFormData) => {
     setSaving(true);
