@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, MapPin, Pencil, Eye } from "lucide-react";
+import { Calendar, DollarSign, MapPin, Pencil, Eye, GripVertical } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { EventProject } from "@/types/crm";
@@ -14,7 +14,6 @@ import type { EventProject } from "@/types/crm";
 export interface SortableProjectCardProps {
   project: EventProject;
   onEditClick?: (project: EventProject) => void;
-  // Renamed prop expected by callers (onViewProject); keep name explicit and optional
   onViewProject?: (project: EventProject) => void;
   isDragging?: boolean;
 }
@@ -48,32 +47,40 @@ export function SortableProjectCard({ project, onEditClick, onViewProject, isDra
     <Card
       ref={setNodeRef}
       style={style}
-      className={`cursor-grab active:cursor-grabbing ${
-        isDragging || isSortableDragging ? 'opacity-50 rotate-2' : ''
-      } hover:shadow-md transition-shadow`}
-      {...attributes}
-      {...listeners}
+      className={`border hover:shadow-md transition-all ${isDragging || isSortableDragging ? 'opacity-50 rotate-1' : ''}`}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <h3 className="font-medium text-sm leading-tight">{project.name}</h3>
+          {/* Header with drag handle and actions */}
+          <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
+              {/* Drag handle only: attach listeners here */}
+              <button
+                className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-muted"
+                aria-label="Arrastar"
+                {...attributes}
+                {...listeners}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <h3 className="font-medium text-sm leading-tight">{project.name}</h3>
+            </div>
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleView}
-                className="h-6 w-6 p-0"
+                className="h-7 w-7 p-0"
                 aria-label={`Ver ${project.name}`}
               >
                 <Eye className="h-4 w-4" />
               </Button>
-
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleEdit}
-                className="h-6 w-6 p-0"
+                className="h-7 w-7 p-0"
                 aria-label={`Editar ${project.name}`}
               >
                 <Pencil className="h-4 w-4" />
@@ -81,12 +88,14 @@ export function SortableProjectCard({ project, onEditClick, onViewProject, isDra
             </div>
           </div>
 
+          {/* Optional notes */}
           {project.notes && (
             <p className="text-xs text-muted-foreground line-clamp-2">
               {project.notes}
             </p>
           )}
 
+          {/* Footer info */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />

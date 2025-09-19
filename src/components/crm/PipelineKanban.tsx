@@ -17,13 +17,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
 import { SortableProjectCard } from "./SortableProjectCard";
-import { DroppableColumn } from "./DroppableColumn"; // Import the existing DroppableColumn
+import { DroppableColumn } from "./DroppableColumn";
 import type { EventProject } from "@/types/crm";
 import { supabase } from "@/integrations/supabase/client";
 import { usePipelinePhases } from "@/hooks/usePipelinePhases";
 import { useState } from "react";
-
-// Import dialogs (we'll create these next)
 import EditProjectDialog from "./EditProjectDialog";
 import ViewProjectDialog from "./ViewProjectDialog";
 
@@ -45,7 +43,6 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   const [editingProject, setEditingProject] = React.useState<EventProject | null>(null);
   const [viewingProject, setViewingProject] = React.useState<EventProject | null>(null);
 
-  // Sync with props (parent updates)
   React.useEffect(() => setLocalProjects(projects), [projects]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -54,17 +51,33 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const grouped: Record<string, EventProject[]> = {};
     activePhases.forEach(p => (grouped[p.name] = []));
     localProjects.forEach(p => {
-      const status = p.pipeline_status || "1º Contato"; // Default fallback
+      const status = p.pipeline_status || "1º Contato";
       if (!grouped[status]) grouped[status] = [];
       grouped[status].push(p);
     });
     return grouped;
   }, [localProjects, activePhases]);
 
+  const findColumnByProjectId = (projId: string | number) => {
+    const idStr = String(projId);
+    for (const phaseName of Object.keys(projectsByColumn)) {
+      if ((projectsByColumn[phaseName] || []).some(p => String(p.id) === idStr)) {
+        return phaseName;
+      }
+    }
+    return null;
+  };
+
   const getOverColumnId = (over: DragOverEvent["over"]) => {
     if (!over) return null;
-    const raw = over.id ? String(over.id) : (over.data?.current as any)?.sortable?.containerId ?? null;
-    return raw;
+    const containerId = (over.data?.current as any)?.sortable?.containerId;
+    if (containerId) return String(containerId);
+    // If over a column body, over.id is the column id; if over a card, over.id is the card id
+    const overId = String(over.id ?? "");
+    // If this overId matches a phase name, use it; otherwise, try to find by project id
+    if (activePhases.some(p => p.name === overId)) return overId;
+    const fromContainer = findColumnByProjectId(overId);
+    return fromContainer;
   };
 
   const handleDragStart = (event: any) => {
@@ -94,45 +107,44 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     if (!project) return;
 
     // Optimistic update
-    const optimisticProject = { ...project, pipeline_status: targetPhaseName };
-    setLocalProjects(prev => prev.map(p => p.id === project.id ? optimisticProject : p));
+    const optimistic = { ...project, pipeline_status: targetPhaseName };
+    setLocalProjects(prev => prev.map(p => p.id === project.id ? optimistic : p));
     setUpdating(String(project.id));
 
     try {
-      await onUpdateProject({
-        ...project,
-        pipeline_status: targetPhaseName,
-      });
+      await onUpdateProject(optimistic);
       showSuccess("Projeto movido para " + targetPhaseName);
     } catch (error) {
       showError("Erro ao mover projeto. Revertendo...");
-      // Revert optimistic update
       setLocalProjects(projects);
     } finally {
       setUpdating(null);
     }
   };
 
-  // Real-time subscription for multi-user sync
   React.useEffect(() => {
     if (!activePhases.length) return;
 
     const channel = supabase
       .channel("pipeline-updates")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "events", filter: "pipeline_status IS NOT NULL" }, (payload) => {
-        if (payload.new && payload.new.pipeline_status) {
-          setLocalProjects(prev => {
-            const index = prev.findIndex(p => p.id === payload.new.id);
-            if (index !== -1) {
-              const updated = { ...prev[index], pipeline_status: payload.new.pipeline_status };
-              const newProjects = [...prev];
-              newProjects[index] = updated;
-              return newProjects;
-            }
-            return prev;
-          });
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "events", filter: "pipeline_status IS NOT NULL" },
+        (payload) => {
+          if (payload.new && payload.new.pipeline_status) {
+            setLocalProjects(prev => {
+              const idx = prev.findIndex(p => p.id === payload.new.id);
+              if (idx !== -1) {
+                const updated = { ...prev[idx], pipeline_status: payload.new.pipeline_status };
+                const next = [...prev];
+                next[idx] = updated;
+                return next;
+              }
+              return prev;
+            });
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
@@ -169,8 +181,9 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
                     </span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 flex-1 overflow-y-auto" id={phase.name}>
-                  <SortableContext items={columnProjects.map((p) => String(p.id))} strategy={verticalListSortingStrategy}>
+                <CardContent className="space-y-3 flex-1 overflow-y-auto" id={`pipeline-column-${colSlug}`}>
+                  {/* IMPORTANT: set container id so containerId is available on over.data */}
+                  <SortableContext id={phase.name} items={columnProjects.map((p) => String(p.id))} strategy={verticalListSortingStrategy}>
                     {columnProjects.map((project) => (
                       <div key={project.id} id={`project-${project.id}`} className="mb-3">
                         <SortableProjectCard
@@ -184,6 +197,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
                       </div>
                     ))}
                   </SortableContext>
+
                   {columnProjects.length === 0 && dragOverColumn === phase.name && (
                     <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium bg-primary/5">
                       Solte aqui
@@ -200,16 +214,12 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
             <Card className="shadow-2xl p-3 bg-white rounded-md w-64 border-2 border-primary">
               <CardContent>
                 <h3 className="font-semibold text-sm truncate">{draggingProject.name}</h3>
-                <div className="text-xs text-muted-foreground">
-                  {/* Simple info during drag */}
-                </div>
               </CardContent>
             </Card>
           ) : null}
         </DragOverlay>
       </DndContext>
 
-      {/* Dialogs for edit/view */}
       <EditProjectDialog
         open={!!editingProject}
         onOpenChange={(open) => setEditingProject(open ? editingProject : null)}
