@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
-import { CreateProjectModal } from "@/components/crm/CreateProjectModal";
+import CreateProjectModal from "@/components/crm/CreateProjectModal";
 import useEvents from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
