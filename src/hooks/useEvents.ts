@@ -30,14 +30,17 @@ export const useEvents = () => {
       description: row.description ?? undefined,
       roster: row.roster ?? undefined,
       expenses: row.expenses ?? undefined,
-      // CRM fields (may be undefined)
+      // CRM/project-specific fields (optional)
       pipeline_status: row.pipeline_status ?? undefined,
       estimated_value: row.estimated_value ?? undefined,
       service_ids: row.service_ids ?? undefined,
       client_id: row.client_id ?? undefined,
       notes: row.notes ?? undefined,
       tags: row.tags ?? undefined,
-      follow_ups: row.follow_ups ?? undefined,
+      follow_ups: row.follow_ups ?? undefined, // New: array of follow-up objects
+      responsible_id: row.responsible_id ?? undefined, // New: UUID of responsible user
+      next_action: row.next_action ?? undefined, // New: next action text
+      next_action_date: row.next_action_date ?? undefined, // New: next action timestamp
       updated_at: row.updated_at ?? undefined,
       follow_ups_count: row.follow_ups_count ?? undefined,
       follow_ups_completed: row.follow_ups_completed ?? undefined,
@@ -50,7 +53,7 @@ export const useEvents = () => {
       setError(null);
       const { data, error: dbErr } = await supabase
         .from("events")
-        .select("*")
+        .select("*, responsible_id, next_action, next_action_date, follow_ups") // Include new fields
         .order("start_date", { ascending: true });
 
       if (dbErr) throw dbErr;
@@ -98,7 +101,10 @@ export const useEvents = () => {
           client_id: (updatedEvent as any).client_id ?? null,
           notes: (updatedEvent as any).notes ?? null,
           tags: (updatedEvent as any).tags ?? null,
-          follow_ups: (updatedEvent as any).follow_ups ?? null,
+          follow_ups: (updatedEvent as any).follow_ups ?? null, // New
+          responsible_id: (updatedEvent as any).responsible_id ?? null, // New
+          next_action: (updatedEvent as any).next_action ?? null, // New
+          next_action_date: (updatedEvent as any).next_action_date ?? null, // New
           updated_at: new Date().toISOString(),
         };
 

@@ -70,7 +70,10 @@ export interface Event {
   client_id?: string | null;
   notes?: string | null;
   tags?: string[] | null;
-  follow_ups?: any[] | null;
+  follow_ups?: Array<{ action: string; date: string; notes?: string }> | null; // New: array of follow-up objects
+  responsible_id?: string; // New: UUID of responsible user
+  next_action?: string; // New: next action text
+  next_action_date?: string; // New: next action timestamp (ISO string)
   updated_at?: string | null;
 
   // helpful counters used in some components (optional)
