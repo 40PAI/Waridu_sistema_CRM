@@ -10,6 +10,8 @@ import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CreateProjectTab from "@/components/crm/CreateProjectTab";
+import { eventsService } from "@/services";
+import { showError } from "@/utils/toast";
 
 export default function ProjectsPage() {
   const { events, fetchEvents } = useEvents();
@@ -50,6 +52,22 @@ export default function ProjectsPage() {
     services.forEach(s => (map[s.id] = s.name));
     return map;
   }, [services]);
+
+  const persistProjectUpdate = async (p: EventProject) => {
+    try {
+      await eventsService.upsertEvent({
+        id: p.id,
+        pipeline_status: p.pipeline_status ?? null,
+        notes: p.notes ?? null,
+        tags: p.tags ?? null,
+        estimated_value: p.estimated_value ?? null,
+      });
+      await fetchEvents();
+    } catch (err: any) {
+      showError(err?.message || "Falha ao salvar alterações do projeto.");
+      throw err;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -95,24 +113,15 @@ export default function ProjectsPage() {
 
           <PipelineKanban
             projects={filteredProjects}
-            onUpdateProject={async (p) => {
-              // The hook useEvents keeps events up to date; parent doesn't need to do more here.
-              // We still trigger fetch to ensure the list updates after server-side changes.
-              await fetchEvents();
-            }}
-            onEditProject={(p) => {
-              // Optionally open an editor; PipelineKanban can handle edits via props if implemented.
-            }}
-            onViewProject={(p) => {
-              // Optionally open a detail view.
-            }}
+            onUpdateProject={persistProjectUpdate}
+            onEditProject={(p) => {}}
+            onViewProject={(p) => {}}
           />
         </TabsContent>
 
         <TabsContent value="create">
           <CreateProjectTab
             onCreated={async (id: number) => {
-              // refresh events and switch back to kanban to show the newly created project
               await fetchEvents();
               setActiveTab('kanban');
             }}

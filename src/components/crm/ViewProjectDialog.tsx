@@ -4,6 +4,7 @@ import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import type { EventProject } from "@/types/crm";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
