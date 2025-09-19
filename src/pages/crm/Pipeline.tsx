@@ -2,96 +2,101 @@
 
 import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
-import CreateProjectModal from "@/components/crm/CreateProjectModal";
-import useEvents from "@/hooks/useEvents";
-import { useClients } from "@/hooks/useClients";
-import { useServices } from "@/hooks/useServices";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import type { EventProject } from "@/types/crm";
+import CreateProjectTab from "@/components/crm/CreateProjectTab";
+import { useEvents } from "@/hooks/useEvents";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useState } from "react";
 
 export default function PipelinePage() {
-  const { events, updateEvent, loading } = useEvents();
-  const { clients } = useClients();
-  const { services } = useServices();
+  const { events, fetchEvents } = useEvents();
+  const [activeTab, setActiveTab] = useState<'pipeline' | 'novo'>('pipeline');
 
-  const [openCreateProject, setOpenCreateProject] = React.useState(false);
-  const [openEditProject, setOpenEditProject] = React.useState(false);
-  const [openViewProject, setOpenViewProject] = React.useState(false);
-  const [editingProject, setEditingProject] = React.useState<EventProject | null>(null);
-  const [viewingProject, setViewingProject] = React.useState<EventProject | null>(null);
-
-  const projects: EventProject[] = React.useMemo(() => {
+  const projects = React.useMemo(() => {
     return (events || [])
-      .filter((e) => !!(e as any).pipeline_status)
-      .map((e) => ({
+      .filter((e: any) => !!e.status)
+      .map((e: any) => ({
         id: e.id,
-        name: e.name || `Evento ${e.id}`,
-        client_id: (e as any).client_id,
-        pipeline_status: (e as any).pipeline_status,
-        service_ids: (e as any).service_ids || [],
-        estimated_value: (e as any).estimated_value,
+        name: e.name ?? `Evento ${e.id}`,
+        client_id: e.client_id,
+        pipeline_status: e.status,
+        service_ids: e.service_ids ?? [],
+        estimated_value: e.estimated_value,
         startDate: e.startDate,
         endDate: e.endDate ?? e.startDate,
         location: e.location ?? "",
-        status: e.status ?? "Planejado",
-        tags: (e as any).tags ?? [],
-        notes: (e as any).notes ?? "",
+        status: e.status,
+        tags: e.tags ?? [],
+        notes: e.notes ?? "",
       }));
   }, [events]);
 
-  const handleUpdateProject = async (updatedProject: EventProject) => {
-    const fullEvent: any = {
-      id: updatedProject.id,
-      name: updatedProject.name,
-      startDate: updatedProject.startDate,
-      endDate: updatedProject.endDate,
-      location: updatedProject.location,
-      status: updatedProject.status,
-      pipeline_status: updatedProject.pipeline_status,
-      estimated_value: updatedProject.estimated_value,
-      service_ids: updatedProject.service_ids,
-      client_id: updatedProject.client_id,
-      notes: updatedProject.notes,
-      tags: updatedProject.tags,
-      updated_at: new Date().toISOString(),
-    };
-    await updateEvent(fullEvent);
-  };
+  const slugify = (s?: string) => String(s || "").toLowerCase().replace(/[^a-z0-9-_]/g, "-");
 
-  const handleEditProject = (project: EventProject) => {
-    setEditingProject(project);
-    setOpenEditProject(true);
-  };
-
-  const handleViewProject = (project: EventProject) => {
-    setViewingProject(project);
-    setOpenViewProject(true);
+  const scrollToNewProject = (createdEvent: any) => {
+    try {
+      const statusSlug = slugify(createdEvent.status);
+      const columnEl = document.getElementById(`pipeline-column-${statusSlug}`);
+      if (columnEl && columnEl.scrollIntoView) columnEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+      setTimeout(() => {
+        const cardEl = document.getElementById(`project-${createdEvent.id}`);
+        if (cardEl && cardEl.scrollIntoView) {
+          cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          cardEl.classList.add('ring-2', 'ring-primary', 'rounded-md');
+          setTimeout(() => cardEl.classList.remove('ring-2', 'ring-primary', 'rounded-md'), 1500);
+        }
+      }, 300);
+    } catch {}
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Pipeline</h1>
-        <Button onClick={() => setOpenCreateProject(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Projeto
-        </Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Pipeline</h1>
+          <p className="text-sm text-muted-foreground">Gerencie o funil comercial e crie projetos diretamente no pipeline.</p>
+        </div>
       </div>
-      {loading ? <p>Carregando...</p> : <PipelineKanban projects={projects} onUpdateProject={handleUpdateProject} onEditProject={handleEditProject} onViewProject={handleViewProject} />}
 
-      <CreateProjectModal
-        open={openCreateProject}
-        onOpenChange={setOpenCreateProject}
-        onCreated={(id) => {
-          // optional hook for parent: could be used to navigate or refresh
-          console.log("Project created with id:", id);
-        }}
-        preselectedClientId={undefined}
-      />
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <TabsList>
+          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="novo">Novo Projeto</TabsTrigger>
+        </TabsList>
 
-      {/* Edit & View dialogs keep existing behavior (not modified in this change) */}
-      {/* Existing EditProjectDialog / ViewProjectDialog usages remain unchanged elsewhere */}
+        <TabsContent value="pipeline">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pipeline Kanban</CardTitle>
+              <CardDescription>Arraste projetos entre fases do funil.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PipelineKanban
+                projects={projects}
+                onUpdateProject={async () => { await fetchEvents(); }}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="novo">
+          <Card>
+            <CardHeader>
+              <CardTitle>Novo Projeto</CardTitle>
+              <CardDescription>Crie um novo projeto diretamente no Pipeline.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CreateProjectTab
+                onCreated={async (createdEvent: any) => {
+                  await fetchEvents();
+                  setActiveTab('pipeline');
+                  setTimeout(() => scrollToNewProject(createdEvent), 350);
+                }}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

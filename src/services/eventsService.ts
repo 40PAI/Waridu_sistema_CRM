@@ -29,7 +29,7 @@ const ALLOWED_COLUMNS = new Set([
   "estimated_value",
   "service_ids",
   "created_at",
-  "updated_at",
+  // removed 'updated_at' to avoid PostgREST PGRST204 when column missing in DB
   "notes",
   "tags",
 ]);
@@ -77,6 +77,71 @@ function validateUuidFields(sanitized: Record<string, any>) {
   }
 }
 
+/**
+ * Ensure values are safe for JSON/DB:
+ * - Convert Date objects to ISO strings
+ * - Ensure service_ids is an array of strings
+ * - Ensure roster/expenses are JSON-serializable
+ */
+function normalizeAndValidateTypes(sanitized: Record<string, any>) {
+  for (const [k, v] of Object.entries(sanitized)) {
+    // convert Date objects
+    if (v instanceof Date) {
+      sanitized[k] = v.toISOString();
+      continue;
+    }
+
+    // service_ids must be array of strings
+    if (k === "service_ids") {
+      if (v === null) continue;
+      if (!Array.isArray(v)) {
+        throw new Error("service_ids must be an array of string IDs (UUIDs)");
+      }
+      sanitized[k] = v.map((x: any) => {
+        if (x instanceof Date) return x.toISOString();
+        return String(x);
+      });
+      continue;
+    }
+
+    // roster and expenses must be JSON serializable
+    if (k === "roster" || k === "expenses") {
+      try {
+        // quick check — will throw on circular structures
+        JSON.stringify(v);
+      } catch (err) {
+        throw new Error(`${k} must be JSON-serializable`);
+      }
+      continue;
+    }
+
+    // primitive expected types check (best-effort)
+    if (k === "name" || k === "location" || k === "status" || k === "description" || k === "pipeline_status" || k === "notes") {
+      if (v !== null && typeof v !== "string") {
+        sanitized[k] = String(v);
+      }
+    }
+
+    if (k === "estimated_value" || k === "revenue") {
+      if (v === null) continue;
+      if (typeof v === "string" && v.trim() !== "") {
+        const n = Number(v);
+        if (Number.isNaN(n)) throw new Error(`${k} must be numeric`);
+        sanitized[k] = n;
+      } else if (typeof v !== "number") {
+        throw new Error(`${k} must be numeric`);
+      }
+    }
+
+    // start_date / end_date / start_time / end_time should be strings (ISO/date/time)
+    if ((k === "start_date" || k === "end_date" || k === "start_time" || k === "end_time") && v != null) {
+      if (typeof v !== "string") {
+        sanitized[k] = String(v);
+      }
+    }
+  }
+}
+
 export const fetchEvents = async (): Promise<any[]> => {
   const { data, error } = await supabase
     .from("events")
@@ -96,9 +161,18 @@ export const upsertEvent = async (payload: any): Promise<any> => {
     // This provides an early, clear error instead of a generic 400 from PostgREST.
     validateUuidFields(sanitized);
 
+    // Normalize types (dates -> ISO, arrays -> strings, JSON serializability checks)
+    normalizeAndValidateTypes(sanitized);
+
+    // If updating, ensure we have keys to update
     if (payload?.id) {
       // When updating, don't include id in set payload
       const { id, ...rest } = sanitized;
+      const keys = Object.keys(rest);
+      if (keys.length === 0) {
+        throw new Error("No updatable columns provided for event update");
+      }
+
       const { data, error } = await supabase
         .from("events")
         .update(rest)
@@ -107,13 +181,17 @@ export const upsertEvent = async (payload: any): Promise<any> => {
         .single();
 
       if (error) {
-        // Attach details for easier debugging
         const msg = `Supabase update error: ${error.message || "unknown"}${error.details ? " — " + error.details : ""}`;
         console.error(msg, { error, payload, sanitized: rest });
         throw new Error(msg);
       }
       return data;
     } else {
+      // For inserts, require at least name and start_date (common required fields)
+      if (!sanitized.name || !sanitized.start_date) {
+        throw new Error("Missing required fields for creating event: 'name' and 'start_date' are required");
+      }
+
       const { data, error } = await supabase
         .from("events")
         .insert(sanitized)
@@ -138,10 +216,18 @@ export const updateEventDetails = async (eventId: number, details: { roster: Ros
   const payload: any = {
     roster: details.roster ?? null,
     expenses: details.expenses ?? null,
-    updated_at: new Date().toISOString(),
+    // removed updated_at to avoid schema mismatch with tables that don't have it
   };
 
   try {
+    // Validate roster/expenses serializability
+    try {
+      JSON.stringify(payload.roster);
+      JSON.stringify(payload.expenses);
+    } catch {
+      throw new Error("roster and expenses must be JSON-serializable");
+    }
+
     const { data, error } = await supabase
       .from("events")
       .update(payload)

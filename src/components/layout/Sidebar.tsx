@@ -60,7 +60,8 @@ const SidebarNav = () => {
     if (role === 'Admin') {
       items.push(
         { to: "/invite-member", icon: <Users2 className="h-4 w-4 mr-2" />, label: "Convidar Membros" },
-        { to: "/admin-settings", icon: <Settings className="h-4 w-4 mr-2" />, label: "Configurações" },
+        // updated to match route in AppContent
+        { to: "/admin/settings", icon: <Settings className="h-4 w-4 mr-2" />, label: "Configurações" },
         { to: "/admin/tasks", icon: <CheckCircle className="h-4 w-4 mr-2" />, label: "Gerenciar Tarefas" }
       );
     }
@@ -86,7 +87,7 @@ const SidebarNav = () => {
   const crmGroup = navItems.filter(item => item.to.startsWith('/crm/'));
   const financeGroup = navItems.filter(item => item.to.startsWith('/finance'));
   const technicianGroup = navItems.filter(item => item.to.startsWith('/technician'));
-  const adminGroup = navItems.filter(item => ['/invite-member', '/admin-settings', '/admin/tasks'].includes(item.to));
+  const adminGroup = navItems.filter(item => ['/invite-member', '/admin/settings', '/admin/tasks'].includes(item.to));
   const generalGroup = navItems.filter(item => !mainGroup.includes(item) && !crmGroup.includes(item) && !financeGroup.includes(item) && !technicianGroup.includes(item) && !adminGroup.includes(item));
 
   return (

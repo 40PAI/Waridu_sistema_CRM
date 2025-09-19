@@ -15,34 +15,29 @@ export default function ProjectsPage() {
   const { events, fetchEvents } = useEvents();
   const { services } = useServices();
 
-  // service filter (array of service ids)
   const [serviceFilter, setServiceFilter] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'kanban' | 'create'>('kanban');
 
   const allProjects: EventProject[] = events
-    .filter((e) => !!e.pipeline_status)
-    .map((e) => ({
+    .filter((e: any) => !!e.status) // usa status como fase
+    .map((e: any) => ({
       id: e.id,
       name: e.name ?? `Evento ${e.id}`,
-      client_id: (e as any).client_id,
-      pipeline_status: (e as any).pipeline_status,
-      service_ids: (e as any).service_ids ?? [],
-      estimated_value: (e as any).estimated_value,
+      client_id: e.client_id,
+      pipeline_status: e.status,      // para o cartão
+      service_ids: e.service_ids ?? [],
+      estimated_value: e.estimated_value,
       startDate: e.startDate,
       endDate: e.endDate ?? e.startDate,
       location: e.location ?? "",
-      status: e.status ?? "Planejado",
+      status: e.status,
       tags: e.tags ?? [],
       notes: e.notes ?? "",
     }));
 
-  // filter projects by selected services (match ANY)
   const filteredProjects = useMemo(() => {
     if (!serviceFilter || serviceFilter.length === 0) return allProjects;
-    return allProjects.filter((p) => {
-      const svcIds = p.service_ids || [];
-      return svcIds.some(id => serviceFilter.includes(id));
-    });
+    return allProjects.filter((p) => (p.service_ids || []).some(id => serviceFilter.includes(id)));
   }, [allProjects, serviceFilter]);
 
   const serviceNameById = useMemo(() => {
@@ -50,6 +45,24 @@ export default function ProjectsPage() {
     services.forEach(s => (map[s.id] = s.name));
     return map;
   }, [services]);
+
+  const slugify = (s?: string) => String(s || "").toLowerCase().replace(/[^a-z0-9-_]/g, "-");
+
+  const scrollToNewProject = (createdEvent: any) => {
+    try {
+      const statusSlug = slugify(createdEvent.status);
+      const columnEl = document.getElementById(`pipeline-column-${statusSlug}`);
+      if (columnEl && columnEl.scrollIntoView) columnEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+      setTimeout(() => {
+        const cardEl = document.getElementById(`project-${createdEvent.id}`);
+        if (cardEl && cardEl.scrollIntoView) {
+          cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          cardEl.classList.add('ring-2', 'ring-primary', 'rounded-md');
+          setTimeout(() => cardEl.classList.remove('ring-2', 'ring-primary', 'rounded-md'), 1500);
+        }
+      }, 300);
+    } catch {}
+  };
 
   return (
     <div className="space-y-6">
@@ -68,7 +81,7 @@ export default function ProjectsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Filtros</CardTitle>
-              <CardDescription>Filtre projetos por serviços contratados (seleção múltipla)</CardDescription>
+              <CardDescription>Filtre projetos por serviços (seleção múltipla)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col md:flex-row md:items-center md:gap-4">
@@ -79,42 +92,21 @@ export default function ProjectsPage() {
                   <button className="inline-flex items-center px-3 py-1 rounded border" onClick={() => setServiceFilter([])}>Limpar filtros</button>
                 </div>
               </div>
-
-              {serviceFilter.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {serviceFilter.map(id => (
-                    <span key={id} className="px-2 py-1 bg-muted rounded text-sm">
-                      {serviceNameById[id] || id}
-                      <button onClick={() => setServiceFilter(prev => prev.filter(x => x !== id))} className="ml-2">✕</button>
-                    </span>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
 
           <PipelineKanban
             projects={filteredProjects}
-            onUpdateProject={async (p) => {
-              // The hook useEvents keeps events up to date; parent doesn't need to do more here.
-              // We still trigger fetch to ensure the list updates after server-side changes.
-              await fetchEvents();
-            }}
-            onEditProject={(p) => {
-              // Optionally open an editor; PipelineKanban can handle edits via props if implemented.
-            }}
-            onViewProject={(p) => {
-              // Optionally open a detail view.
-            }}
+            onUpdateProject={async () => { await fetchEvents(); }}
           />
         </TabsContent>
 
         <TabsContent value="create">
           <CreateProjectTab
-            onCreated={async (id: number) => {
-              // refresh events and switch back to kanban to show the newly created project
+            onCreated={async (createdEvent: any) => {
               await fetchEvents();
               setActiveTab('kanban');
+              setTimeout(() => scrollToNewProject(createdEvent), 350);
             }}
           />
         </TabsContent>

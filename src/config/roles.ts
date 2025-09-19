@@ -11,14 +11,15 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     // CRM pages
     '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/crm/reports',
     // Services management
-    '/admin/services'
+    '/admin/services',
+    // Novo: Configuração do Pipeline
+    '/admin/pipeline-config'
   ],
   Coordenador: [
     '/', '/calendar', '/create-event', '/roster-management',
     '/employees', '/roles', '/materials', '/admin/tasks', '/admin/create-task',
     '/invite-member', '/admin/members', '/admin/users',
     '/notifications',
-    // Allow access to services management UI for Gestor Comercial (view + manage but no create/delete)
     '/admin/services'
   ],
   'Gestor de Material': [
@@ -35,7 +36,6 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/technician/tasks-kanban', '/technician/profile', '/technician/notifications', '/notifications'
   ],
   Comercial: [
-    // Comercial role intentionally does NOT get access to /admin/services
     '/crm/dashboard', '/crm/pipeline', '/crm/clients', '/crm/reports', '/notifications',
     '/commercial/services'
   ],
@@ -46,13 +46,11 @@ export const ACTION_PERMISSIONS: Record<Role, string[]> = {
     'members:invite', 'members:promote', 'members:ban', 'members:delete',
     'materials:write', 'employees:write', 'employees:assign_category', 'categories:manage',
     'tasks:create',
-    // Services management permissions (Admin full control)
     'services:manage', 'services:create', 'services:delete'
   ],
   Coordenador: [
     'members:invite', 'members:promote', 'employees:write',
     'tasks:create',
-    // Gestor Comercial (Coordenador) can manage services (edit/activate/deactivate) but cannot create or delete
     'services:manage'
   ],
   'Gestor de Material': [

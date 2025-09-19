@@ -2,6 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Employee } from "@/components/employees/EmployeeDialog";
 
 export const fetchEmployees = async () => {
+  // Request only columns that exist on the employees table to avoid PostgREST 400 errors
+  // (removed avatar and avatar_url which are not present on the employees table)
   const { data, error } = await supabase
     .from("employees")
     .select(`
@@ -13,8 +15,7 @@ export const fetchEmployees = async () => {
       cost_per_day,
       technician_category,
       user_id,
-      avatar,
-      avatar_url
+      created_at
     `)
     .order("name", { ascending: true });
 
