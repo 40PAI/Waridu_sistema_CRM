@@ -56,9 +56,12 @@ export const RosterViewerPopover = ({ event, pendingRequests = [] }: RosterViewe
       <PopoverContent className="w-96">
         <div className="grid gap-4">
           <div className="space-y-2">
-            <h4 className="font-medium leading-none">Detalhes do Evento</h4>
+            <h4 className="font-medium leading-none">{event.name}</h4>
             <p className="text-sm text-muted-foreground">
-              Resumo da equipe, materiais e finanças.
+              {event.startDate} - {event.endDate}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {event.startTime || '—'} - {event.endTime || '—'}
             </p>
           </div>
           <div className="grid gap-3">

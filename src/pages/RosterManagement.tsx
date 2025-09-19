@@ -152,6 +152,7 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
               <TableRow>
                 <TableHead>Evento</TableHead>
                 <TableHead>Data</TableHead>
+                <TableHead>Hora</TableHead>
                 <TableHead>Local</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Equipe</TableHead>
@@ -183,6 +184,9 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
                         {event.endDate && event.endDate !== event.startDate && (
                           <> - {format(parseISO(event.endDate), "dd/MM/yyyy", { locale: ptBR })}</>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        {event.startTime || '—'} - {event.endTime || '—'}
                       </TableCell>
                       <TableCell>{event.location}</TableCell>
                       <TableCell>
@@ -236,7 +240,7 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center h-24">
+                  <TableCell colSpan={8} className="text-center h-24">
                     Nenhum evento encontrado.
                   </TableCell>
                 </TableRow>

@@ -42,8 +42,8 @@ export function EventEditDialog({ open, onOpenChange, event, onSave }: EventEdit
   }, [event]);
 
   const handleSubmit = () => {
-    if (!eventName || !startDate || !eventLocation) {
-      showError("Nome, Data de Início e Local são obrigatórios.");
+    if (!eventName || !startDate || !eventLocation || !startTime || !endTime) {
+      showError("Nome, Data de Início, Local, Hora de Início e Hora de Fim são obrigatórios.");
       return;
     }
 
@@ -87,11 +87,11 @@ export function EventEditDialog({ open, onOpenChange, event, onSave }: EventEdit
               <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="startTime">Hora de Início</Label>
+              <Label htmlFor="startTime">Hora de Início *</Label>
               <Input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endTime">Hora de Fim</Label>
+              <Label htmlFor="endTime">Hora de Fim *</Label>
               <Input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
             </div>
           </div>

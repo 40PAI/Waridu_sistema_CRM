@@ -42,8 +42,8 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventName || !startDate || !eventLocation) {
-      showError("Por favor, preencha os campos obrigatórios: Nome, Data de Início e Local.");
+    if (!eventName || !startDate || !eventLocation || !startTime || !endTime) {
+      showError("Por favor, preencha os campos obrigatórios: Nome, Data de Início, Local, Hora de Início e Hora de Fim.");
       return;
     }
 
@@ -107,7 +107,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
               />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="event-start-time">Hora de Início</Label>
+              <Label htmlFor="event-start-time">Hora de Início *</Label>
               <Input 
                 id="event-start-time" 
                 name="event-start-time"
@@ -129,7 +129,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="event-end-time">Hora de Fim</Label>
+              <Label htmlFor="event-end-time">Hora de Fim *</Label>
               <Input 
                 id="event-end-time" 
                 name="event-end-time"
