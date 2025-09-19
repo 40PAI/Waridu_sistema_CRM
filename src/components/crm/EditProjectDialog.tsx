@@ -20,16 +20,16 @@ interface EditProjectDialogProps {
 
 export default function EditProjectDialog({ open, onOpenChange, project, onSave }: EditProjectDialogProps) {
   const { activePhases } = usePipelinePhases();
-  const [status, setStatus] = React.useState(project?.pipeline_status || "1º Contato");
+  const [status, setStatus] = React.useState<string>(project?.pipeline_status || "1º Contato");
   const [notes, setNotes] = React.useState(project?.notes || "");
-  const [estimatedValue, setEstimatedValue] = React.useState(project?.estimated_value || "");
+  const [estimatedValue, setEstimatedValue] = React.useState<string>(project?.estimated_value ? String(project.estimated_value) : "");
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (open && project) {
       setStatus(project.pipeline_status || "1º Contato");
       setNotes(project.notes || "");
-      setEstimatedValue(String(project.estimated_value || ""));
+      setEstimatedValue(project.estimated_value ? String(project.estimated_value) : "");
     }
   }, [open, project]);
 
@@ -40,7 +40,7 @@ export default function EditProjectDialog({ open, onOpenChange, project, onSave 
       ...project,
       pipeline_status: status,
       notes,
-      estimated_value: Number(estimatedValue) || undefined,
+      estimated_value: estimatedValue ? Number(estimatedValue) : undefined,
     };
 
     setSaving(true);
@@ -66,7 +66,7 @@ export default function EditProjectDialog({ open, onOpenChange, project, onSave 
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="status">Status *</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={(v) => setStatus(v)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

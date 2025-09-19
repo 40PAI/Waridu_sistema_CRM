@@ -9,7 +9,7 @@ export type EventProject = {
   id: number;
   name: string;
   client_id?: string;
-  pipeline_status: PipelineStatus;
+  pipeline_status: string; // allow custom label; DB keeps canonical in events.pipeline_status
   service_ids: string[];
   estimated_value?: number;
   startDate: string;
@@ -28,8 +28,8 @@ export type CreatePayload = {
   estimated_value?: number;
   startDate: string;
   endDate: string;
-  startTime?: string; // novo
-  endTime?: string;   // novo
+  startTime?: string;
+  endTime?: string;
   location?: string;
   notes?: string;
 };

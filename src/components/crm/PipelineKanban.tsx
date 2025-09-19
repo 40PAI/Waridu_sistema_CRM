@@ -72,9 +72,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     if (!over) return null;
     const containerId = (over.data?.current as any)?.sortable?.containerId;
     if (containerId) return String(containerId);
-    // If over a column body, over.id is the column id; if over a card, over.id is the card id
     const overId = String(over.id ?? "");
-    // If this overId matches a phase name, use it; otherwise, try to find by project id
     if (activePhases.some(p => p.name === overId)) return overId;
     const fromContainer = findColumnByProjectId(overId);
     return fromContainer;
@@ -83,7 +81,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   const handleDragStart = (event: any) => {
     const { active } = event;
     const project = localProjects.find((p) => String(p.id) === String(active.id)) ?? null;
-    setDraggingProject(project);
+    setDraggingProject(project || null);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -106,9 +104,8 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const project = localProjects.find((p) => String(p.id) === String(active.id));
     if (!project) return;
 
-    // Optimistic update
-    const optimistic = { ...project, pipeline_status: targetPhaseName };
-    setLocalProjects(prev => prev.map(p => p.id === project.id ? optimistic : p));
+    const optimistic: EventProject = { ...project, pipeline_status: targetPhaseName };
+    setLocalProjects(prev => prev.map(p => (p.id === project.id ? optimistic : p)));
     setUpdating(String(project.id));
 
     try {
@@ -135,7 +132,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
             setLocalProjects(prev => {
               const idx = prev.findIndex(p => p.id === payload.new.id);
               if (idx !== -1) {
-                const updated = { ...prev[idx], pipeline_status: payload.new.pipeline_status };
+                const updated = { ...prev[idx], pipeline_status: String(payload.new.pipeline_status) };
                 const next = [...prev];
                 next[idx] = updated;
                 return next;
@@ -182,7 +179,6 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 overflow-y-auto" id={`pipeline-column-${colSlug}`}>
-                  {/* IMPORTANT: set container id so containerId is available on over.data */}
                   <SortableContext id={phase.name} items={columnProjects.map((p) => String(p.id))} strategy={verticalListSortingStrategy}>
                     {columnProjects.map((project) => (
                       <div key={project.id} id={`project-${project.id}`} className="mb-3">
