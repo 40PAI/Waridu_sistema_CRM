@@ -24,17 +24,14 @@ const ALLOWED_COLUMNS = new Set([
   "description",
   "roster",
   "expenses",
+  "client_id",
   "pipeline_status",
   "estimated_value",
   "service_ids",
-  "client_id",
+  "created_at",
+  "updated_at",
   "notes",
   "tags",
-  "follow_ups",
-  "responsible_id",
-  "next_action",
-  "next_action_date",
-  "updated_at",
 ]);
 
 function sanitizePayload(payload: Record<string, any>) {
