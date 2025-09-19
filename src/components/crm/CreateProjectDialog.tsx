@@ -1,144 +1,144 @@
 "use client";
 
 import * as React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { showError, showSuccess } from "@/utils/toast";
-import type { CreatePayload, PipelineStatus, Client, Service } from "@/types/crm";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Combobox } from "@/components/ui/combobox";
+import { MultiSelectServices } from "@/components/MultiSelectServices";
 import { useClients } from "@/hooks/useClients";
-import { useEvents } from "@/hooks/useEvents";
 import { useServices } from "@/hooks/useServices";
+import { useEvents } from "@/hooks/useEvents";
+import { useAuth } from "@/contexts/AuthContext";
+import { showError, showSuccess } from "@/utils/toast";
+import { Plus } from "lucide-react";
+import CreateClientModal from "@/components/crm/CreateClientModal";
 
-interface CreateProjectDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  clients: Client[];
-  services: Service[];
-  onCreate: (payload: CreatePayload) => Promise<void>;
-  preselectedClientId?: string;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const projectSchema = z.object({
+  clientId: z.string().min(1).refine((v) => UUID_REGEX.test(v), "client_id deve ser um UUID"),
+  name: z.string().min(1),
+  serviceIds: z.array(z.string()).min(1),
+  startDate: z.string().min(1),
+  startTime: z.string().min(1),
+  endDate: z.string().optional(),
+  endTime: z.string().optional(),
+  location: z.string().min(1),
+  estimatedValue: z.number().min(0).optional(),
+  notes: z.string().optional(),
+  pipelineStatus: z.enum(["1º Contato", "Orçamento", "Negociação", "Confirmado"]),
+});
+
+type ProjectFormData = z.infer<typeof projectSchema>;
+
+function toISO(dateStr: string, timeStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const [hh, mm, ss] = (timeStr || "00:00:00").split(":").map((v) => Number(v));
+  return new Date(Date.UTC(y, m - 1, d, hh || 0, mm || 0, ss || 0)).toISOString();
 }
 
-const PIPELINE_STATUSES: PipelineStatus[] = [
-  "1º Contato",
-  "Orçamento",
-  "Negociação",
-  "Confirmado",
-  "Cancelado",
-];
-
-export function CreateProjectDialog({ open, onOpenChange, clients, services, onCreate, preselectedClientId }: CreateProjectDialogProps) {
-  const { clients: allClients } = useClients();
+export default function CreateProjectDialog({ open, onOpenChange, onCreated, preselectedClientId }: any) {
+  const { clients } = useClients();
+  const { services } = useServices();
   const { updateEvent } = useEvents();
-  const { createService, refreshServices } = useServices();
+  const { user } = useAuth();
 
-  const [form, setForm] = React.useState<CreatePayload>({
-    name: "",
-    client_id: preselectedClientId || "",
-    pipeline_status: "1º Contato",
-    service_ids: [],
-    estimated_value: undefined,
-    startDate: new Date().toISOString().slice(0, 10),
-    endDate: new Date().toISOString().slice(0, 10),
-    startTime: "",
-    endTime: "",
-    location: "",
-    notes: "",
+  const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+
+  const form = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      clientId: preselectedClientId || "",
+      name: "",
+      serviceIds: [],
+      startDate: new Date().toISOString().split("T")[0],
+      startTime: "09:00",
+      endDate: "",
+      endTime: "",
+      location: "",
+      estimatedValue: undefined,
+      notes: "",
+      pipelineStatus: "1º Contato",
+    },
   });
-
-  const [loading, setLoading] = React.useState(false);
-  const [addServiceOpen, setAddServiceOpen] = React.useState(false);
-  const [newServiceName, setNewServiceName] = React.useState("");
-  const [newServiceDesc, setNewServiceDesc] = React.useState("");
-  const [savingService, setSavingService] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
-      setForm({
+      form.reset({
+        clientId: preselectedClientId || "",
         name: "",
-        client_id: preselectedClientId || "",
-        pipeline_status: "1º Contato",
-        service_ids: [],
-        estimated_value: undefined,
-        startDate: new Date().toISOString().slice(0, 10),
-        endDate: new Date().toISOString().slice(0, 10),
-        startTime: "",
+        serviceIds: [],
+        startDate: new Date().toISOString().split("T")[0],
+        startTime: "09:00",
+        endDate: "",
         endTime: "",
         location: "",
+        estimatedValue: undefined,
         notes: "",
+        pipelineStatus: "1º Contato",
       });
-      setNewServiceName("");
-      setNewServiceDesc("");
     }
   }, [open, preselectedClientId]);
 
-  const updateField = (key: keyof CreatePayload, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
+  const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
-  const toggleService = (id: string) =>
-    setForm((prev) => ({
-      ...prev,
-      service_ids: prev.service_ids?.includes(id)
-        ? prev.service_ids.filter((s) => s !== id)
-        : [...(prev.service_ids ?? []), id],
-    }));
-
-  const handleCreateService = async () => {
-    if (!newServiceName.trim()) {
-      showError("Nome do serviço é obrigatório.");
+  const onSubmit = async (data: ProjectFormData) => {
+    if (!UUID_REGEX.test(data.clientId)) {
+      showError("Cliente inválido. Selecione um cliente válido (UUID).");
       return;
     }
-    setSavingService(true);
+    setSaving(true);
+
+    const start_date = toISO(data.startDate, data.startTime);
+    const end_date = data.endDate && data.endTime ? toISO(data.endDate, data.endTime) : start_date;
+
+    const payload: Record<string, any> = {
+      name: data.name,
+      start_date,
+      end_date,
+      start_time: data.startTime ? `${data.startTime}:00` : null,
+      end_time: data.endTime ? `${data.endTime}:00` : null,
+      location: data.location,
+      pipeline_status: data.pipelineStatus,
+      estimated_value: data.estimatedValue ?? null,
+      service_ids: data.serviceIds,
+      client_id: data.clientId,
+      description: data.notes ?? null,
+      status: "Planejado",
+      updated_at: new Date().toISOString(),
+    };
+
     try {
-      await createService({ name: newServiceName.trim(), description: newServiceDesc.trim() || undefined });
-      await refreshServices();
-      showSuccess("Serviço adicionado com sucesso!");
-      setNewServiceName("");
-      setNewServiceDesc("");
-      setAddServiceOpen(false);
-    } catch (error) {
-      showError("Erro ao adicionar serviço.");
-    } finally {
-      setSavingService(false);
-    }
-  };
-
-  const submit = async () => {
-    if (!form.name?.trim()) return showError("Nome do projeto é obrigatório");
-    if (!form.client_id) return showError("Selecione um cliente");
-    if (!form.service_ids?.length) return showError("Selecione pelo menos um serviço");
-
-    setLoading(true);
-    try {
-      const eventPayload = {
-        name: form.name,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        startTime: form.startTime,
-        endTime: form.endTime,
-        location: form.location,
-        description: form.notes,
-        pipeline_status: form.pipeline_status,
-        estimated_value: form.estimated_value,
-        service_ids: form.service_ids,
-        client_id: form.client_id,
-        status: "Planejado",
-      };
-
-      await updateEvent(eventPayload as any);
-      showSuccess("Projeto criado com sucesso!");
+      const result = await updateEvent(payload as any);
+      if (!result) throw new Error("Nenhuma resposta do servidor");
+      showSuccess("Projeto criado");
+      onCreated?.(result.id);
       onOpenChange(false);
-    } catch (error) {
-      showError("Erro ao criar projeto.");
+    } catch (err: any) {
+      console.error("Erro criar projeto:", err);
+      const msg = err?.message ?? String(err);
+      if (/uuid/i.test(msg) || /client_id/i.test(msg)) {
+        showError("Erro: client_id inválido (deve ser UUID).");
+      } else if (/start_date|start_time|date/i.test(msg)) {
+        showError("Erro nas datas/horas. Verifique os valores enviados.");
+      } else if (/pipeline_status/i.test(msg)) {
+        showError("Status do pipeline inválido.");
+      } else {
+        showError("Falha ao criar projeto: " + msg);
+      }
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
-
-  const clientOptions = allClients.map(c => ({ value: c.id, label: `${c.name} (${c.email})` }));
 
   return (
     <>
@@ -148,159 +148,126 @@ export function CreateProjectDialog({ open, onOpenChange, clients, services, onC
             <DialogTitle>Novo Projeto</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            {/* Linha 1: Nome do Projeto + Cliente */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="project-name">Nome do Projeto *</Label>
-                <Input id="project-name" value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="Ex.: Evento BFA – Conferência" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="client-id">Cliente *</Label>
-                {preselectedClientId ? (
-                  <Input value={clients.find(c => c.id === preselectedClientId)?.name || "Cliente não encontrado"} disabled />
-                ) : (
-                  <Select value={form.client_id} onValueChange={(v) => updateField("client_id", v)}>
-                    <SelectTrigger id="client-id">
-                      <SelectValue placeholder="Selecione um cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clientOptions.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                      {clientOptions.length === 0 && (
-                        <SelectItem value="" disabled>
-                          Nenhum cliente encontrado. Crie um cliente primeiro.
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="clientId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cliente *</FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2">
+                        <Combobox options={clientOptions} value={field.value} onChange={field.onChange} placeholder="Selecione um cliente..." />
+                        <Button type="button" variant="outline" size="icon" onClick={() => setIsCreateClientOpen(true)}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </div>
-            </div>
+              />
 
-            {/* Linha 2: Status + Receita */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="pipeline-status">Status Inicial *</Label>
-                <Select value={form.pipeline_status} onValueChange={(v) => updateField("pipeline_status", v as PipelineStatus)}>
-                  <SelectTrigger id="pipeline-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PIPELINE_STATUSES.map(status => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="estimated-value">Receita Estimada (AOA)</Label>
-                <Input id="estimated-value" type="number" value={form.estimated_value ?? ""} onChange={(e) => updateField("estimated_value", Number(e.target.value))} placeholder="0" />
-              </div>
-            </div>
+              <FormField control={form.control} name="name" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome *</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-            {/* Linha 3: Datas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="start-date">Data de Início *</Label>
-                <Input id="start-date" type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="end-date">Data de Fim</Label>
-                <Input id="end-date" type="date" value={form.endDate} onChange={(e) => updateField("endDate", e.target.value)} />
-              </div>
-            </div>
+              <FormField control={form.control} name="serviceIds" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Serviços *</FormLabel>
+                  <FormControl><MultiSelectServices selected={field.value} onChange={field.onChange} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-            {/* Linha 4: Horas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="start-time">Hora de Início</Label>
-                <Input id="start-time" type="time" value={form.startTime || ""} onChange={(e) => updateField("startTime", e.target.value)} />
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <FormField control={form.control} name="startDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data Início *</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="startTime" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora Início *</FormLabel>
+                    <FormControl><Input type="time" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="endDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data Fim</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="endTime" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora Fim</FormLabel>
+                    <FormControl><Input type="time" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="end-time">Hora de Fim</Label>
-                <Input id="end-time" type="time" value={form.endTime || ""} onChange={(e) => updateField("endTime", e.target.value)} />
-              </div>
-            </div>
 
-            {/* Linha 5: Local */}
-            <div className="space-y-2">
-              <Label htmlFor="location">Local</Label>
-              <Input id="location" value={form.location ?? ""} onChange={(e) => updateField("location", e.target.value)} placeholder="Ex.: CCTA, Talatona" />
-            </div>
+              <FormField control={form.control} name="location" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Local *</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-            {/* Linha 6: Serviços */}
-            <div className="space-y-2">
-              <Label>Serviços Contratados *</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {services.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2">
-                    <Checkbox checked={form.service_ids?.includes(s.id)} onCheckedChange={() => toggleService(s.id)} />
-                    <span className="text-sm">{s.name}</span>
-                  </label>
-                ))}
-              </div>
-              <Button variant="link" size="sm" onClick={() => setAddServiceOpen(true)} className="mt-2">
-                + Adicionar Novo Serviço
-              </Button>
-            </div>
+              <FormField control={form.control} name="estimatedValue" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valor Estimado</FormLabel>
+                  <FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-            {/* Linha 7: Notas */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notas de Reunião</Label>
-              <Textarea id="notes" rows={3} value={form.notes ?? ""} onChange={(e) => updateField("notes", e.target.value)} placeholder="Observações, follow-up, urgências..." />
-            </div>
-          </div>
+              <FormField control={form.control} name="pipelineStatus" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status *</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1º Contato">1º Contato</SelectItem>
+                        <SelectItem value="Orçamento">Orçamento</SelectItem>
+                        <SelectItem value="Negociação">Negociação</SelectItem>
+                        <SelectItem value="Confirmado">Confirmado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={submit} disabled={loading}>
-              {loading ? "Criando..." : "Criar Projeto"}
-            </Button>
-          </DialogFooter>
+              <FormField control={form.control} name="notes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notas</FormLabel>
+                  <FormControl><Textarea rows={3} {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+                <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
-      {/* Sub-dialog para adicionar novo serviço */}
-      <Dialog open={addServiceOpen} onOpenChange={setAddServiceOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Adicionar Novo Serviço</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="service-name">Nome do Serviço *</Label>
-              <Input
-                id="service-name"
-                value={newServiceName}
-                onChange={(e) => setNewServiceName(e.target.value)}
-                placeholder="Ex: Cobertura de Casamento"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="service-desc">Descrição (Opcional)</Label>
-              <Textarea
-                id="service-desc"
-                value={newServiceDesc}
-                onChange={(e) => setNewServiceDesc(e.target.value)}
-                placeholder="Descreva o serviço brevemente..."
-                rows={2}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddServiceOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreateService} disabled={savingService}>
-              {savingService ? "Adicionando..." : "Adicionar Serviço"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateClientModal open={isCreateClientOpen} onOpenChange={setIsCreateClientOpen} />
     </>
   );
 }
