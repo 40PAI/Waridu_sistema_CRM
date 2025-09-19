@@ -27,8 +27,8 @@ const projectSchema = z.object({
   serviceIds: z.array(z.string()).min(1, "Selecione pelo menos um serviço"),
   startDate: z.string().min(1, "Data de início é obrigatória"),
   endDate: z.string().optional(),
-  location: z.string().min(1, "Local é obrigatório"),
-  estimatedValue: z.number().optional().default(0),
+  location: z.string().optional(),
+  estimatedValue: z.number().optional(),
   notes: z.string().optional(),
   pipelineStatus: z.enum(["1º Contato", "Orçamento", "Negociação", "Confirmado"], { required_error: "Status inicial é obrigatório" }),
   responsibleId: z.string().optional(),
@@ -60,6 +60,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [saveAndCreateAnother, setSaveAndCreateAnother] = React.useState(false);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -67,10 +68,10 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: "",
       endDate: "",
       location: "",
-      estimatedValue: 0,
+      estimatedValue: undefined,
       notes: "",
       pipelineStatus: "1º Contato",
       responsibleId: "",
@@ -112,12 +113,10 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         name: data.name,
         startDate: data.startDate,
         endDate: data.endDate || data.startDate,
-        location: data.location,
-        startTime: "09:00", // Default obrigatório para evitar null
-        endTime: "18:00",   // Default obrigatório para evitar null
+        location: data.location || "",
         description: data.notes || "",
         pipeline_status: data.pipelineStatus,
-        estimated_value: data.estimatedValue || 0,
+        estimated_value: data.estimatedValue,
         service_ids: data.serviceIds,
         client_id: data.clientId,
         status: "Planejado",
@@ -127,19 +126,28 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         next_action_date: data.nextActionDate,
       };
 
-      console.log("Payload to save:", eventPayload); // Debug log
-
       const result = await updateEvent(eventPayload as any);
       showSuccess("Projeto criado com sucesso!");
 
       onCreated?.(result.id);
-      onOpenChange(false);
+
+      if (saveAndCreateAnother) {
+        form.reset();
+        setSaveAndCreateAnother(false);
+      } else {
+        onOpenChange(false);
+      }
     } catch (error: any) {
       console.error("Error creating project:", error);
       showError(error?.message || "Erro ao criar projeto.");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSaveAndCreateAnother = async () => {
+    setSaveAndCreateAnother(true);
+    await form.handleSubmit(onSubmit)();
   };
 
   return (
@@ -256,7 +264,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   name="location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Local do Evento/Projeto *</FormLabel>
+                      <FormLabel>Local do Evento/Projeto</FormLabel>
                       <FormControl>
                         <Input placeholder="Ex.: Centro de Convenções, Luanda" {...field} />
                       </FormControl>
@@ -275,7 +283,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                           type="number"
                           placeholder="0"
                           {...field}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -295,7 +303,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="Selecione o status" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -401,9 +409,14 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Salvando..." : "Salvar"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={handleSaveAndCreateAnother} disabled={saving}>
+                    Salvar e Criar Outro
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
