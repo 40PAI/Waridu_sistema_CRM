@@ -15,9 +15,7 @@ import type { EventProject, PipelineStatus } from "@/types/crm";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
 import { useEvents } from "@/hooks/useEvents";
-import { useUsers } from "@/hooks/useUsers"; // Import useUsers
 import { showError, showSuccess } from "@/utils/toast";
-import { MultiSelectServices } from "@/components/MultiSelectServices"; // <-- added import
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -35,7 +33,6 @@ const editProjectSchema = z.object({
   status: z.string().optional(),
   tags: z.array(z.string()).optional(),
   notes: z.string().optional(),
-  responsible_id: z.string().min(1, "Responsável comercial é obrigatório").refine((v) => UUID_REGEX.test(v), "Selecione um responsável válido."),
 }).refine((data) => {
   if (data.endDate && data.startDate) {
     return new Date(data.endDate) >= new Date(data.startDate);
@@ -67,8 +64,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
   const { clients } = useClients();
   const { services } = useServices();
   const { updateEvent } = useEvents();
-  const { users: allUsers } = useUsers(); // All users for general reference if needed
-  const { users: commercialUsers } = useUsers('Comercial'); // Filter to only Comercial users for responsible dropdown
 
   const [form, setForm] = React.useState<Partial<EventProject>>({});
   const [loading, setLoading] = React.useState(false);
@@ -88,7 +83,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
       status: "",
       tags: [],
       notes: "",
-      responsible_id: "",
     },
   });
 
@@ -97,17 +91,16 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
       const formData = {
         id: project.id,
         name: project.name,
-        client_id: project.client_id || "",
-        pipeline_status: project.pipeline_status || "1º Contato",
-        service_ids: project.service_ids || [],
+        client_id: project.client_id,
+        pipeline_status: project.pipeline_status,
+        service_ids: project.service_ids,
         estimated_value: project.estimated_value,
         startDate: project.startDate,
         endDate: project.endDate,
         location: project.location,
         status: project.status,
-        tags: project.tags || [],
-        notes: project.notes || "",
-        responsible_id: (project as any).responsible_id || "", // Load existing responsible_id
+        tags: project.tags,
+        notes: project.notes,
       };
       setForm(formData);
       editForm.reset(formData);
@@ -127,11 +120,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
     }));
   };
 
-  // Filter to only commercial users for the responsible dropdown
-  const commercialUserOptions = React.useMemo(() => 
-    commercialUsers.map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email})` }))
-  , [commercialUsers]);
-
   const submit = async (data: EditProjectFormData) => {
     if (loading) return; // Prevent double submission
     setLoading(true);
@@ -150,8 +138,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         status: data.status,
         tags: data.tags,
         notes: data.notes,
-        // cast to any to allow assignment; EventProject type augmented
-        ...(data.responsible_id ? { responsible_id: data.responsible_id } : {}),
       };
 
       console.log("Updating project with data:", updatedProject);
@@ -176,7 +162,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         client_id: updatedProject.client_id,
         notes: updatedProject.notes,
         tags: updatedProject.tags,
-        responsible_id: (updatedProject as any).responsible_id, // Save the responsible ID
         updated_at: new Date().toISOString(),
       } as any);
 
@@ -282,38 +267,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
               />
               <FormField
                 control={editForm.control}
-                name="responsible_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Responsável Comercial *</FormLabel>
-                    <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um responsável com role 'Comercial' (UUID)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {commercialUserOptions.map(u => (
-                            <SelectItem key={u.value} value={u.value}>
-                              {u.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Escolha o responsável comercial da equipa; será enviado o seu id (UUID). Isto determina a pessoa que ficará como ponto de contacto comercial para este projeto. Apenas usuários com role 'Comercial' são mostrados.
-                    </p>
-
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={editForm.control}
                 name="estimated_value"
                 render={({ field }) => (
                   <FormItem>
@@ -325,19 +278,6 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                         onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                         placeholder="0"
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="service_ids"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Serviços Contratados *</FormLabel>
-                    <FormControl>
-                      <MultiSelectServices selected={field.value} onChange={field.onChange} placeholder="Selecione serviços..." />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -383,6 +323,29 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                   <FormControl>
                     <Input placeholder="Ex.: CCTA, Talatona" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={editForm.control}
+              name="service_ids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Serviços Contratados *</FormLabel>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {services.map((s) => (
+                      <label key={s.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={field.value?.includes(s.id)}
+                          onChange={() => toggleService(s.id)}
+                        />
+                        <span className="text-sm">{s.name}</span>
+                      </label>
+                    ))}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

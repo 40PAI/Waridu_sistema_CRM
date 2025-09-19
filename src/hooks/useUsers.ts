@@ -15,96 +15,68 @@ export interface UserWithProfile {
     name: string;
     email: string;
     status: string;
-  } | null;
+  };
   status: 'active' | 'banned' | 'deleted';
   last_sign_in_at: string | null;
 }
 
-/**
- * Fetches users with their profiles and employee data.
- * @param roleFilter - Optional role to filter users by (e.g., 'Comercial'). If null/undefined, returns all users.
- */
-export const useUsers = (roleFilter?: string | null) => {
+export const useUsers = () => {
   const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter]); // Re-fetch if roleFilter changes
+  }, []);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError(null);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          role,
+          banned_until,
+          avatar_url,
+          employees!user_id(id, name, email, status),
+          auth.users!id(email, last_sign_in_at)
+        `)
+        .order('first_name', { ascending: true });
 
-      // Build the query with optional role filter
-      let query = supabase
-        .from("profiles")
-        .select("id, first_name, last_name, role, banned_until, avatar_url")
-        .order("first_name", { ascending: true });
+      if (error) throw error;
 
-      if (roleFilter) {
-        query = query.eq("role", roleFilter);
-      }
-
-      const { data: profiles, error: profilesError } = await query;
-
-      if (profilesError) throw profilesError;
-
-      const profileIds: string[] = (profiles || []).map((p: any) => p.id).filter(Boolean);
-
-      // Fetch employees where user_id IN (profileIds)
-      let employeesByUserId: Record<string, any> = {};
-      if (profileIds.length > 0) {
-        const { data: employees, error: empError } = await supabase
-          .from("employees")
-          .select("id, name, email, status, user_id")
-          .in("user_id", profileIds);
-
-        if (empError) {
-          console.error("Warning: could not fetch employees relation:", empError);
-        } else {
-          employeesByUserId = (employees || []).reduce<Record<string, any>>((acc, emp: any) => {
-            if (emp.user_id) acc[emp.user_id] = emp;
-            return acc;
-          }, {});
-        }
-      }
-
-      // Map to the expected format
-      const formattedUsers: UserWithProfile[] = (profiles || []).map((prof: any) => {
+      const formattedUsers: UserWithProfile[] = (data || []).map((user: any) => {
         const now = new Date();
-        const bannedUntil = prof.banned_until ? new Date(prof.banned_until) : null;
+        const bannedUntil = user.banned_until ? new Date(user.banned_until) : null;
         let status: 'active' | 'banned' | 'deleted' = 'active';
         if (bannedUntil && bannedUntil > now) status = 'banned';
-
-        const employeeRow = employeesByUserId[prof.id] || null;
-        const emailFromEmployee = employeeRow?.email || "";
+        // Note: 'deleted' seria se o user fosse removido de auth.users, mas aqui assumimos ativo
 
         return {
-          id: prof.id,
-          email: emailFromEmployee,
-          first_name: prof.first_name,
-          last_name: prof.last_name,
-          role: prof.role,
-          banned_until: prof.banned_until,
-          avatar_url: prof.avatar_url,
-          employee: employeeRow
-            ? {
-                id: employeeRow.id,
-                name: employeeRow.name,
-                email: employeeRow.email,
-                status: employeeRow.status,
-              }
-            : null,
+          id: user.id,
+          email: user['auth.users']?.email || '',
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role,
+          banned_until: user.banned_until,
+          avatar_url: user.avatar_url,
+          employee: user.employees ? {
+            id: user.employees.id,
+            name: user.employees.name,
+            email: user.employees.email,
+            status: user.employees.status,
+          } : undefined,
           status,
-          last_sign_in_at: null,
-        } as UserWithProfile;
+          last_sign_in_at: user['auth.users']?.last_sign_in_at || null,
+        };
       });
 
       setUsers(formattedUsers);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching users:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro ao carregar usuários.";
       setError(errorMessage);

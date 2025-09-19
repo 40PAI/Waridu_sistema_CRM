@@ -18,8 +18,6 @@ export type EventProject = {
   status?: string;
   tags?: string[];
   notes?: string;
-  // Add responsible_id so forms and dialogs can set/read the commercial responsible user
-  responsible_id?: string;
 };
 
 export type CreatePayload = {
