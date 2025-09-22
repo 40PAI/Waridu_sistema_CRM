@@ -46,9 +46,12 @@ const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEd
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium truncate">{stage.name}</span>
-            <Badge variant={stage.is_active ? "default" : "secondary"} className="text-xs">
-              {stage.is_active ? "Ativa" : "Inativa"}
-            </Badge>
+            <span className="inline-flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full border" style={{ backgroundColor: stage.color || "#e5e7eb" }} />
+              <Badge variant={stage.is_active ? "default" : "secondary"} className="text-xs">
+                {stage.is_active ? "Ativa" : "Inativa"}
+              </Badge>
+            </span>
           </div>
         </div>
       </div>
@@ -66,6 +69,7 @@ const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEd
 const PipelineStageManager = () => {
   const { stages, addStage, updateStage, toggleStageActive, reorderStages, loading } = usePipelineStages();
   const [newStageName, setNewStageName] = React.useState("");
+  const [newStageColor, setNewStageColor] = React.useState<string>("#e5e7eb");
   const [editingStage, setEditingStage] = React.useState<any | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -98,8 +102,9 @@ const PipelineStageManager = () => {
     setSaving(true);
     try {
       const maxOrder = stages.reduce((m, s) => Math.max(m, s.order), 0);
-      await addStage(name, maxOrder + 1);
+      await addStage(name, maxOrder + 1, newStageColor || "#e5e7eb");
       setNewStageName("");
+      setNewStageColor("#e5e7eb");
     } catch (err: any) {
       console.error("Add stage error:", err);
       showError(err?.message || "Erro ao adicionar fase.");
@@ -121,7 +126,7 @@ const PipelineStageManager = () => {
     }
     setSaving(true);
     try {
-      await updateStage(editingStage.id, { name });
+      await updateStage(editingStage.id, { name, color: editingStage.color });
       setIsEditDialogOpen(false);
       setEditingStage(null);
     } catch (err: any) {
@@ -181,8 +186,8 @@ const PipelineStageManager = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex w-full max-w-sm items-center space-x-2">
-          <div className="flex-1 space-y-1.5">
+        <div className="grid w-full max-w-xl grid-cols-1 md:grid-cols-3 gap-3 items-end">
+          <div className="space-y-1.5 md:col-span-2">
             <Label>Nome da nova fase</Label>
             <Input
               placeholder="Ex: Proposta Enviada"
@@ -192,9 +197,15 @@ const PipelineStageManager = () => {
               disabled={loading || saving || isReordering}
             />
           </div>
-          <Button onClick={handleAddStage} disabled={loading || saving || isReordering || !(newStageName.trim())}>
-            <Plus className="h-4 w-4 mr-2" /> Adicionar
-          </Button>
+          <div className="space-y-1.5">
+            <Label>Cor</Label>
+            <Input type="color" value={newStageColor} onChange={(e) => setNewStageColor(e.target.value)} disabled={loading || saving || isReordering} />
+          </div>
+          <div className="md:col-span-3">
+            <Button onClick={handleAddStage} disabled={loading || saving || isReordering || !(newStageName.trim())}>
+              <Plus className="h-4 w-4 mr-2" /> Adicionar
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-md border">
@@ -221,7 +232,16 @@ const PipelineStageManager = () => {
                 <Label>Nome da Fase</Label>
                 <Input
                   value={editingStage?.name ?? ""}
-                  onChange={(e) => setEditingStage(prev => prev ? { ...prev, name: e.target.value } : prev)}
+                  onChange={(e) => setEditingStage((prev: any) => prev ? { ...prev, name: e.target.value } : prev)}
+                  disabled={saving}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cor</Label>
+                <Input
+                  type="color"
+                  value={editingStage?.color ?? "#e5e7eb"}
+                  onChange={(e) => setEditingStage((prev: any) => prev ? { ...prev, color: e.target.value } : prev)}
                   disabled={saving}
                 />
               </div>

@@ -7,6 +7,7 @@ export interface PipelineStage {
   name: string;
   order: number;
   is_active: boolean;
+  color?: string | null;
   created_at?: string;
 }
 
@@ -25,32 +26,31 @@ export default function usePipelineStages() {
         .order("order", { ascending: true });
 
       if (error) throw error;
-      
-      let stagesData = data || [];
-      
-      // If no stages exist, create default ones
+
+      let stagesData = (data || []) as PipelineStage[];
+
+      // Bootstrap defaults if table is empty
       if (stagesData.length === 0) {
-        const defaultStages = [
-          { name: "Lead Identificado", order: 1, is_active: true },
-          { name: "Contato Iniciado", order: 2, is_active: true },
-          { name: "Proposta Enviada", order: 3, is_active: true },
-          { name: "Negociação", order: 4, is_active: true },
-          { name: "Em Produção/Execução", order: 5, is_active: true },
-          { name: "Pausado/Em Espera", order: 6, is_active: true },
-          { name: "Fechado – Ganhou", order: 7, is_active: true },
-          { name: "Fechado – Perdido", order: 8, is_active: true },
+        const defaults = [
+          { name: "Lead Identificado", order: 1, is_active: true, color: "#3b82f6" },
+          { name: "Contato Iniciado", order: 2, is_active: true, color: "#10b981" },
+          { name: "Proposta Enviada", order: 3, is_active: true, color: "#f59e0b" },
+          { name: "Negociação", order: 4, is_active: true, color: "#ef4444" },
+          { name: "Em Produção/Execução", order: 5, is_active: true, color: "#8b5cf6" },
+          { name: "Pausado/Em Espera", order: 6, is_active: true, color: "#6b7280" },
+          { name: "Fechado – Ganhou", order: 7, is_active: true, color: "#059669" },
+          { name: "Fechado – Perdido", order: 8, is_active: true, color: "#dc2626" },
         ];
-        
         const { data: inserted, error: insertError } = await supabase
           .from("pipeline_stages")
-          .insert(defaultStages)
+          .insert(defaults)
           .select();
-          
+
         if (insertError) throw insertError;
-        stagesData = inserted || [];
+        stagesData = (inserted || []) as PipelineStage[];
       }
-      
-      setStages(stagesData as PipelineStage[]);
+
+      setStages(stagesData);
     } catch (err: any) {
       console.error("Error fetching pipeline stages:", err);
       const msg = err instanceof Error ? err.message : "Erro ao carregar fases.";
@@ -66,12 +66,13 @@ export default function usePipelineStages() {
   }, [fetchStages]);
 
   const addStage = useCallback(
-    async (name: string, order: number) => {
+    async (name: string, order: number, color?: string) => {
       try {
-        const payload = {
+        const payload: Partial<PipelineStage> = {
           name: name.trim(),
           order,
           is_active: true,
+          color: color || "#e5e7eb",
         };
         const { data, error } = await supabase.from("pipeline_stages").insert(payload).select().single();
         if (error) throw error;

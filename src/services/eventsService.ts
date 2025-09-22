@@ -30,31 +30,25 @@ const ALLOWED_COLUMNS = new Set([
   "service_ids",
   "notes",
   "tags",
+  "pipeline_stage_id",
+  "responsible_id",
 ]);
 
 function sanitizePayload(payload: Record<string, any>) {
   const out: Record<string, any> = {};
   Object.entries(payload || {}).forEach(([k, v]) => {
     if (!ALLOWED_COLUMNS.has(k)) return;
-    // strip undefined values (PostgREST can reject unexpected types)
     if (v === undefined) return;
     out[k] = v;
   });
 
-  // Always ensure we do NOT forward timestamps that should be DB-managed:
-  if ("updated_at" in out) {
-    delete out.updated_at;
-  }
-  if ("created_at" in out) {
-    // If a client is trying to set created_at, remove it — creation should be server-side
-    delete out.created_at;
-  }
+  if ("updated_at" in out) delete out.updated_at;
+  if ("created_at" in out) delete out.created_at;
 
   return out;
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 function isUuid(v: unknown) {
   return typeof v === "string" && UUID_REGEX.test(v);
 }
@@ -67,6 +61,10 @@ function validateUuidFields(sanitized: Record<string, any>) {
 
   if (sanitized.client_id !== undefined && sanitized.client_id !== null && !isUuid(sanitized.client_id)) {
     invalids.push(`client_id="${String(sanitized.client_id)}"`);
+  }
+
+  if (sanitized.pipeline_stage_id !== undefined && sanitized.pipeline_stage_id !== null && !isUuid(sanitized.pipeline_stage_id)) {
+    invalids.push(`pipeline_stage_id="${String(sanitized.pipeline_stage_id)}"`);
   }
 
   if (sanitized.service_ids !== undefined && sanitized.service_ids !== null) {
@@ -97,15 +95,10 @@ export const fetchEvents = async (): Promise<any[]> => {
 
 export const upsertEvent = async (payload: any): Promise<any> => {
   try {
-    // Clone and sanitize payload: only allowed columns and no undefined values
     const sanitized = sanitizePayload(payload);
-
-    // Validate UUID fields before making the request to Supabase.
-    // This provides an early, clear error instead of a generic 400 from PostgREST.
     validateUuidFields(sanitized);
 
     if (payload?.id) {
-      // When updating, don't include id in set payload
       const { id, ...rest } = sanitized;
       const { data, error } = await supabase
         .from("events")
@@ -115,7 +108,6 @@ export const upsertEvent = async (payload: any): Promise<any> => {
         .single();
 
       if (error) {
-        // Attach details for easier debugging
         const msg = `Supabase update error: ${error.message || "unknown"}${error.details ? " — " + error.details : ""}`;
         console.error(msg, { error, payload, sanitized: rest });
         throw new Error(msg);
@@ -136,7 +128,6 @@ export const upsertEvent = async (payload: any): Promise<any> => {
       return data;
     }
   } catch (err: any) {
-    // Bubble a helpful error message
     const message = err?.message || String(err) || "Unknown error in upsertEvent";
     throw new Error(message);
   }
@@ -146,7 +137,6 @@ export const updateEventDetails = async (eventId: number, details: { roster: Ros
   const payload: any = {
     roster: details.roster ?? null,
     expenses: details.expenses ?? null,
-    // DO NOT set updated_at here — trigger will update it
   };
 
   try {
