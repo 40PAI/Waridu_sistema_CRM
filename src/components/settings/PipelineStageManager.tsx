@@ -37,7 +37,7 @@ const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEd
         isDragging && "ring-2 ring-primary shadow-lg"
       )}
       role="listitem"
-      aria-label={`Stage ${stage.name}`}
+      aria-label={`Phase ${stage.name}`}
     >
       <div className="flex items-center gap-3 flex-1">
         <button {...listeners} {...attributes} className="cursor-grab text-muted-foreground hover:text-foreground" aria-label="Reordenar fase">
@@ -46,12 +46,9 @@ const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEd
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium truncate">{stage.name}</span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full border" style={{ backgroundColor: stage.color || "#e5e7eb" }} />
-              <Badge variant={stage.is_active ? "default" : "secondary"} className="text-xs">
-                {stage.is_active ? "Ativa" : "Inativa"}
-              </Badge>
-            </span>
+            <Badge variant={stage.active ? "default" : "secondary"} className="text-xs">
+              {stage.active ? "Ativa" : "Inativa"}
+            </Badge>
           </div>
         </div>
       </div>
@@ -60,14 +57,14 @@ const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEd
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(stage)} aria-label={`Editar ${stage.name}`}>
           <Edit className="h-4 w-4" />
         </Button>
-        <Switch checked={stage.is_active} onCheckedChange={(v) => onToggleActive(stage.id, !!v)} aria-label={`Ativar ${stage.name}`} />
+        <Switch checked={stage.active} onCheckedChange={(v) => onToggleActive(stage.id, !!v)} aria-label={`Ativar ${stage.name}`} />
       </div>
     </div>
   );
 };
 
 const PipelineStageManager = () => {
-  const { stages, addStage, updateStage, toggleStageActive, reorderStages, loading } = usePipelineStages();
+  const { stages, addStage, updateStage, toggleStageActive, reorderPhases, loading } = usePipelineStages();
   const [newStageName, setNewStageName] = React.useState("");
   const [newStageColor, setNewStageColor] = React.useState<string>("#e5e7eb");
   const [editingStage, setEditingStage] = React.useState<any | null>(null);
@@ -82,16 +79,13 @@ const PipelineStageManager = () => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // Sync localStages with upstream stages whenever stages change.
+  // Skip sync while actively reordering to avoid clobbering drag state.
   React.useEffect(() => {
-    setLocalStages((prev) => {
-      const prevIds = prev.map(p => p.id).join(",");
-      const nextIds = (stages || []).map((s: any) => s.id).join(",");
-      if (prevIds !== nextIds) {
-        return (stages || []).map((s: any) => ({ ...s }));
-      }
-      return prev;
-    });
-  }, [stages]);
+    if (!isReordering) {
+      setLocalStages((stages || []).map((p: any) => ({ ...p })));
+    }
+  }, [stages, isReordering]);
 
   const handleAddStage = async () => {
     const name = newStageName.trim();
@@ -101,8 +95,8 @@ const PipelineStageManager = () => {
     }
     setSaving(true);
     try {
-      const maxOrder = stages.reduce((m, s) => Math.max(m, s.order), 0);
-      await addStage(name, maxOrder + 1, newStageColor || "#e5e7eb");
+      const maxOrder = stages.reduce((m, s) => Math.max(m, s.order || 0), 0);
+      await addStage(name, { color: newStageColor });
       setNewStageName("");
       setNewStageColor("#e5e7eb");
     } catch (err: any) {
@@ -126,7 +120,7 @@ const PipelineStageManager = () => {
     }
     setSaving(true);
     try {
-      await updateStage(editingStage.id, { name, color: editingStage.color });
+      await updateStage(editingStage.id, name, { color: editingStage.color });
       setIsEditDialogOpen(false);
       setEditingStage(null);
     } catch (err: any) {
@@ -137,12 +131,17 @@ const PipelineStageManager = () => {
     }
   };
 
-  const handleToggleActive = async (id: string, is_active: boolean) => {
+  const handleToggleActive = async (id: string, active: boolean) => {
     try {
-      await toggleStageActive(id, is_active);
+      // Optimistic UI update: reflect change immediately
+      setLocalStages(prev => prev.map(p => p.id === id ? { ...p, active } : p));
+      await toggleStageActive(id, active);
+      // fetchStages inside hook will sync actual state; we already updated optimistically.
     } catch (err: any) {
       console.error("Toggle active error:", err);
       showError(err?.message || "Erro ao alterar status da fase.");
+      // revert (best-effort) by re-syncing with upstream stages
+      setLocalStages((stages || []).map((p: any) => ({ ...p })));
     }
   };
 
@@ -166,7 +165,7 @@ const PipelineStageManager = () => {
 
     setIsReordering(true);
     try {
-      await reorderStages(orderedIds);
+      await reorderPhases(orderedIds);
       showSuccess("Ordem salva");
     } catch (err: any) {
       console.error("Reorder save failed:", err);
@@ -180,17 +179,17 @@ const PipelineStageManager = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Fases do Pipeline</CardTitle>
+        <CardTitle>Configuração do Pipeline</CardTitle>
         <CardDescription>
           Gerencie as fases do pipeline de projetos. Arraste para reordenar.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid w-full max-w-xl grid-cols-1 md:grid-cols-3 gap-3 items-end">
+        <div className="flex w-full max-w-xl grid-cols-1 md:grid-cols-3 gap-3 items-end">
           <div className="space-y-1.5 md:col-span-2">
             <Label>Nome da nova fase</Label>
             <Input
-              placeholder="Ex: Proposta Enviada"
+              placeholder="Ex: Orçamento"
               value={newStageName}
               onChange={(e) => setNewStageName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddStage()}
@@ -232,7 +231,7 @@ const PipelineStageManager = () => {
                 <Label>Nome da Fase</Label>
                 <Input
                   value={editingStage?.name ?? ""}
-                  onChange={(e) => setEditingStage((prev: any) => prev ? { ...prev, name: e.target.value } : prev)}
+                  onChange={(e) => setEditingStage(prev => prev ? { ...prev, name: e.target.value } : prev)}
                   disabled={saving}
                 />
               </div>
@@ -241,7 +240,7 @@ const PipelineStageManager = () => {
                 <Input
                   type="color"
                   value={editingStage?.color ?? "#e5e7eb"}
-                  onChange={(e) => setEditingStage((prev: any) => prev ? { ...prev, color: e.target.value } : prev)}
+                  onChange={(e) => setEditingStage(prev => prev ? { ...prev, color: e.target.value } : prev)}
                   disabled={saving}
                 />
               </div>
