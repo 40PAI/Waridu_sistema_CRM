@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/contexts/AuthContext";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Pages
 import Index from "@/pages/Index";
@@ -176,7 +175,7 @@ const AppContent = () => {
   }
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true }}>
       <div className="min-h-screen bg-background">
         <Routes>
           {/* Rotas públicas - SEM autenticação */}
@@ -189,6 +188,7 @@ const AppContent = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Index />} />
             <Route path="/calendar" element={<CalendarWrapper />} />
+            <Route path="/create-event" element={<CreateEvent />} />
             <Route path="/roster-management" element={<RosterManagementWrapper />} />
             <Route path="/employees" element={<EmployeesWrapper />} />
             <Route path="/roles" element={<RolesWrapper />} />
