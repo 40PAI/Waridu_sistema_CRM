@@ -185,7 +185,7 @@ const AppContent = () => {
   }
 
   return (
-    <Router future={{ v7_startTransition: true }}>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-background">
         <Routes>
           {/* Rotas públicas - SEM autenticação */}
