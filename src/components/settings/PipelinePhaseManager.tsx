@@ -1,71 +1,35 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { usePipelinePhases } from "@/hooks/usePipelinePhases";
-import { Edit, Trash2, Plus, GripVertical } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import type { PipelinePhase } from "@/types";
-import { arrayMove } from "@dnd-kit/sortable";
+import { Edit, Plus, GripVertical } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/components/ui/use-toast";
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge"; // Corrected: Added Badge import
 
-interface SortablePhaseItemProps {
-  phase: PipelinePhase;
-  onEdit: (phase: PipelinePhase) => void;
-  onToggleActive: (id: string, active: boolean) => void;
-}
+type PipelinePhase = {
+  id: string;
+  name: string;
+  sort_order?: number;
+  active: boolean;
+  position?: number;
+  updated_at?: string | null;
+};
 
-const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: SortablePhaseItemProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: phase.id });
-
-  const style = {
+const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: { phase: PipelinePhase; onEdit: (p: PipelinePhase) => void; onToggleActive: (id: string, active: boolean) => void; }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: phase.id });
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: isDragging ? 100 : 0,
+    zIndex: isDragging ? 50 : undefined,
   };
 
   return (
@@ -74,32 +38,30 @@ const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: SortablePhaseItemP
       style={style}
       className={cn(
         "flex items-center justify-between p-3 border-b last:border-b-0 bg-background",
-        isDragging && "ring-2 ring-primary-foreground shadow-lg"
+        isDragging && "ring-2 ring-primary shadow-lg"
       )}
+      role="listitem"
+      aria-label={`Phase ${phase.name}`}
     >
       <div className="flex items-center gap-3 flex-1">
-        <button
-          className="cursor-grab text-muted-foreground hover:text-foreground"
-          {...listeners}
-          {...attributes}
-          aria-label="Reordenar fase"
-        >
+        <button {...listeners} {...attributes} className="cursor-grab text-muted-foreground hover:text-foreground" aria-label="Reordenar fase">
           <GripVertical className="h-5 w-5" />
         </button>
-        <span className="text-sm font-medium">{phase.name}</span>
-        <Badge variant={phase.active ? "default" : "secondary"}>
-          {phase.active ? "Ativa" : "Inativa"}
-        </Badge>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium truncate">{phase.name}</span>
+            <Badge variant={phase.active ? "default" : "secondary"} className="text-xs">
+              {phase.active ? "Ativa" : "Inativa"}
+            </Badge>
+          </div>
+        </div>
       </div>
+
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(phase)}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(phase)} aria-label={`Editar ${phase.name}`}>
           <Edit className="h-4 w-4" />
         </Button>
-        <Switch
-          checked={phase.active}
-          onCheckedChange={(checked) => onToggleActive(phase.id, checked)}
-          aria-label={`Toggle ${phase.name} active status`}
-        />
+        <Switch checked={phase.active} onCheckedChange={(v) => onToggleActive(phase.id, !!v)} aria-label={`Ativar ${phase.name}`} />
       </div>
     </div>
   );
@@ -107,27 +69,44 @@ const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: SortablePhaseItemP
 
 const PipelinePhaseManager = () => {
   const { phases, addPhase, updatePhase, togglePhaseActive, reorderPhases, loading } = usePipelinePhases();
-
+  const { toast } = useToast ? useToast() : { toast: undefined }; // graceful if useToast not available
   const [newPhaseName, setNewPhaseName] = React.useState("");
   const [editingPhase, setEditingPhase] = React.useState<PipelinePhase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
+  // Local optimistic state
+  const [localPhases, setLocalPhases] = React.useState<PipelinePhase[]>([]);
+
+  // Sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // Sync phases into localPhases when phases change (and when not dragging)
+  React.useEffect(() => {
+    setLocalPhases((prev) => {
+      // If lengths differ or ids differ, replace to ensure fresh
+      const prevIds = prev.map(p => p.id).join(",");
+      const nextIds = (phases || []).map((p: any) => p.id).join(",");
+      if (prevIds !== nextIds) {
+        return (phases || []).map((p: any) => ({ ...p }));
+      }
+      // otherwise keep prev (avoid clobbering optimistic during drag)
+      return prev;
+    });
+  }, [phases]);
+
   const handleAddPhase = async () => {
-    if (!newPhaseName.trim()) return;
+    const name = newPhaseName?.trim();
+    if (!name) return;
     setSaving(true);
     try {
-      await addPhase(newPhaseName.trim());
+      await addPhase(name);
       setNewPhaseName("");
-    } catch (error) {
-      // Error handled by hook
+    } catch (err: any) {
+      console.error("Add phase error:", err);
     } finally {
       setSaving(false);
     }
@@ -139,14 +118,15 @@ const PipelinePhaseManager = () => {
   };
 
   const handleSaveEdit = async () => {
-    if (!editingPhase || !editingPhase.name.trim()) return;
+    const name = editingPhase?.name?.trim();
+    if (!editingPhase || !name) return;
     setSaving(true);
     try {
-      await updatePhase(editingPhase.id, editingPhase.name.trim());
+      await updatePhase(editingPhase.id, name);
       setIsEditDialogOpen(false);
       setEditingPhase(null);
-    } catch (error) {
-      // Error handled by hook
+    } catch (err: any) {
+      console.error("Update phase error:", err);
     } finally {
       setSaving(false);
     }
@@ -155,22 +135,41 @@ const PipelinePhaseManager = () => {
   const handleToggleActive = async (id: string, active: boolean) => {
     try {
       await togglePhaseActive(id, active);
-    } catch (error) {
-      // Error handled by hook
+    } catch (err: any) {
+      console.error("Toggle active error:", err);
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
 
-    if (active.id !== over?.id) {
-      setPhases((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over?.id);
-        const newOrder = arrayMove(items, oldIndex, newIndex);
-        reorderPhases(newOrder); // Persist new order
-        return newOrder;
-      });
+    const oldIndex = localPhases.findIndex(p => String(p.id) === activeId);
+    const newIndex = localPhases.findIndex(p => String(p.id) === overId);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+    if (oldIndex === newIndex) return;
+
+    // optimistic UI update
+    const previous = [...localPhases];
+    const next: PipelinePhase[] = arrayMove(previous, oldIndex, newIndex); // Corrected: Explicitly type next
+    setLocalPhases(next); // Corrected: Use setLocalPhases
+
+    // Build orderedIds (use position order as persisted)
+    const orderedIds = next.map(p => p.id);
+
+    try {
+      // Call hook to persist order (expects ordered ids)
+      await reorderPhases(orderedIds);
+      // success: optionally show toast
+      if (toast?.success) toast.success("Ordem salva");
+    } catch (err: any) {
+      console.error("Reorder save failed:", err);
+      // rollback
+      setLocalPhases(previous);
+      if (toast?.error) toast.error("Falha ao salvar ordem — revertendo.");
     }
   };
 
@@ -184,67 +183,58 @@ const PipelinePhaseManager = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex w-full max-w-sm items-center space-x-2">
-          <Input
-            placeholder="Nome da nova fase"
-            value={newPhaseName}
-            onChange={(e) => setNewPhaseName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddPhase()}
-            disabled={loading || saving}
-          />
-          <Button onClick={handleAddPhase} disabled={loading || saving || !newPhaseName.trim()}>
+          <div className="flex-1 space-y-1.5">
+            <Label>Nome da nova fase</Label>
+            <Input
+              placeholder="Ex: Orçamento"
+              value={newPhaseName}
+              onChange={(e) => setNewPhaseName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddPhase()}
+              disabled={loading || saving}
+            />
+          </div>
+          <Button onClick={handleAddPhase} disabled={loading || saving || !(newPhaseName?.trim())}>
             <Plus className="h-4 w-4 mr-2" /> Adicionar
           </Button>
         </div>
 
-        <div className="rounded-md border divide-y">
-          {loading ? (
-            <div className="p-4 text-center text-muted-foreground">Carregando fases...</div>
-          ) : phases.length > 0 ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={phases.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                {phases.map((phase) => (
-                  <SortablePhaseItem
-                    key={phase.id}
-                    phase={phase}
-                    onEdit={openEditDialog}
-                    onToggleActive={handleToggleActive}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
-          ) : (
-            <div className="p-4 text-sm text-muted-foreground text-center">Nenhuma fase configurada.</div>
-          )}
+        <div className="rounded-md border">
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={localPhases.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              {localPhases.length > 0 ? (
+                localPhases.map((phase) => (
+                  <SortablePhaseItem key={phase.id} phase={phase} onEdit={openEditDialog} onToggleActive={handleToggleActive} />
+                ))
+              ) : (
+                <div className="p-4 text-sm text-muted-foreground text-center">Nenhuma fase configurada.</div>
+              )}
+            </SortableContext>
+          </DndContext>
         </div>
-      </CardContent>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Fase</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-phase-name">Nome da Fase</Label>
-              <Input
-                id="edit-phase-name"
-                value={editingPhase?.name || ""}
-                onChange={(e) => setEditingPhase(prev => prev ? { ...prev, name: e.target.value } : null)}
-                disabled={saving}
-              />
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Fase</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label>Nome da Fase</Label>
+                <Input
+                  value={editingPhase?.name ?? ""}
+                  onChange={(e) => setEditingPhase(prev => prev ? { ...prev, name: e.target.value } : prev)}
+                  disabled={saving}
+                />
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={saving}>Cancelar</Button>
-            <Button onClick={handleSaveEdit} disabled={saving || !editingPhase?.name.trim()}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={saving}>Cancelar</Button>
+              <Button onClick={handleSaveEdit} disabled={saving || !editingPhase?.name?.trim()}>Salvar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </Card>
+    </div>
   );
 };
 

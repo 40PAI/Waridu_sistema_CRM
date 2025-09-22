@@ -221,8 +221,11 @@ export interface Notification {
 export interface PipelinePhase {
   id: string;
   name: string;
-  sort_order: number;
+  // sort_order?: number; // Removed to resolve type incompatibility
   active: boolean;
   color?: string;
   canonical_status?: string;
+  position?: number; // Added for explicit ordering
+  created_at?: string | null;
+  updated_at?: string | null;
 }
