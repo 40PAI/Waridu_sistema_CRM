@@ -8,12 +8,14 @@ import { usePipelinePhases } from "@/hooks/usePipelinePhases";
 import { Edit, Plus, GripVertical } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast"; // Keep this import if needed for other toast functionalities, but not for success/error
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge"; // Corrected: Added Badge import
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Corrected: Added Card imports
+import { showSuccess, showError } from "@/utils/toast"; // Corrected: Import showSuccess and showError
 
 type PipelinePhase = {
   id: string;
@@ -69,7 +71,7 @@ const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: { phase: PipelineP
 
 const PipelinePhaseManager = () => {
   const { phases, addPhase, updatePhase, togglePhaseActive, reorderPhases, loading } = usePipelinePhases();
-  const { toast } = useToast ? useToast() : { toast: undefined }; // graceful if useToast not available
+  // const { toast } = useToast ? useToast() : { toast: undefined }; // Removed as showSuccess/showError are used directly
   const [newPhaseName, setNewPhaseName] = React.useState("");
   const [editingPhase, setEditingPhase] = React.useState<PipelinePhase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -154,8 +156,8 @@ const PipelinePhaseManager = () => {
 
     // optimistic UI update
     const previous = [...localPhases];
-    const next: PipelinePhase[] = arrayMove(previous, oldIndex, newIndex); // Corrected: Explicitly type next
-    setLocalPhases(next); // Corrected: Use setLocalPhases
+    const next: PipelinePhase[] = arrayMove(previous, oldIndex, newIndex);
+    setLocalPhases(next);
 
     // Build orderedIds (use position order as persisted)
     const orderedIds = next.map(p => p.id);
@@ -164,12 +166,12 @@ const PipelinePhaseManager = () => {
       // Call hook to persist order (expects ordered ids)
       await reorderPhases(orderedIds);
       // success: optionally show toast
-      if (toast?.success) toast.success("Ordem salva");
+      showSuccess("Ordem salva"); // Corrected: Use showSuccess
     } catch (err: any) {
       console.error("Reorder save failed:", err);
       // rollback
       setLocalPhases(previous);
-      if (toast?.error) toast.error("Falha ao salvar ordem — revertendo.");
+      showError("Falha ao salvar ordem — revertendo."); // Corrected: Use showError
     }
   };
 
@@ -233,8 +235,8 @@ const PipelinePhaseManager = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </Card>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
