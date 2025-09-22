@@ -10,13 +10,12 @@ import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CreateProjectTab from "@/components/crm/CreateProjectTab";
-import { eventsService } from "@/services";
-import { showError } from "@/utils/toast";
 
 export default function ProjectsPage() {
   const { events, fetchEvents } = useEvents();
   const { services } = useServices();
 
+  // service filter (array of service ids)
   const [serviceFilter, setServiceFilter] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'kanban' | 'create'>('kanban');
 
@@ -33,9 +32,11 @@ export default function ProjectsPage() {
       endDate: e.endDate ?? e.startDate,
       location: e.location ?? "",
       status: e.status ?? "Planejado",
+      tags: e.tags ?? [],
       notes: e.notes ?? "",
     }));
 
+  // filter projects by selected services (match ANY)
   const filteredProjects = useMemo(() => {
     if (!serviceFilter || serviceFilter.length === 0) return allProjects;
     return allProjects.filter((p) => {
@@ -49,21 +50,6 @@ export default function ProjectsPage() {
     services.forEach(s => (map[s.id] = s.name));
     return map;
   }, [services]);
-
-  const persistProjectUpdate = async (p: EventProject) => {
-    try {
-      await eventsService.upsertEvent({
-        id: p.id,
-        pipeline_status: p.pipeline_status ?? null,
-        notes: p.notes ?? null,
-        estimated_value: p.estimated_value ?? null,
-      });
-      await fetchEvents();
-    } catch (err: any) {
-      showError(err?.message || "Falha ao salvar alterações do projeto.");
-      throw err;
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -109,15 +95,24 @@ export default function ProjectsPage() {
 
           <PipelineKanban
             projects={filteredProjects}
-            onUpdateProject={persistProjectUpdate}
-            onEditProject={(p) => {}}
-            onViewProject={(p) => {}}
+            onUpdateProject={async (p) => {
+              // The hook useEvents keeps events up to date; parent doesn't need to do more here.
+              // We still trigger fetch to ensure the list updates after server-side changes.
+              await fetchEvents();
+            }}
+            onEditProject={(p) => {
+              // Optionally open an editor; PipelineKanban can handle edits via props if implemented.
+            }}
+            onViewProject={(p) => {
+              // Optionally open a detail view.
+            }}
           />
         </TabsContent>
 
         <TabsContent value="create">
           <CreateProjectTab
             onCreated={async (id: number) => {
+              // refresh events and switch back to kanban to show the newly created project
               await fetchEvents();
               setActiveTab('kanban');
             }}

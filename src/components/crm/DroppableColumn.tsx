@@ -2,9 +2,10 @@ import * as React from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import type { PipelineStatus } from "@/types/crm";
 
 interface DroppableColumnProps {
-  column: { id: string; title: string; color: string };
+  column: { id: PipelineStatus; title: string; color: string };
   children: React.ReactNode;
   disabled?: boolean;
 }

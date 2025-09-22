@@ -7,9 +7,6 @@ import { useEvents } from "@/hooks/useEvents";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState } from "react";
-import type { EventProject } from "@/types/crm";
-import { eventsService } from "@/services";
-import { showError } from "@/utils/toast";
 
 export default function PipelinePage() {
   const { events, fetchEvents } = useEvents();
@@ -29,6 +26,7 @@ export default function PipelinePage() {
         endDate: e.endDate ?? e.startDate,
         location: e.location ?? "",
         status: e.status,
+        tags: e.tags ?? [],
         notes: e.notes ?? "",
       }));
   }, [events]);
@@ -49,21 +47,6 @@ export default function PipelinePage() {
         }
       }, 300);
     } catch {}
-  };
-
-  const persistProjectUpdate = async (p: EventProject) => {
-    try {
-      await eventsService.upsertEvent({
-        id: p.id,
-        pipeline_status: p.pipeline_status ?? null,
-        notes: p.notes ?? null,
-        estimated_value: p.estimated_value ?? null,
-      });
-      await fetchEvents();
-    } catch (err: any) {
-      showError(err?.message || "Falha ao salvar alterações do projeto.");
-      throw err;
-    }
   };
 
   return (
@@ -90,7 +73,7 @@ export default function PipelinePage() {
             <CardContent>
               <PipelineKanban
                 projects={projects}
-                onUpdateProject={persistProjectUpdate}
+                onUpdateProject={async () => { await fetchEvents(); }}
               />
             </CardContent>
           </Card>
