@@ -47,6 +47,9 @@ import CRMReports from "@/pages/crm/Reports";
 import AdminServicesPage from "@/pages/admin/Services";
 import CommercialServicesPage from "@/pages/commercial/Services";
 
+// Components
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+
 // Hooks for wrappers
 import { useEvents } from "@/hooks/useEvents";
 import { useEmployees } from "@/hooks/useEmployees";
