@@ -27,7 +27,7 @@ const PIPELINE_STATUSES: PipelineStatus[] = [
   "Cancelado",
 ];
 
-export function ViewProjectDialog({ open, onOpenChange, project }: ViewProjectDialogProps) {
+export default function ViewProjectDialog({ open, onOpenChange, project }: ViewProjectDialogProps) {
   const { clients } = useClients();
   const { services } = useServices();
 
@@ -62,7 +62,7 @@ export function ViewProjectDialog({ open, onOpenChange, project }: ViewProjectDi
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
               <Select value={project.pipeline_status} disabled>
-                <SelectTrigger id="view-pipeline-status">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -75,7 +75,7 @@ export function ViewProjectDialog({ open, onOpenChange, project }: ViewProjectDi
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Valor Estimado (AOA)</label>
+              <label className="text-sm font-medium">Valor Estimado</label>
               <Input id="view-estimated-value" type="number" value={project.estimated_value || ""} readOnly />
             </div>
           </div>
@@ -102,12 +102,12 @@ export function ViewProjectDialog({ open, onOpenChange, project }: ViewProjectDi
           <div className="space-y-2">
             <label className="text-sm font-medium">Serviços Contratados</label>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {services.map((s) => (
+              {services.map(s => (
                 <label key={s.id} className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={project.service_ids?.includes(s.id)}
-                    disabled
+                    checked={project.service_ids?.includes(s.id) ?? false}
+                    readOnly
                   />
                   <span className="text-sm">{s.name}</span>
                 </label>
