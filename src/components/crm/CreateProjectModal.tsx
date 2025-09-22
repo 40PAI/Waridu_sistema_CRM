@@ -1,43 +1,43 @@
 "use client";
 
 import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Combobox } from "@/components/ui/combobox";
 import { MultiSelectServices } from "@/components/MultiSelectServices";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
-import { useEmployees } from "@/hooks/useEmployees";
 import { useEvents } from "@/hooks/useEvents";
 import { useAuth } from "@/contexts/AuthContext";
 import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
+import { useUsers } from "@/hooks/useUsers";
+import usePipelinePhases from "@/hooks/usePipelinePhases";
 
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-// UUID regex for basic client/responsible validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const projectSchema = z.object({
-  clientId: z.string().min(1, "Cliente é obrigatório").refine((v) => UUID_REGEX.test(v), "Selecione um cliente válido."),
-  name: z.string().min(1, "Nome do projeto é obrigatório"),
-  serviceIds: z.array(z.string()).min(1, "Selecione pelo menos um serviço"),
-  pipelineStatus: z.enum(["1º Contato", "Orçamento", "Negociação", "Confirmado"], { required_error: "Status é obrigatório" }),
-  startDate: z.string().min(1, "Data de início é obrigatória"),
-  startTime: z.string().min(1, "Hora de início é obrigatória"),
+  clientId: z.string().min(1).refine((v) => UUID_REGEX.test(v), "client_id deve ser um UUID"),
+  name: z.string().min(1),
+  serviceIds: z.array(z.string()).min(1),
+  startDate: z.string().min(1),
+  startTime: z.string().min(1),
   endDate: z.string().optional(),
   endTime: z.string().optional(),
-  responsibleId: z.string().min(1, "Responsável comercial é obrigatório").refine((v) => UUID_REGEX.test(v), "Selecione um responsável válido."),
-  location: z.string().min(1, "Local é obrigatório"),
+  location: z.string().min(1),
   estimatedValue: z.number().min(0).optional(),
   notes: z.string().optional(),
+  pipelineStatus: z.string().min(1),
+  responsibleId: z.string().optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -56,11 +56,12 @@ interface CreateProjectModalProps {
 }
 
 export default function CreateProjectModal({ open, onOpenChange, onCreated, preselectedClientId }: CreateProjectModalProps) {
-  const { clients } = useClients();
+  const { clients, fetchClients } = useClients();
   const { services } = useServices();
-  const { employees } = useEmployees(); // allow selecting any employee
+  const { users, refreshUsers } = useUsers();
   const { updateEvent } = useEvents();
   const { user } = useAuth();
+  const { phases, loading: loadingPhases } = usePipelinePhases();
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -71,46 +72,51 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      pipelineStatus: "1º Contato",
+      pipelineStatus: "",
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
       endDate: "",
       endTime: "",
-      responsibleId: "",
       location: "",
       estimatedValue: undefined,
       notes: "",
+      responsibleId: "",
     },
   });
 
   React.useEffect(() => {
     if (open) {
+      const defaultPipelineStatus = phases && phases.length > 0 ? phases[0].name : "1º Contato";
+      const defaultResponsibleId = users.find(u => (u.role || "").toLowerCase() === "comercial")?.id || "";
       form.reset({
         clientId: preselectedClientId || "",
         name: "",
         serviceIds: [],
-        pipelineStatus: "1º Contato",
+        pipelineStatus: defaultPipelineStatus,
         startDate: new Date().toISOString().split("T")[0],
         startTime: "09:00",
         endDate: "",
         endTime: "",
-        responsibleId: "",
         location: "",
         estimatedValue: undefined,
         notes: "",
+        responsibleId: defaultResponsibleId,
       });
     }
-  }, [open, preselectedClientId, form]);
+  }, [open, preselectedClientId, form, phases, users]);
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
-  const employeeOptions = React.useMemo(() => employees.map(e => ({ value: e.id, label: `${e.name} (${e.email})` })), [employees]);
+  const commercialUserOptions = React.useMemo(() =>
+    users.filter(u => (u.role || "").toLowerCase() === "comercial").map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` }))
+  , [users]);
 
   const handleSubmit = async (data: ProjectFormData) => {
-    if (!UUID_REGEX.test(data.clientId)) {
-      showError("Cliente inválido. Selecione um cliente válido (UUID).");
+    if (!data.pipelineStatus) {
+      showError("Selecione uma fase do pipeline.");
       return;
     }
+
     setSaving(true);
 
     const startISO = toISO(data.startDate, data.startTime);
@@ -130,29 +136,20 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       description: data.notes || null,
       status: "Planejado",
       updated_at: new Date().toISOString(),
-      responsible_id: data.responsibleId,
+      responsible_id: data.responsibleId || null,
     };
 
     try {
       const result = await updateEvent(payload as any);
       if (!result) throw new Error("Falha ao salvar evento");
-      showSuccess("Projeto criado com sucesso!");
+      showSuccess("Projeto criado com sucesso");
+      await fetchClients();
+      await refreshUsers();
       onCreated?.(result.id);
       onOpenChange(false);
     } catch (err: any) {
       console.error("Erro ao criar projeto:", err);
-      const msg = err?.message ?? String(err);
-      if (/uuid/i.test(msg) || /client_id/i.test(msg)) {
-        showError("Erro: client_id inválido (deve ser UUID).");
-      } else if (/start_date|start_time|date/i.test(msg)) {
-        showError("Erro nas datas/horas. Verifique os valores enviados.");
-      } else if (/pipeline_status/i.test(msg)) {
-        showError("Status do pipeline inválido.");
-      } else if (/responsible_id/i.test(msg)) {
-        showError("Responsável inválido. Selecione um funcionário válido.");
-      } else {
-        showError("Falha ao criar projeto: " + msg);
-      }
+      showError("Erro ao criar projeto. Verifique os campos e tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -161,14 +158,12 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        {/* constrain size so it doesn't occupy whole screen and make content horizontal */}
         <DialogContent className="max-w-6xl mx-auto max-h-[80vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Novo Projeto</DialogTitle>
           </DialogHeader>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 pb-4">
-            {/* Left: primary form */}
             <div className="space-y-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -184,7 +179,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                               options={clientOptions}
                               value={field.value}
                               onChange={field.onChange}
-                              placeholder="Selecione um cliente (UUID)"
+                              placeholder="Selecione um cliente"
                               searchPlaceholder="Pesquisar cliente..."
                               className="flex-1"
                             />
@@ -193,9 +188,6 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                             </Button>
                           </div>
                         </FormControl>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Selecione o cliente; o id (UUID) será enviado. Crie um novo cliente se necessário.
-                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -212,14 +204,14 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
                     <FormField control={form.control} name="responsibleId" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Responsável Comercial *</FormLabel>
+                        <FormLabel>Responsável Comercial</FormLabel>
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione um funcionário (qualquer um)" />
+                              <SelectValue placeholder="Selecione um responsável" />
                             </SelectTrigger>
                             <SelectContent>
-                              {employeeOptions.map(u => (
+                              {commercialUserOptions.map(u => (
                                 <SelectItem key={u.value} value={u.value}>
                                   {u.label}
                                 </SelectItem>
@@ -227,9 +219,6 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                             </SelectContent>
                           </Select>
                         </FormControl>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Agora pode escolher qualquer funcionário como responsável comercial.
-                        </p>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -238,14 +227,14 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Data Início *</FormLabel>
+                        <FormLabel>Data de Início *</FormLabel>
                         <FormControl><Input type="date" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="startTime" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hora Início *</FormLabel>
+                        <FormLabel>Hora de Início *</FormLabel>
                         <FormControl><Input type="time" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -255,14 +244,14 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="endDate" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Data Fim</FormLabel>
+                        <FormLabel>Data de Fim</FormLabel>
                         <FormControl><Input type="date" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hora Fim</FormLabel>
+                        <FormLabel>Hora de Fim</FormLabel>
                         <FormControl><Input type="time" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -279,7 +268,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                     )} />
                     <FormField control={form.control} name="estimatedValue" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor Estimado (AOA)</FormLabel>
+                        <FormLabel>Valor Estimado</FormLabel>
                         <FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -294,26 +283,26 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
               </Form>
             </div>
 
-            {/* Right: services + pipeline + notes */}
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium mb-2">Serviços Contratados *</h3>
+                <h3 className="text-sm font-medium mb-2">Serviços de Interesse *</h3>
                 <FormField control={form.control} name="serviceIds" render={({ field }) => (
                   <FormControl><MultiSelectServices selected={field.value} onChange={field.onChange} placeholder="Selecione serviços..." /></FormControl>
                 )} />
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Status Inicial *</h3>
+                <h3 className="text-sm font-medium mb-2">Status do Projeto *</h3>
                 <FormField control={form.control} name="pipelineStatus" render={({ field }) => (
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1º Contato">1º Contato</SelectItem>
-                        <SelectItem value="Orçamento">Orçamento</SelectItem>
-                        <SelectItem value="Negociação">Negociação</SelectItem>
-                        <SelectItem value="Confirmado">Confirmado</SelectItem>
+                        {(loadingPhases ? ["1º Contato", "Orçamento", "Negociação", "Confirmado"] : phases.map(p => p.name)).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
