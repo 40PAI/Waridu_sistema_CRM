@@ -3,6 +3,8 @@
 import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
 import CreateProjectModal from "@/components/crm/CreateProjectModal";
+import EditProjectDialog from "@/components/crm/EditProjectDialog";
+import ViewProjectDialog from "@/components/crm/ViewProjectDialog";
 import useEvents from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
@@ -21,6 +23,9 @@ export default function PipelinePage() {
   const [editingProject, setEditingProject] = React.useState<EventProject | null>(null);
   const [viewingProject, setViewingProject] = React.useState<EventProject | null>(null);
 
+  // Refs for columns to enable auto-scroll after creation
+  const columnRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
   const projects: EventProject[] = React.useMemo(() => {
     return (events || [])
       .filter((e) => !!(e as any).pipeline_status)
@@ -37,6 +42,9 @@ export default function PipelinePage() {
         status: e.status ?? "Planejado",
         tags: (e as any).tags ?? [],
         notes: (e as any).notes ?? "",
+        responsible_id: (e as any).responsible_id,
+        pipeline_rank: (e as any).pipeline_rank,
+        updated_at: (e as any).updated_at,
       }));
   }, [events]);
 
@@ -47,13 +55,20 @@ export default function PipelinePage() {
       startDate: updatedProject.startDate,
       endDate: updatedProject.endDate,
       location: updatedProject.location,
+      startTime: undefined,
+      endTime: undefined,
+      revenue: updatedProject.estimated_value,
       status: updatedProject.status,
+      description: updatedProject.notes,
+      roster: undefined,
+      expenses: undefined,
       pipeline_status: updatedProject.pipeline_status,
       estimated_value: updatedProject.estimated_value,
       service_ids: updatedProject.service_ids,
       client_id: updatedProject.client_id,
       notes: updatedProject.notes,
       tags: updatedProject.tags,
+      responsible_id: updatedProject.responsible_id,
       updated_at: new Date().toISOString(),
     };
     await updateEvent(fullEvent);
@@ -69,6 +84,21 @@ export default function PipelinePage() {
     setOpenViewProject(true);
   };
 
+  const handleProjectCreated = (projectId: number) => {
+    // Find the created project to get its status for scrolling
+    const createdProject = projects.find(p => p.id === projectId);
+    if (createdProject) {
+      const status = createdProject.pipeline_status || "1º Contato";
+      // Scroll to the column after a short delay to allow DOM update
+      setTimeout(() => {
+        const columnElement = columnRefs.current[status];
+        if (columnElement) {
+          columnElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 500);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -78,20 +108,33 @@ export default function PipelinePage() {
           Novo Projeto
         </Button>
       </div>
-      {loading ? <p>Carregando...</p> : <PipelineKanban projects={projects} onUpdateProject={handleUpdateProject} onEditProject={handleEditProject} onViewProject={handleViewProject} />}
+      {loading ? <p>Carregando...</p> : <PipelineKanban 
+        projects={projects} 
+        onUpdateProject={handleUpdateProject} 
+        onEditProject={handleEditProject} 
+        onViewProject={handleViewProject}
+        columnRefs={columnRefs}
+      />}
 
       <CreateProjectModal
         open={openCreateProject}
         onOpenChange={setOpenCreateProject}
-        onCreated={(id) => {
-          // optional hook for parent: could be used to navigate or refresh
-          console.log("Project created with id:", id);
-        }}
+        onCreated={handleProjectCreated}
         preselectedClientId={undefined}
       />
 
-      {/* Edit & View dialogs keep existing behavior (not modified in this change) */}
-      {/* Existing EditProjectDialog / ViewProjectDialog usages remain unchanged elsewhere */}
+      <EditProjectDialog
+        open={openEditProject}
+        onOpenChange={setOpenEditProject}
+        project={editingProject}
+        onSave={handleUpdateProject}
+      />
+
+      <ViewProjectDialog
+        open={openViewProject}
+        onOpenChange={setOpenViewProject}
+        project={viewingProject}
+      />
     </div>
   );
 }

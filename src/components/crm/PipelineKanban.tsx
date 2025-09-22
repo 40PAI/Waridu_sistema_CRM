@@ -29,6 +29,7 @@ interface PipelineKanbanProps {
   onUpdateProject?: (p: EventProject) => Promise<void>;
   onEditProject?: (p: EventProject) => void;
   onViewProject?: (p: EventProject) => void;
+  columnRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }
 
 const columns = [
@@ -59,7 +60,7 @@ function getProjectById(list: EventProject[], id: string | number) {
   return list.find(p => String(p.id) === String(id)) || null;
 }
 
-export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
+export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject, columnRefs }: PipelineKanbanProps) {
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<PipelineStatus | null>(null);
   const [localProjects, setLocalProjects] = React.useState<EventProject[]>(projects);
@@ -88,8 +89,8 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
         const ra = Number(a.pipeline_rank ?? 0);
         const rb = Number(b.pipeline_rank ?? 0);
         if (ra !== rb) return ra - rb;
-        const ta = new Date(a.startDate || a.updated_at || 0).getTime();
-        const tb = new Date(b.startDate || b.updated_at || 0).getTime();
+        const ta = new Date(a.updated_at||0).getTime();
+        const tb = new Date(b.updated_at||0).getTime();
         return tb - ta;
       });
     });
@@ -243,38 +244,40 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 overflow-x-auto px-2" style={{ minHeight: 600 }}>
           {columns.map((column) => (
-            <DroppableColumn key={column.id} column={column}>
-              <CardHeader className="pb-3 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-border">
-                <CardTitle className="flex items-center justify-between text-sm font-medium">
-                  {column.title}
-                  <span className="bg-white/80 px-2 py-1 rounded-full text-xs font-semibold">
-                    {projectsByColumn[column.id].length}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 flex-1 overflow-y-auto">
-                <SortableContext items={projectsByColumn[column.id].map((p) => p.id)} strategy={verticalListSortingStrategy}>
-                  {projectsByColumn[column.id].map((project) => (
-                    <div key={project.id} id={String(project.id)} className="mb-3">
-                      <SortableProjectCard
-                        project={project}
-                        onEditClick={onEditProject}
-                        onViewClick={onViewProject}
-                      />
-                      {updating === String(project.id) && (
-                        <div className="text-xs text-muted-foreground mt-1">Atualizando...</div>
-                      )}
-                    </div>
-                  ))}
-                </SortableContext>
+            <div key={column.id} ref={(el) => { if (columnRefs) columnRefs.current[column.id] = el; }}>
+              <DroppableColumn key={column.id} column={column}>
+                <CardHeader className="pb-3 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-border">
+                  <CardTitle className="flex items-center justify-between text-sm font-medium">
+                    {column.title}
+                    <span className="bg-white/80 px-2 py-1 rounded-full text-xs font-semibold">
+                      {projectsByColumn[column.id].length}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 flex-1 overflow-y-auto">
+                  <SortableContext items={projectsByColumn[column.id].map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                    {projectsByColumn[column.id].map((project) => (
+                      <div key={project.id} id={String(project.id)} className="mb-3">
+                        <SortableProjectCard
+                          project={project}
+                          onEditClick={onEditProject}
+                          onViewClick={onViewProject}
+                        />
+                        {updating === String(project.id) && (
+                          <div className="text-xs text-muted-foreground mt-1">Atualizando...</div>
+                        )}
+                      </div>
+                    ))}
+                  </SortableContext>
 
-                {projectsByColumn[column.id].length === 0 && dragOverColumn === column.id && (
-                  <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium bg-primary/5">
-                    Solte aqui
-                  </div>
-                )}
-              </CardContent>
-            </DroppableColumn>
+                  {projectsByColumn[column.id].length === 0 && dragOverColumn === column.id && (
+                    <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium bg-primary/5">
+                      Solte aqui
+                    </div>
+                  )}
+                </CardContent>
+              </DroppableColumn>
+            </div>
           ))}
         </div>
 

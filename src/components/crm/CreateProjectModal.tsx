@@ -1,10 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Combobox } from "@/components/ui/combobox";
@@ -18,10 +22,6 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-
 // UUID regex for basic client/responsible validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -32,8 +32,8 @@ const projectSchema = z.object({
   pipelineStatus: z.enum(["1º Contato", "Orçamento", "Negociação", "Confirmado"], { required_error: "Status é obrigatório" }),
   startDate: z.string().min(1, "Data de início é obrigatória"),
   startTime: z.string().min(1, "Hora de início é obrigatória"),
-  endDate: z.string().optional(),
-  endTime: z.string().optional(),
+  endDate: z.string().min(1, "Data de fim é obrigatória"),
+  endTime: z.string().min(1, "Hora de fim é obrigatória"),
   responsibleId: z.string().min(1, "Responsável comercial é obrigatório").refine((v) => UUID_REGEX.test(v), "Selecione um responsável válido."),
   location: z.string().min(1, "Local é obrigatório"),
   estimatedValue: z.number().min(0).optional(),
@@ -58,7 +58,7 @@ interface CreateProjectModalProps {
 export default function CreateProjectModal({ open, onOpenChange, onCreated, preselectedClientId }: CreateProjectModalProps) {
   const { clients } = useClients();
   const { services } = useServices();
-  const { employees } = useEmployees(); // allow selecting any employee
+  const { employees } = useEmployees(); // Get all employees for responsible dropdown
   const { updateEvent } = useEvents();
   const { user } = useAuth();
 
@@ -104,6 +104,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
+  // Use all employees for responsible dropdown, as per user request
   const employeeOptions = React.useMemo(() => employees.map(e => ({ value: e.id, label: `${e.name} (${e.email})` })), [employees]);
 
   const handleSubmit = async (data: ProjectFormData) => {
@@ -114,7 +115,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     setSaving(true);
 
     const startISO = toISO(data.startDate, data.startTime);
-    const endISO = data.endDate ? toISO(data.endDate, data.endTime || data.startTime) : startISO;
+    const endISO = toISO(data.endDate, data.endTime);
 
     const payload: Record<string, any> = {
       name: data.name,
@@ -177,7 +178,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                     name="clientId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Cliente *</FormLabel>
+                        <FormLabel>Cliente Associado *</FormLabel>
                         <FormControl>
                           <div className="flex gap-2">
                             <Combobox
@@ -216,7 +217,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione um funcionário (qualquer um)" />
+                              <SelectValue placeholder="Selecione um funcionário (UUID)" />
                             </SelectTrigger>
                             <SelectContent>
                               {employeeOptions.map(u => (
@@ -228,7 +229,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                           </Select>
                         </FormControl>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Agora pode escolher qualquer funcionário como responsável comercial.
+                          Escolha o responsável comercial da equipa; será enviado o seu id (UUID). Isto determina a pessoa que ficará como ponto de contacto comercial para este projeto.
                         </p>
                         <FormMessage />
                       </FormItem>
@@ -238,14 +239,14 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Data Início *</FormLabel>
+                        <FormLabel>Data de Início *</FormLabel>
                         <FormControl><Input type="date" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="startTime" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hora Início *</FormLabel>
+                        <FormLabel>Hora de Início *</FormLabel>
                         <FormControl><Input type="time" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -255,14 +256,14 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="endDate" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Data Fim</FormLabel>
+                        <FormLabel>Data de Fim *</FormLabel>
                         <FormControl><Input type="date" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hora Fim</FormLabel>
+                        <FormLabel>Hora de Fim *</FormLabel>
                         <FormControl><Input type="time" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -279,7 +280,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                     )} />
                     <FormField control={form.control} name="estimatedValue" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor Estimado (AOA)</FormLabel>
+                        <FormLabel>Valor Estimado</FormLabel>
                         <FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl>
                         <FormMessage />
                       </FormItem>
@@ -297,14 +298,14 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
             {/* Right: services + pipeline + notes */}
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium mb-2">Serviços Contratados *</h3>
+                <h3 className="text-sm font-medium mb-2">Serviços de Interesse *</h3>
                 <FormField control={form.control} name="serviceIds" render={({ field }) => (
                   <FormControl><MultiSelectServices selected={field.value} onChange={field.onChange} placeholder="Selecione serviços..." /></FormControl>
                 )} />
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Status Inicial *</h3>
+                <h3 className="text-sm font-medium mb-2">Status do Projeto *</h3>
                 <FormField control={form.control} name="pipelineStatus" render={({ field }) => (
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
