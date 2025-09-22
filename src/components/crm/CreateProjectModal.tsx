@@ -20,8 +20,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
-import { useUsers } from "@/hooks/useUsers";
-import usePipelinePhases from "@/hooks/usePipelinePhases";
+// Use relative imports for hooks to avoid alias resolution issues in some TypeScript setups
+import { useUsers } from "../../hooks/useUsers";
+import usePipelinePhases from "../../hooks/usePipelinePhases";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 

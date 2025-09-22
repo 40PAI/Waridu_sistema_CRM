@@ -9,6 +9,7 @@ import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import ResetPasswordPage from "@/pages/ResetPassword";
 import Calendar from "@/pages/Calendar";
+import CreateEventPage from "@/pages/CreateEvent"; // corrected import name
 import RosterManagement from "@/pages/RosterManagement";
 import Employees from "@/pages/Employees";
 import Roles from "@/pages/Roles";
@@ -191,7 +192,7 @@ const AppContent = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Index />} />
             <Route path="/calendar" element={<CalendarWrapper />} />
-            <Route path="/create-event" element={<CreateEvent />} />
+            <Route path="/create-event" element={<CreateEventPage />} />
             <Route path="/roster-management" element={<RosterManagementWrapper />} />
             <Route path="/employees" element={<EmployeesWrapper />} />
             <Route path="/roles" element={<RolesWrapper />} />
