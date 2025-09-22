@@ -134,12 +134,7 @@ export default function PipelinePage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Pipeline</h1>
-        <div>
-          <Button onClick={handleNewProject}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Projeto
-          </Button>
-        </div>
+        {/* The "Novo Projeto" button is now part of the Tabs component */}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
