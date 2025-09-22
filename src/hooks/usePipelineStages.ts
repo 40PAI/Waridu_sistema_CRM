@@ -16,7 +16,7 @@ export interface PipelineStage {
  * - Tries to load stages from pipeline_stages (new table).
  * - Falls back to pipeline_phases (older name) if pipeline_stages doesn't exist or errors.
  * - Normalizes records to PipelineStage shape.
- * - Performs writes against the detected table so the UI works regardless of which table exists.
+ * - Performs writes against the detected table, but will retry on the other table when the first write fails with table-not-found.
  */
 export default function usePipelineStages() {
   const [stages, setStages] = useState<PipelineStage[]>([]);
@@ -50,12 +50,11 @@ export default function usePipelineStages() {
   };
 
   const fetchFromTable = async (table: 'pipeline_stages' | 'pipeline_phases') => {
-    // attempt sensible columns and ordering; tolerate absence of some columns
     try {
       const { data, error } = await supabase
         .from(table)
         .select("*")
-        .order(table === 'pipeline_stages' ? "sort_order" : "sort_order", { ascending: true });
+        .order("sort_order", { ascending: true });
 
       if (error) throw error;
       const rows = data || [];
@@ -74,11 +73,10 @@ export default function usePipelineStages() {
       try {
         const stagesFromNew = await fetchFromTable('pipeline_stages');
         detectedTableRef.current = 'pipeline_stages';
-        // If the table exists but is empty, we still accept it (it exists)
         setStages(stagesFromNew);
         return;
       } catch (errNew) {
-        // If table missing or permission error, fallback quietly to pipeline_phases
+        // fallback quietly
         console.warn("pipeline_stages read failed, falling back to pipeline_phases:", errNew);
       }
 
@@ -106,11 +104,40 @@ export default function usePipelineStages() {
     fetchStages();
   }, [fetchStages]);
 
+  // Helper to detect "table not found" errors from PostgREST
+  const isTableNotFoundError = (err: any) => {
+    if (!err) return false;
+    // Supabase/PostgREST error shape often includes code 'PGRST205' for table not found
+    if (err.code === 'PGRST205') return true;
+    const msg = String(err.message || err);
+    return msg.includes("Could not find the table") || msg.includes("relation") && msg.includes("does not exist");
+  };
+
+  // Generic write helper: try on preferredTable, if table-not-found then try otherTable and update detection
+  const tryWriteWithTableFallback = async (preferredTable: 'pipeline_stages' | 'pipeline_phases', fn: (table: string) => Promise<any>) => {
+    try {
+      return await fn(preferredTable);
+    } catch (err: any) {
+      if (isTableNotFoundError(err)) {
+        const other: 'pipeline_stages' | 'pipeline_phases' = preferredTable === 'pipeline_stages' ? 'pipeline_phases' : 'pipeline_stages';
+        try {
+          const res = await fn(other);
+          // If succeeded on other, update detection
+          detectedTableRef.current = other;
+          return res;
+        } catch (err2: any) {
+          // rethrow original or second error
+          throw err2 || err;
+        }
+      }
+      throw err;
+    }
+  };
+
   const addStage = useCallback(
     async (name: string, opts?: { color?: string }) => {
       try {
         const table = detectedTableRef.current;
-        // compute max order based on current state
         const maxOrder = stages.reduce((m, s) => Math.max(m, Number(s.order ?? 0)), 0);
         const payload: any = {
           name: name.trim(),
@@ -120,16 +147,21 @@ export default function usePipelineStages() {
         };
 
         // adapt payload keys for pipeline_phases (uses active & sort_order)
-        if (table === 'pipeline_phases') {
-          payload.active = payload.is_active;
-          delete payload.is_active;
-        }
+        const writeFn = async (writeTable: string) => {
+          const body = { ...payload };
+          if (writeTable === 'pipeline_phases') {
+            body.active = body.is_active;
+            delete body.is_active;
+          }
+          const { data, error } = await supabase.from(writeTable).insert(body).select().single();
+          if (error) throw error;
+          return data;
+        };
 
-        const { data, error } = await supabase.from(table).insert(payload).select().single();
-        if (error) throw error;
+        const data = await tryWriteWithTableFallback(table, writeFn);
         showSuccess("Fase adicionada com sucesso!");
         await fetchStages();
-        return normalizeRow(data, table);
+        return normalizeRow(data, detectedTableRef.current);
       } catch (err: any) {
         console.error("Error adding pipeline stage:", err);
         const msg = err instanceof Error ? err.message : "Erro ao adicionar fase.";
@@ -146,12 +178,17 @@ export default function usePipelineStages() {
         const table = detectedTableRef.current;
         const updates: any = { name: name.trim() };
         if (opts?.color !== undefined) updates.color = opts.color;
-        // adapt no-op: column names similar (sort_order used separately)
-        const { data, error } = await supabase.from(table).update(updates).eq("id", id).select().single();
-        if (error) throw error;
+
+        const writeFn = async (writeTable: string) => {
+          const { data, error } = await supabase.from(writeTable).update(updates).eq("id", id).select().single();
+          if (error) throw error;
+          return data;
+        };
+
+        const data = await tryWriteWithTableFallback(table, writeFn);
         showSuccess("Fase atualizada com sucesso!");
         await fetchStages();
-        return normalizeRow(data, table);
+        return normalizeRow(data, detectedTableRef.current);
       } catch (err: any) {
         console.error("Error updating pipeline stage:", err);
         const msg = err instanceof Error ? err.message : "Erro ao atualizar fase.";
@@ -166,12 +203,20 @@ export default function usePipelineStages() {
     async (id: string, active: boolean) => {
       try {
         const table = detectedTableRef.current;
-        const updates: any = table === 'pipeline_phases' ? { active } : { is_active: active };
-        const { data, error } = await supabase.from(table).update(updates).eq("id", id).select().single();
-        if (error) throw error;
+        const updatesTableSpecific = (writeTable: string) => {
+          const updates: any = writeTable === 'pipeline_phases' ? { active } : { is_active: active };
+          return supabase.from(writeTable).update(updates).eq("id", id).select().single();
+        };
+
+        const data = await tryWriteWithTableFallback(table, async (t) => {
+          const { data, error } = await updatesTableSpecific(t);
+          if (error) throw error;
+          return data;
+        });
+
         showSuccess(active ? "Fase ativada" : "Fase desativada");
         await fetchStages();
-        return normalizeRow(data, table);
+        return normalizeRow(data, detectedTableRef.current);
       } catch (err: any) {
         console.error("Error toggling pipeline stage active:", err);
         const msg = err instanceof Error ? err.message : "Erro ao alterar status.";
@@ -186,17 +231,18 @@ export default function usePipelineStages() {
     async (orderedIds: string[]) => {
       try {
         const table = detectedTableRef.current;
-        // Persist new sort_order by batching updates
-        const updates = orderedIds.map((id, idx) => {
-          const payload = table === 'pipeline_phases' ? { sort_order: idx + 1 } : { sort_order: idx + 1 };
-          return supabase.from(table).update(payload).eq("id", id);
-        });
-        const results = await Promise.all(updates);
-        const firstErr = results.find((r: any) => r.error);
-        if (firstErr && firstErr.error) throw firstErr.error;
+        const writeFn = async (writeTable: string) => {
+          const updates = orderedIds.map((id, idx) => supabase.from(writeTable).update({ sort_order: idx + 1 }).eq("id", id));
+          const results = await Promise.all(updates);
+          const firstErr = results.find((r: any) => r.error);
+          if (firstErr && firstErr.error) throw firstErr.error;
+          return true;
+        };
+
+        const res = await tryWriteWithTableFallback(table, writeFn);
         showSuccess("Ordem das fases atualizada");
         await fetchStages();
-        return true;
+        return res;
       } catch (err: any) {
         console.error("Error reordering pipeline stages:", err);
         const msg = err instanceof Error ? err.message : "Erro ao reordenar fases.";
