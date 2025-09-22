@@ -28,8 +28,6 @@ const ALLOWED_COLUMNS = new Set([
   "pipeline_status",
   "estimated_value",
   "service_ids",
-  "created_at", -- kept only for select/compat but sanitized before writes below
-  -- "updated_at" intentionally NOT listed: DB manages it via trigger
   "notes",
   "tags",
 ]);
