@@ -32,13 +32,10 @@ export function KanbanColumn({ id, title, color, tasks, onTaskUpdate }: KanbanCo
       </CardHeader>
       <CardContent className="space-y-3">
         <div ref={setNodeRef} className="min-h-[300px]">
-          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          {/* SortableContext gets the ids of items in this column */}
+          <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map((task) => (
-              <KanbanTask
-                key={task.id}
-                task={task}
-                onUpdate={onTaskUpdate}
-              />
+              <KanbanTask key={task.id} task={task} onUpdate={onTaskUpdate} />
             ))}
           </SortableContext>
         </div>

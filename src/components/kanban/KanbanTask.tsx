@@ -32,9 +32,10 @@ export function KanbanTask({ task, onUpdate, isDragging }: KanbanTaskProps) {
     transition,
   };
 
-  const handleStatusToggle = () => {
+  const handleStatusToggle = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (!onUpdate) return;
-    const newStatus = task.status === 'done' ? 'todo' : 'done';
+    const newStatus = task.status === "done" ? "todo" : "done";
     onUpdate(task.id, { status: newStatus });
   };
 
@@ -42,11 +43,12 @@ export function KanbanTask({ task, onUpdate, isDragging }: KanbanTaskProps) {
     <Card
       ref={setNodeRef}
       style={style}
-      className={`cursor-grab active:cursor-grabbing ${
-        isDragging || isSortableDragging ? 'opacity-50 rotate-2' : ''
-      } hover:shadow-md transition-shadow`}
+      className={`cursor-grab active:cursor-grabbing ${isDragging || isSortableDragging ? 'opacity-50 rotate-2' : ''} hover:shadow-md transition-shadow`}
       {...attributes}
       {...listeners}
+      tabIndex={0}
+      role="article"
+      aria-label={`Tarefa: ${task.title}`}
     >
       <CardContent className="p-4">
         <div className="space-y-3">
@@ -60,8 +62,9 @@ export function KanbanTask({ task, onUpdate, isDragging }: KanbanTaskProps) {
                 handleStatusToggle();
               }}
               className="h-6 w-6 p-0"
+              aria-label={task.status === "done" ? "Marcar como não concluída" : "Marcar como concluída"}
             >
-              {task.status === 'done' ? (
+              {task.status === "done" ? (
                 <CheckCircle className="h-4 w-4 text-green-600" />
               ) : (
                 <AlertCircle className="h-4 w-4 text-gray-400" />
@@ -81,7 +84,7 @@ export function KanbanTask({ task, onUpdate, isDragging }: KanbanTaskProps) {
               {format(new Date(task.created_at), "dd/MM", { locale: ptBR })}
             </div>
             <Badge variant="outline" className="text-xs">
-              {task.status === 'todo' ? 'A Fazer' : task.status === 'in_progress' ? 'Em Andamento' : 'Concluído'}
+              {task.status === "todo" ? "A Fazer" : task.status === "in_progress" ? "Em Andamento" : "Concluído"}
             </Badge>
           </div>
         </div>
