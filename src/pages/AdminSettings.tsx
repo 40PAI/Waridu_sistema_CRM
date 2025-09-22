@@ -32,6 +32,8 @@ import CategoryManager from "@/components/settings/CategoryManager";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PipelinePhaseManager from "@/components/settings/PipelinePhaseManager"; // Import the new component
 
 interface Location {
   id: string;
@@ -55,6 +57,7 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
   const userRole = user?.profile?.role;
   const canManageCategories = userRole ? hasActionPermission(userRole, "categories:manage") : false;
   const canManageServices = userRole ? hasActionPermission(userRole, "services:manage") : false;
+  const canManagePipeline = userRole === 'Admin'; // Only Admin can manage pipeline phases
 
   const { services, createService, updateService, deleteService } = useServices();
 
@@ -111,133 +114,152 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1">
-      <div>
-        <RoleManager roles={roles} onAddRole={onAddRole} onUpdateRole={onUpdateRole} onDeleteRole={onDeleteRole} />
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Configurações do Admin</h1>
+      <p className="text-muted-foreground">Gerencie as configurações gerais do sistema, roles, categorias e pipeline.</p>
 
-      <div>
-        <CategoryManager />
-      </div>
+      <Tabs defaultValue="roles">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <TabsTrigger value="roles">Funções</TabsTrigger>
+          <TabsTrigger value="categories">Categorias de Técnicos</TabsTrigger>
+          <TabsTrigger value="locations">Localizações</TabsTrigger>
+          <TabsTrigger value="services">Serviços</TabsTrigger>
+          {canManagePipeline && <TabsTrigger value="pipeline-config">Configuração do Pipeline</TabsTrigger>}
+        </TabsList>
 
-      <div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Localizações de Inventário</CardTitle>
-            <CardDescription>Gerencie os locais onde seus materiais estão armazenados.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex w-full max-w-sm items-center space-x-2">
-              <Input placeholder="Ex: Armazém Central" />
-              <Button onClick={() => {}}>Adicionar</Button>
-            </div>
-            <div className="rounded-md border divide-y">
-              {locations.map(loc => (
-                <div key={loc.id} className="flex items-center justify-between p-3">
-                  <span className="text-sm">{loc.name}</span>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remover localização?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Os materiais nesta localização serão movidos para outra disponível. Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onDeleteLocation(loc.id)}>
-                            Remover
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              ))}
-              {locations.length === 0 && (
-                <div className="p-3 text-sm text-muted-foreground text-center">Nenhuma localização cadastrada.</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="roles">
+          <RoleManager roles={roles} onAddRole={onAddRole} onUpdateRole={onUpdateRole} onDeleteRole={onDeleteRole} />
+        </TabsContent>
 
-      <div>
-        {canManageServices ? (
+        <TabsContent value="categories">
+          <CategoryManager />
+        </TabsContent>
+
+        <TabsContent value="locations">
           <Card>
             <CardHeader>
-              <CardTitle>Gerenciamento de Serviços</CardTitle>
-              <CardDescription>Crie, edite ou remova serviços disponíveis para clientes e projetos.</CardDescription>
+              <CardTitle>Localizações de Inventário</CardTitle>
+              <CardDescription>Gerencie os locais onde seus materiais estão armazenados.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex justify-end">
-                <Button onClick={handleAddService}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Serviço
-                </Button>
+              <div className="flex w-full max-w-sm items-center space-x-2">
+                <Input placeholder="Ex: Armazém Central" />
+                <Button onClick={() => {}}>Adicionar</Button>
               </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {services.map(service => (
-                    <TableRow key={service.id}>
-                      <TableCell className="font-medium">{service.name}</TableCell>
-                      <TableCell>{service.description || "—"}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditService(service)}>
-                          <Edit className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-1" />
+              <div className="rounded-md border divide-y">
+                {locations.map(loc => (
+                  <div key={loc.id} className="flex items-center justify-between p-3">
+                    <span className="text-sm">{loc.name}</span>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remover localização?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Os materiais nesta localização serão movidos para outra disponível. Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDeleteLocation(loc.id)}>
                               Remover
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remover Serviço?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Isso removerá o serviço de todos os clientes e projetos. Tem certeza?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteService(service.id)}>
-                                Remover
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                ))}
+                {locations.length === 0 && (
+                  <div className="p-3 text-sm text-muted-foreground text-center">Nenhuma localização cadastrada.</div>
+                )}
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          <p>Permissão negada para gerenciar serviços.</p>
+        </TabsContent>
+
+        <TabsContent value="services">
+          {canManageServices ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciamento de Serviços</CardTitle>
+                <CardDescription>Crie, edite ou remova serviços disponíveis para clientes e projetos.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex justify-end">
+                  <Button onClick={handleAddService}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Serviço
+                  </Button>
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {services.map(service => (
+                      <TableRow key={service.id}>
+                        <TableCell className="font-medium">{service.name}</TableCell>
+                        <TableCell>{service.description || "—"}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditService(service)}>
+                            <Edit className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="text-destructive">
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Remover
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remover Serviço?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Isso removerá o serviço de todos os clientes e projetos. Tem certeza?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteService(service.id)}>
+                                  Remover
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+              </CardContent>
+            </Card>
+          ) : (
+            <p>Permissão negada para gerenciar serviços.</p>
+          )}
+        </TabsContent>
+
+        {canManagePipeline && (
+          <TabsContent value="pipeline-config">
+            <PipelinePhaseManager />
+          </TabsContent>
         )}
-      </div>
+      </Tabs>
 
       <Card>
         <CardHeader>

@@ -216,3 +216,13 @@ export interface Notification {
   user_id: string;
   created_at: string;
 }
+
+/* Pipeline Phase types */
+export interface PipelinePhase {
+  id: string;
+  name: string;
+  sort_order: number;
+  active: boolean;
+  color?: string;
+  canonical_status?: string;
+}
