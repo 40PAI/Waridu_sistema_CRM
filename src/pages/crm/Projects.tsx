@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
 import { useEvents } from "@/hooks/useEvents";
 import type { EventProject } from "@/types/crm";
@@ -8,16 +7,15 @@ import { MultiSelectServices } from "@/components/MultiSelectServices";
 import { useServices } from "@/hooks/useServices";
 import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import CreateProjectTab from "@/components/crm/CreateProjectTab";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function ProjectsPage() {
-  const { events, fetchEvents } = useEvents();
+  const { events } = useEvents();
   const { services } = useServices();
 
   // service filter (array of service ids)
   const [serviceFilter, setServiceFilter] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'kanban' | 'create'>('kanban');
 
   const allProjects: EventProject[] = events
     .filter((e) => !!e.pipeline_status)
@@ -58,67 +56,43 @@ export default function ProjectsPage() {
         <div />
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList>
-          <TabsTrigger value="kanban">Pipeline</TabsTrigger>
-          <TabsTrigger value="create">Criar Projeto</TabsTrigger>
-        </TabsList>
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+          <CardDescription>Filtre projetos por serviços contratados (seleção múltipla)</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+            <div className="flex-1">
+              <MultiSelectServices selected={serviceFilter} onChange={setServiceFilter} />
+            </div>
+            <div className="flex items-center gap-2 mt-2 md:mt-0">
+              <Button variant="outline" onClick={() => setServiceFilter([])}>Limpar filtros</Button>
+            </div>
+          </div>
 
-        <TabsContent value="kanban">
-          <Card>
-            <CardHeader>
-              <CardTitle>Filtros</CardTitle>
-              <CardDescription>Filtre projetos por serviços contratados (seleção múltipla)</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col md:flex-row md:items-center md:gap-4">
-                <div className="flex-1">
-                  <MultiSelectServices selected={serviceFilter} onChange={setServiceFilter} />
-                </div>
-                <div className="flex items-center gap-2 mt-2 md:mt-0">
-                  <button className="inline-flex items-center px-3 py-1 rounded border" onClick={() => setServiceFilter([])}>Limpar filtros</button>
-                </div>
-              </div>
+          {serviceFilter.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {serviceFilter.map(id => (
+                <Badge key={id} variant="secondary" className="inline-flex items-center gap-2">
+                  <span>{serviceNameById[id] || id}</span>
+                  <button onClick={() => setServiceFilter(prev => prev.filter(x => x !== id))} className="ml-1">
+                    ✕
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-              {serviceFilter.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {serviceFilter.map(id => (
-                    <span key={id} className="px-2 py-1 bg-muted rounded text-sm">
-                      {serviceNameById[id] || id}
-                      <button onClick={() => setServiceFilter(prev => prev.filter(x => x !== id))} className="ml-2">✕</button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <PipelineKanban
-            projects={filteredProjects}
-            onUpdateProject={async (p) => {
-              // The hook useEvents keeps events up to date; parent doesn't need to do more here.
-              // We still trigger fetch to ensure the list updates after server-side changes.
-              await fetchEvents();
-            }}
-            onEditProject={(p) => {
-              // Optionally open an editor; PipelineKanban can handle edits via props if implemented.
-            }}
-            onViewProject={(p) => {
-              // Optionally open a detail view.
-            }}
-          />
-        </TabsContent>
-
-        <TabsContent value="create">
-          <CreateProjectTab
-            onCreated={async (id: number) => {
-              // refresh events and switch back to kanban to show the newly created project
-              await fetchEvents();
-              setActiveTab('kanban');
-            }}
-          />
-        </TabsContent>
-      </Tabs>
+      <PipelineKanban
+        projects={filteredProjects}
+        onUpdateProject={async (p) => {
+          // PipelineKanban persists changes itself to the events table; this handler can be a noop or used for additional side effects.
+          return;
+        }}
+      />
     </div>
   );
 }

@@ -1,17 +1,15 @@
 import { toast } from "sonner";
 
-const DEFAULT_DURATION = 4000; // 4 seconds
-
 export const showSuccess = (message: string) => {
-  toast.success(message, { duration: DEFAULT_DURATION });
+  toast.success(message);
 };
 
 export const showError = (message: string) => {
-  toast.error(message, { duration: DEFAULT_DURATION });
+  toast.error(message);
 };
 
 export const showLoading = (message: string) => {
-  return toast.loading(message, { duration: DEFAULT_DURATION });
+  return toast.loading(message);
 };
 
 export const dismissToast = (toastId: string) => {

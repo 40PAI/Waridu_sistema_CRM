@@ -15,11 +15,14 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { showError, showSuccess } from "@/utils/toast";
+import { DroppableColumn } from "./DroppableColumn";
 import { SortableProjectCard } from "./SortableProjectCard";
-import type { EventProject } from "@/types/crm";
-import { supabase } from "@/integrations/supabase/client";
-import { usePipelinePhases } from "@/hooks/usePipelinePhases";
+import type { EventProject, PipelineStatus } from "@/types/crm";
+import { eventsService } from "@/services";
 
 interface PipelineKanbanProps {
   projects: EventProject[];
@@ -28,12 +31,34 @@ interface PipelineKanbanProps {
   onViewProject?: (p: EventProject) => void;
 }
 
-const slugify = (s?: string) => String(s || "").toLowerCase().replace(/[^a-z0-9-_]/g, "-");
+const columns = [
+  { id: "1º Contato", title: "1º Contato", color: "bg-gray-100 border-gray-200" },
+  { id: "Orçamento", title: "Orçamento", color: "bg-blue-100 border-blue-200" },
+  { id: "Negociação", title: "Negociação", color: "bg-yellow-100 border-yellow-200" },
+  { id: "Confirmado", title: "Confirmado", color: "bg-green-100 border-green-200" },
+  { id: "Cancelado", title: "Cancelado", color: "bg-red-100 border-red-200" },
+] satisfies { id: PipelineStatus; title: string; color: string }[];
+
+const getStatusBadge = (status?: string) => {
+  switch (status) {
+    case "1º Contato": return "bg-gray-100 text-gray-800";
+    case "Orçamento": return "bg-blue-100 text-blue-800";
+    case "Negociação": return "bg-yellow-100 text-yellow-800";
+    case "Confirmado": return "bg-green-100 text-green-800";
+    case "Cancelado": return "bg-red-100 text-red-800";
+    default: return "bg-gray-100 text-gray-800";
+  }
+};
+
+const getOverColumnId = (over: DragOverEvent["over"]) => {
+  if (!over) return null;
+  if (columns.some((c) => c.id === over.id)) return String(over.id) as PipelineStatus;
+  return (over.data?.current as any)?.sortable?.containerId ?? null;
+};
 
 export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
-  const { activePhases, loading } = usePipelinePhases();
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
-  const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = React.useState<PipelineStatus | null>(null);
   const [localProjects, setLocalProjects] = React.useState<EventProject[]>(projects);
   const [updating, setUpdating] = React.useState<string | null>(null);
 
@@ -42,29 +67,25 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const projectsByColumn = React.useMemo(() => {
-    const grouped: Record<string, EventProject[]> = {};
-    activePhases.forEach(p => grouped[p.name] = []);
-    localProjects.forEach(p => {
-      if (!grouped[p.status || ""]) grouped[p.status || ""] = [];
-      grouped[p.status || ""].push(p);
-    });
+    const grouped: Record<PipelineStatus, EventProject[]> = {
+      "1º Contato": [],
+      Orçamento: [],
+      Negociação: [],
+      Confirmado: [],
+      Cancelado: [],
+    };
+    localProjects.forEach((p) => grouped[p.pipeline_status]?.push(p));
     return grouped;
-  }, [localProjects, activePhases]);
-
-  const getOverColumnId = (over: DragOverEvent["over"]) => {
-    if (!over) return null;
-    const raw = over.id ? String(over.id) : (over.data?.current as any)?.sortable?.containerId ?? null;
-    return raw;
-  };
+  }, [localProjects]);
 
   const handleDragStart = (event: any) => {
     const { active } = event;
-    const project = localProjects.find((p) => String(p.id) === String(active.id)) ?? null;
+    const project = localProjects.find((p) => p.id === active.id) ?? null;
     setDraggingProject(project);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const colId = getOverColumnId(event.over);
+    const colId = getOverColumnId(event.over) as PipelineStatus | null;
     setDragOverColumn(colId);
   };
 
@@ -74,85 +95,76 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     setDragOverColumn(null);
     if (!over) return;
 
-    const targetPhaseName = getOverColumnId(over);
-    if (!targetPhaseName) return;
+    const targetColumnId = getOverColumnId(over) as PipelineStatus | null;
+    if (!targetColumnId) return;
 
-    const project = localProjects.find((p) => String(p.id) === String(active.id));
+    const project = localProjects.find((p) => p.id === Number(active.id));
     if (!project) return;
 
-    // Otimista
-    setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, status: targetPhaseName } : p)));
+    // UI optimistic update
+    const previousProjects = localProjects;
+    setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, pipeline_status: targetColumnId } : p)));
     setUpdating(String(project.id));
 
     try {
-      const { error } = await supabase
-        .from("events")
-        .update({ status: targetPhaseName })
-        .eq("id", project.id);
+      // Use eventsService.upsertEvent to ensure payload is sanitized and well-formed
+      const payload: any = {
+        id: project.id,
+        pipeline_status: targetColumnId,
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
-      showSuccess("Fase atualizada.");
+      await eventsService.upsertEvent(payload);
+
+      showSuccess("Projeto movido com sucesso!");
     } catch (error: any) {
-      console.error("Erro ao salvar fase:", error);
-      showError("Erro ao salvar fase.");
-      // revert
-      setLocalProjects(projects);
+      console.error("Error saving pipeline:", error);
+      showError(`Erro ao salvar: ${error?.message || "Tente novamente"}`);
+      // Revert optimistic update
+      setLocalProjects(previousProjects);
     } finally {
       setUpdating(null);
     }
   };
 
-  if (loading) {
-    return <div className="p-4 text-sm text-muted-foreground">Carregando pipeline...</div>;
-  }
-
   return (
     <div className="space-y-4">
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 overflow-x-auto px-2" style={{ minHeight: 600 }}>
-          {activePhases.map((phase) => {
-            const colId = phase.name;
-            const colSlug = slugify(colId);
-            const columnProjects = projectsByColumn[colId] || [];
-            return (
-              <Card key={phase.id} id={colId} className="min-h-[600px] flex flex-col" style={{ backgroundColor: `${phase.color || "#f9fafb"}33` }}>
-                <div id={`pipeline-column-${colSlug}`} className="h-full flex flex-col">
-                  <CardHeader className="pb-3 sticky top-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b">
-                    <CardTitle className="flex items-center justify-between text-sm font-medium">
-                      <span className="flex items-center gap-2">
-                        <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: phase.color || "#e5e7eb" }} />
-                        {phase.name}
-                      </span>
-                      <span className="bg-white/80 px-2 py-1 rounded-full text-xs font-semibold">
-                        {columnProjects.length}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 flex-1 overflow-y-auto" id={phase.name}>
-                    <SortableContext items={columnProjects.map((p) => String(p.id))} strategy={verticalListSortingStrategy}>
-                      {columnProjects.map((project) => (
-                        <div key={project.id} id={`project-${project.id}`} className="mb-3">
-                          <SortableProjectCard
-                            project={project}
-                            onEditClick={onEditProject}
-                            onViewProject={onViewProject}
-                          />
-                          {updating === String(project.id) && (
-                            <div className="text-xs text-muted-foreground mt-1">Atualizando...</div>
-                          )}
-                        </div>
-                      ))}
-                    </SortableContext>
-                    {columnProjects.length === 0 && dragOverColumn === phase.name && (
-                      <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium bg-primary/5">
-                        Solte aqui
-                      </div>
-                    )}
-                  </CardContent>
-                </div>
-              </Card>
-            );
-          })}
+          {columns.map((column) => (
+            <DroppableColumn key={column.id} column={column}>
+              <CardHeader className="pb-3 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-border">
+                <CardTitle className="flex items-center justify-between text-sm font-medium">
+                  {column.title}
+                  <span className="bg-white/80 px-2 py-1 rounded-full text-xs font-semibold">
+                    {projectsByColumn[column.id].length}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 flex-1 overflow-y-auto">
+                <SortableContext items={projectsByColumn[column.id].map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                  {projectsByColumn[column.id].map((project) => (
+                    <div key={project.id} id={String(project.id)} className="mb-3">
+                      <SortableProjectCard
+                        project={project}
+                        onEditClick={onEditProject}
+                        onViewClick={onViewProject}
+                      />
+                      {updating === String(project.id) && (
+                        <div className="text-xs text-muted-foreground mt-1">Atualizando...</div>
+                      )}
+                    </div>
+                  ))}
+                </SortableContext>
+
+                {projectsByColumn[column.id].length === 0 && dragOverColumn === column.id && (
+                  <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium bg-primary/5">
+                    Solte aqui
+                  </div>
+                )}
+              </CardContent>
+            </DroppableColumn>
+          ))}
         </div>
 
         <DragOverlay>
@@ -161,8 +173,9 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
               <CardContent>
                 <h3 className="font-semibold text-sm truncate">{draggingProject.name}</h3>
                 <div className="text-xs text-muted-foreground">
-                  {/* Mantém simples no overlay */}
+                  Início: {draggingProject.startDate ? format(new Date(draggingProject.startDate), "dd/MM/yyyy", { locale: ptBR }) : "—"}
                 </div>
+                <Badge className={getStatusBadge(draggingProject.pipeline_status)}>{draggingProject.pipeline_status}</Badge>
               </CardContent>
             </Card>
           ) : null}

@@ -45,14 +45,10 @@ import CRMDashboard from "@/pages/crm/Dashboard";
 import ClientsPage from "@/pages/crm/Clients";
 import PipelinePage from "@/pages/crm/Pipeline";
 import CRMReports from "@/pages/crm/Reports";
-import ProjectsPage from "@/pages/crm/Projects";
 import AdminServicesPage from "@/pages/admin/Services";
 import CommercialServicesPage from "@/pages/commercial/Services";
 
-// NEW: Pipeline config admin
-import PipelineConfigPage from "@/pages/admin/PipelineConfig";
-
-// Hooks for data to pass into route components
+// Hooks for wrappers
 import { useEvents } from "@/hooks/useEvents";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useLocations } from "@/hooks/useLocations";
@@ -61,53 +57,148 @@ import { useMaterialRequests } from "@/hooks/useMaterialRequests";
 import { useRoles } from "@/hooks/useRoles";
 import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 
+// Wrappers to provide required props
+const CalendarWrapper = () => {
+  const { events } = useEvents();
+  return <Calendar events={events} />;
+};
+
+const RosterManagementWrapper = () => {
+  const { events, updateEventDetails, updateEvent } = useEvents();
+  const { employees } = useEmployees();
+  const { materials: invMaterials } = useMaterials();
+  const { pendingRequests, createMaterialRequest } = useMaterialRequests();
+  return (
+    <RosterManagement
+      events={events}
+      employees={employees}
+      onUpdateEventDetails={updateEventDetails}
+      onUpdateEvent={updateEvent}
+      onCreateMaterialRequest={createMaterialRequest}
+      pendingRequests={pendingRequests}
+      materials={invMaterials}
+    />
+  );
+};
+
+const EmployeesWrapper = () => {
+  const { roles } = useRoles();
+  const { employees, saveEmployee } = useEmployees();
+  return <Employees roles={roles} employees={employees} onSaveEmployee={saveEmployee} />;
+};
+
+const RolesWrapper = () => {
+  const { roles } = useRoles();
+  const { employees } = useEmployees();
+  const { events } = useEvents();
+  return <Roles roles={roles} employees={employees} events={events} />;
+};
+
+const RoleDetailWrapper = () => {
+  const { roles } = useRoles();
+  const { employees } = useEmployees();
+  const { events } = useEvents();
+  return <RoleDetail roles={roles} employees={employees} events={events} />;
+};
+
+const MaterialsWrapper = () => {
+  const { materials, addInitialStock, saveMaterial, transferMaterial, deleteMaterial } = useMaterials();
+  const { locations } = useLocations();
+  const { pendingRequests } = useMaterialRequests();
+  return (
+    <Materials
+      materials={materials}
+      locations={locations}
+      onSaveMaterial={saveMaterial}
+      onAddInitialStock={addInitialStock}
+      onTransferMaterial={transferMaterial}
+      onDeleteMaterial={deleteMaterial}
+      history={[]}
+      pendingRequests={pendingRequests}
+    />
+  );
+};
+
+const MaterialRequestsWrapper = () => {
+  const { materialRequests, approveMaterialRequest, rejectMaterialRequest } = useMaterialRequests();
+  const { events } = useEvents();
+  const { materials } = useMaterials();
+  const materialNameMap = React.useMemo(
+    () => materials.reduce<Record<string, string>>((acc, m) => { acc[m.id] = m.name; return acc; }, {}),
+    [materials]
+  );
+  return (
+    <MaterialRequests
+      requests={materialRequests}
+      events={events}
+      materialNameMap={materialNameMap}
+      onApproveRequest={approveMaterialRequest}
+      onRejectRequest={rejectMaterialRequest}
+    />
+  );
+};
+
+const AdminSettingsWrapper = () => {
+  const { roles, addRole, updateRole, deleteRole } = useRoles();
+  const { locations, addLocation, updateLocation, deleteLocation } = useLocations();
+  return (
+    <AdminSettings
+      roles={roles}
+      onAddRole={addRole}
+      onUpdateRole={updateRole}
+      onDeleteRole={deleteRole}
+      locations={locations}
+      onAddLocation={addLocation}
+      onUpdateLocation={updateLocation}
+      onDeleteLocation={deleteLocation}
+    />
+  );
+};
+
+const ProfitabilityWrapper = () => {
+  return <Profitability />;
+};
+
+const FinanceCalendarWrapper = () => {
+  const { events } = useEvents();
+  return <FinanceCalendar events={events} />;
+};
+
+const CostManagementWrapper = () => {
+  return <CostManagement />;
+};
+
 const AppContent = () => {
   const { user, loading } = useAuth();
-
-  // Data hooks used to supply props to pages
-  const { events, fetchEvents } = useEvents();
-  const { employees, saveEmployee } = useEmployees();
-  const { roles, addRole, updateRole, deleteRole } = useRoles();
-  const { materials, rawMaterials, saveMaterial, addInitialStock, transferMaterial, deleteMaterial } = useMaterials();
-  const { locations, addLocation, updateLocation, deleteLocation } = useLocations();
-  const {
-    materialRequests,
-    pendingRequests,
-    approveMaterialRequest,
-    rejectMaterialRequest,
-    refreshRequests,
-  } = useMaterialRequests();
-  const { refreshCategories } = useTechnicianCategories?.() || {};
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // helper maps
-  const materialNameMap: Record<string, string> = React.useMemo(() => {
-    const map: Record<string, string> = {};
-    (rawMaterials || []).forEach((m: any) => { map[m.id] = m.name; });
-    return map;
-  }, [rawMaterials]);
-
   return (
     <Router>
       <div className="min-h-screen bg-background">
         <Routes>
-          {/* legacy redirect to keep old links working */}
-          <Route path="/admin-settings" element={<Navigate to="/admin/settings" replace />} />
-
-          {/* public */}
+          {/* Rotas públicas - SEM autenticação */}
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/health-check" element={<HealthCheck />} />
           <Route path="/debug" element={<Debug />} />
 
-          {/* protected */}
+          {/* Rotas protegidas - COM autenticação */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Index />} />
+            <Route path="/calendar" element={<CalendarWrapper />} />
+            <Route path="/roster-management" element={<RosterManagementWrapper />} />
+            <Route path="/employees" element={<EmployeesWrapper />} />
+            <Route path="/roles" element={<RolesWrapper />} />
+            <Route path="/roles/:roleId" element={<RoleDetailWrapper />} />
+            <Route path="/materials" element={<MaterialsWrapper />} />
+            <Route path="/material-requests" element={<MaterialRequestsWrapper />} />
+            <Route path="/admin-settings" element={<AdminSettingsWrapper />} />
+            <Route path="/invite-member" element={<InviteMember />} />
 
-            {/* Technician */}
+            {/* Técnico */}
             <Route path="/technician/dashboard" element={<TechnicianDashboard />} />
             <Route path="/technician/calendar" element={<TechnicianCalendar />} />
             <Route path="/technician/events" element={<TechnicianEvents />} />
@@ -117,101 +208,32 @@ const AppContent = () => {
             <Route path="/technician/profile" element={<TechnicianProfile />} />
             <Route path="/technician/notifications" element={<TechnicianNotifications />} />
 
-            {/* Admin / Core - supply required props from hooks */}
-            <Route
-              path="/employees"
-              element={
-                <Employees
-                  roles={roles || []}
-                  employees={employees || []}
-                  onSaveEmployee={saveEmployee}
-                />
-              }
-            />
-            <Route
-              path="/roles"
-              element={<Roles roles={roles || []} employees={employees || []} events={events || []} />}
-            />
-            <Route
-              path="/roles/:roleId"
-              element={<RoleDetail roles={roles || []} employees={employees || []} events={events || []} />}
-            />
+            {/* Financeiro */}
+            <Route path="/finance/dashboard" element={<FinanceDashboard />} />
+            <Route path="/finance/profile" element={<FinanceProfile />} />
+            <Route path="/finance-profitability" element={<ProfitabilityWrapper />} />
+            <Route path="/finance-calendar" element={<FinanceCalendarWrapper />} />
+            <Route path="/finance-costs" element={<CostManagementWrapper />} />
+            <Route path="/finance/reports" element={<Reports />} />
 
-            <Route
-              path="/materials"
-              element={
-                <Materials
-                  materials={materials || []}
-                  locations={locations || []}
-                  onSaveMaterial={saveMaterial}
-                  onAddInitialStock={addInitialStock}
-                  onTransferMaterial={transferMaterial}
-                  onDeleteMaterial={deleteMaterial}
-                  history={[]}
-                  pendingRequests={pendingRequests || []}
-                />
-              }
-            />
+            {/* Gestor de Material */}
+            <Route path="/material-manager/profile" element={<MaterialManagerProfile />} />
 
-            <Route
-              path="/material-requests"
-              element={
-                <MaterialRequests
-                  requests={materialRequests || []}
-                  events={events || []}
-                  materialNameMap={materialNameMap}
-                  onApproveRequest={approveMaterialRequest}
-                  onRejectRequest={rejectMaterialRequest}
-                />
-              }
-            />
-
-            <Route
-              path="/admin/settings"
-              element={
-                <AdminSettings
-                  roles={roles || []}
-                  onAddRole={addRole}
-                  onUpdateRole={updateRole}
-                  onDeleteRole={deleteRole}
-                  locations={locations || []}
-                  onAddLocation={addLocation}
-                  onUpdateLocation={updateLocation}
-                  onDeleteLocation={deleteLocation}
-                />
-              }
-            />
-
-            <Route path="/invite-member" element={<InviteMember />} />
+            {/* Admin */}
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/tasks" element={<AdminTasks />} />
             <Route path="/admin/create-task" element={<CreateTask />} />
-
-            {/* Finance */}
-            <Route path="/finance/dashboard" element={<FinanceDashboard />} />
-            <Route path="/finance/profile" element={<FinanceProfile />} />
-            <Route path="/finance-profitability" element={<Profitability />} />
-            <Route path="/finance-calendar" element={<FinanceCalendar events={events || [] } />} />
-            <Route path="/finance-costs" element={<CostManagement />} />
-            <Route path="/finance/reports" element={<Reports />} />
-
-            {/* Notifications & material manager */}
             <Route path="/notifications" element={<Notifications />} />
-            <Route path="/material-manager/profile" element={<MaterialManagerProfile />} />
-
-            {/* CRM routes */}
-            <Route path="/crm/dashboard" element={<CRMDashboard />} />
-            <Route path="/crm/pipeline" element={<PipelinePage />} />
-            <Route path="/crm/projects" element={<ProjectsPage />} />
-            <Route path="/crm/clients" element={<ClientsPage />} />
-            <Route path="/crm/reports" element={<CRMReports />} />
-
-            {/* Services (commercial & admin) */}
-            <Route path="/commercial/services" element={<CommercialServicesPage />} />
             <Route path="/admin/services" element={<AdminServicesPage />} />
 
-            {/* Admin Pipeline configuration */}
-            <Route path="/admin/pipeline-config" element={<PipelineConfigPage />} />
+            {/* CRM */}
+            <Route path="/crm/dashboard" element={<CRMDashboard />} />
+            <Route path="/crm/clients" element={<ClientsPage />} />
+            <Route path="/crm/pipeline" element={<PipelinePage />} />
+            <Route path="/crm/reports" element={<CRMReports />} />
+
+            {/* Commercial read-only services */}
+            <Route path="/commercial/services" element={<CommercialServicesPage />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

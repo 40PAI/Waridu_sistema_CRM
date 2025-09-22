@@ -10,9 +10,6 @@ import type { Event } from "@/types";
 import { parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 
 const getMaterialStatusVariant = (status: string) => {
   switch (status) {
@@ -55,7 +52,6 @@ const MaterialStatusList = ({ materials }: { materials: any[] }) => {
 const Dashboard = () => {
   const { events } = useEvents();
   const { materials: pageMaterials } = useMaterials();
-  const { user } = useAuth();
 
   const totalItems = useMemo(() => pageMaterials.reduce((sum, item) => sum + item.quantity, 0), [pageMaterials]);
   const availableItems = useMemo(() => pageMaterials.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0), [pageMaterials]);
@@ -109,24 +105,6 @@ const Dashboard = () => {
 
   return (
     <div className="flex-1 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Painel</h1>
-          <p className="text-sm text-muted-foreground">Visão geral rápida</p>
-        </div>
-
-        {/* Quick Admin Settings access for Admin users */}
-        <div>
-          {user?.profile?.role === 'Admin' && (
-            <div className="flex items-center gap-2">
-              <Button asChild>
-                <Link to="/admin/settings">Configurações Admin</Link>
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
