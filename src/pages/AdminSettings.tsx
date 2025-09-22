@@ -34,6 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PipelinePhaseManager from "@/components/settings/PipelinePhaseManager"; // Import the new component
+import { GeneralApiSettings } from "@/components/settings/GeneralApiSettings"; // Import the new component
 
 interface Location {
   id: string;
@@ -166,12 +167,13 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
       <p className="text-muted-foreground">Gerencie as configurações gerais do sistema, roles, categorias e pipeline.</p>
 
       <Tabs defaultValue="roles">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           <TabsTrigger value="roles">Funções</TabsTrigger>
           <TabsTrigger value="categories">Categorias de Técnicos</TabsTrigger>
           <TabsTrigger value="locations">Localizações</TabsTrigger>
           <TabsTrigger value="services">Serviços</TabsTrigger>
           {canManagePipeline && <TabsTrigger value="pipeline-config">Configuração do Pipeline</TabsTrigger>}
+          <TabsTrigger value="general">Geral</TabsTrigger> {/* New tab for general settings */}
         </TabsList>
 
         <TabsContent value="roles">
@@ -318,52 +320,11 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
             <PipelinePhaseManager />
           </TabsContent>
         )}
+
+        <TabsContent value="general">
+          <GeneralApiSettings />
+        </TabsContent>
       </Tabs>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Configurações Gerais</CardTitle>
-          <CardDescription>Gerencie as configurações gerais do sistema.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between space-x-2">
-            <Label htmlFor="maintenance-mode" className="flex flex-col space-y-1">
-              <span>Modo de Manutenção</span>
-              <span className="font-normal leading-snug text-muted-foreground">
-                Desative o acesso público ao site para manutenção.
-              </span>
-            </Label>
-            <Switch id="maintenance-mode" />
-          </div>
-          <div className="flex items-center justify-between space-x-2">
-            <Label htmlFor="user-registration" className="flex flex-col space-y-1">
-              <span>Permitir Registro de Usuários</span>
-              <span className="font-normal leading-snug text-muted-foreground">
-                Permita que novos usuários se cadastrem na plataforma.
-              </span>
-            </Label>
-            <Switch id="user-registration" defaultChecked />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Configurações de API</CardTitle>
-          <CardDescription>Gerencie suas chaves de API para integrações.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="api-key">Chave da API</Label>
-            <Input id="api-key" defaultValue="******************" readOnly />
-          </div>
-          <div>
-            <Label htmlFor="secret-key">Chave Secreta</Label>
-            <Input id="secret-key" defaultValue="******************" readOnly />
-          </div>
-          <Button>Gerar Novas Chaves</Button>
-        </CardContent>
-      </Card>
 
       {/* Modal para criar/editar serviço */}
       <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
