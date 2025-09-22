@@ -5,7 +5,7 @@ export type PipelineStatus =
   | "Confirmado"
   | "Cancelado";
 
-export type EventProject = {
+export interface EventProject {
   id: number;
   name: string;
   client_id?: string;
@@ -20,7 +20,11 @@ export type EventProject = {
   notes?: string;
   // Add responsible_id so forms and dialogs can set/read the commercial responsible user
   responsible_id?: string;
-};
+  // Add pipeline_rank for sorting in Kanban
+  pipeline_rank?: number;
+  // Add updated_at for sorting fallback
+  updated_at?: string;
+}
 
 export type CreatePayload = {
   name: string;
