@@ -167,14 +167,16 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
       <p className="text-muted-foreground">Gerencie as configurações gerais do sistema, roles, categorias e pipeline.</p>
 
       <Tabs defaultValue="roles">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-          <TabsTrigger value="roles">Funções</TabsTrigger>
-          <TabsTrigger value="categories">Categorias de Técnicos</TabsTrigger>
-          <TabsTrigger value="locations">Localizações</TabsTrigger>
-          <TabsTrigger value="services">Serviços</TabsTrigger>
-          {canManagePipeline && <TabsTrigger value="pipeline-config">Configuração do Pipeline</TabsTrigger>}
-          <TabsTrigger value="general">Geral</TabsTrigger> {/* New tab for general settings */}
-        </TabsList>
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="w-max">
+            <TabsTrigger value="roles">Funções</TabsTrigger>
+            <TabsTrigger value="categories">Categorias de Técnicos</TabsTrigger>
+            <TabsTrigger value="locations">Localizações</TabsTrigger>
+            <TabsTrigger value="services">Serviços</TabsTrigger>
+            {canManagePipeline && <TabsTrigger value="pipeline-config">Configuração do Pipeline</TabsTrigger>}
+            <TabsTrigger value="general">Geral</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="roles">
           <RoleManager roles={roles} onAddRole={onAddRole} onUpdateRole={onUpdateRole} onDeleteRole={onDeleteRole} />
