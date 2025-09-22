@@ -5,13 +5,10 @@ import {
   DndContext,
   DragEndEvent,
   DragOverEvent,
-  DragStartEvent,
+  DragOverlay,
   PointerSensor,
-  KeyboardSensor,
   useSensor,
   useSensors,
-  DragOverlay,
-  closestCorners,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -21,11 +18,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { handleReorder } from "@/lib/pipeline/reorder";
-import { eventsService } from "@/services/eventsService";
-import { createPortal } from "react-dom";
+import { showError, showSuccess } from "@/utils/toast";
 import { DroppableColumn } from "./DroppableColumn";
 import { SortableProjectCard } from "./SortableProjectCard";
+import type { EventProject, PipelineStatus } from "@/types/crm";
+import { eventsService } from "@/services";
+
+interface PipelineKanbanProps {
+  projects: EventProject[];
+  onUpdateProject: (p: EventProject) => Promise<void>;
+  onEditProject?: (p: EventProject) => void;
+  onViewProject?: (p: EventProject) => void;
+}
 
 const columns = [
   { id: "1º Contato", title: "1º Contato", color: "bg-gray-100 border-gray-200" },
@@ -33,36 +37,55 @@ const columns = [
   { id: "Negociação", title: "Negociação", color: "bg-yellow-100 border-yellow-200" },
   { id: "Confirmado", title: "Confirmado", color: "bg-green-100 border-green-200" },
   { id: "Cancelado", title: "Cancelado", color: "bg-red-100 border-red-200" },
-] as const;
+] satisfies { id: PipelineStatus; title: string; color: string }[];
 
-export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: any) {
-  const [draggingProject, setDraggingProject] = React.useState<any | null>(null);
-  const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
-  const [localProjects, setLocalProjects] = React.useState<any[]>(projects);
+const getStatusBadge = (status?: string) => {
+  switch (status) {
+    case "1º Contato": return "bg-gray-100 text-gray-800";
+    case "Orçamento": return "bg-blue-100 text-blue-800";
+    case "Negociação": return "bg-yellow-100 text-yellow-800";
+    case "Confirmado": return "bg-green-100 text-green-800";
+    case "Cancelado": return "bg-red-100 text-red-800";
+    default: return "bg-gray-100 text-gray-800";
+  }
+};
+
+const getOverColumnId = (over: DragOverEvent["over"]) => {
+  if (!over) return null;
+  if (columns.some((c) => c.id === over.id)) return String(over.id) as PipelineStatus;
+  return (over.data?.current as any)?.sortable?.containerId ?? null;
+};
+
+export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
+  const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
+  const [dragOverColumn, setDragOverColumn] = React.useState<PipelineStatus | null>(null);
+  const [localProjects, setLocalProjects] = React.useState<EventProject[]>(projects);
   const [updating, setUpdating] = React.useState<string | null>(null);
 
   React.useEffect(() => setLocalProjects(projects), [projects]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor)
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  const isColumnId = (id: string) => columns.some((c) => c.id === id);
-  const columnByProjectId = (id: string) => localProjects.find((p) => p.id === id)?.pipeline_status ?? null;
-  const resolveTargetStatus = (overId: string) => {
-    if (isColumnId(overId)) return overId;
-    return columnByProjectId(overId);
-  };
+  const projectsByColumn = React.useMemo(() => {
+    const grouped: Record<PipelineStatus, EventProject[]> = {
+      "1º Contato": [],
+      Orçamento: [],
+      Negociação: [],
+      Confirmado: [],
+      Cancelado: [],
+    };
+    localProjects.forEach((p) => grouped[p.pipeline_status]?.push(p));
+    return grouped;
+  }, [localProjects]);
 
   const handleDragStart = (event: any) => {
     const { active } = event;
-    const proj = localProjects.find((p) => String(p.id) === String(active.id)) || null;
-    setDraggingProject(proj);
+    const project = localProjects.find((p) => p.id === active.id) ?? null;
+    setDraggingProject(project);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const colId = resolveTargetStatus(String(event.over?.id ?? ""));
+    const colId = getOverColumnId(event.over) as PipelineStatus | null;
     setDragOverColumn(colId);
   };
 
@@ -72,70 +95,33 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     setDragOverColumn(null);
     if (!over) return;
 
-    const activeId = String(active.id);
-    const overId = String(over.id);
+    const targetColumnId = getOverColumnId(over) as PipelineStatus | null;
+    if (!targetColumnId) return;
 
-    // Optimistic UI update: modify localProjects immediately to reflect change in UI
-    const fromStatus = columnByProjectId(activeId);
-    const toStatus = resolveTargetStatus(overId);
-    if (!fromStatus || !toStatus) return;
+    const project = localProjects.find((p) => p.id === Number(active.id));
+    if (!project) return;
 
-    // Build column arrays
-    const fromList = localProjects.filter((t) => t.pipeline_status === fromStatus).sort((a,b)=> (Number(a.pipeline_position)||0)-(Number(b.pipeline_position)||0));
-    const toList = localProjects.filter((t) => t.pipeline_status === toStatus).sort((a,b)=> (Number(a.pipeline_position)||0)-(Number(b.pipeline_position)||0));
+    // UI optimistic update
+    const previousProjects = localProjects;
+    setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, pipeline_status: targetColumnId } : p)));
+    setUpdating(String(project.id));
 
-    const oldIndex = fromList.findIndex((t) => String(t.id) === activeId);
-    const overIndex = isColumnId(overId) ? -1 : toList.findIndex((t) => String(t.id) === overId);
-    const newIndex = overIndex === -1 ? toList.length : overIndex;
-
-    // Apply optimistic change locally
-    setLocalProjects((prev) => {
-      const copy = prev.slice();
-      // remove active
-      const activeItemIndex = copy.findIndex((c) => String(c.id) === activeId);
-      if (activeItemIndex === -1) return prev;
-      const [item] = copy.splice(activeItemIndex, 1);
-      item.pipeline_status = toStatus;
-      // compute insertion index in copy
-      // find insertion index as index of first item in copy with pipeline_status === toStatus at position newIndex
-      const currentTo = copy.filter(c => c.pipeline_status === toStatus);
-      let insertAt = copy.findIndex((c) => c.pipeline_status === toStatus);
-      if (insertAt === -1) {
-        // append to end
-        copy.push(item);
-      } else {
-        // find the exact position among toStatus items
-        let count = 0;
-        let idx = insertAt;
-        while (idx < copy.length && count < newIndex && copy[idx].pipeline_status === toStatus) {
-          idx++;
-          count++;
-        }
-        copy.splice(idx, 0, item);
-      }
-      return copy;
-    });
-
-    // Persist ordering to DB with helper
     try {
-      setUpdating(activeId);
-      await handleReorder({
-        allItems: localProjects.map(p => ({
-          id: String(p.id),
-          pipeline_status: p.pipeline_status,
-          pipeline_position: Number(p.pipeline_position || 0),
-        })),
-        activeId: activeId,
-        overId: overId,
-        isColumnId: (id: string) => isColumnId(id),
-        resolveTargetStatus: (id: string) => resolveTargetStatus(id) ?? "",
-      });
+      // Use eventsService.upsertEvent to ensure payload is sanitized and well-formed
+      const payload: any = {
+        id: project.id,
+        pipeline_status: targetColumnId,
+        updated_at: new Date().toISOString(),
+      };
 
-      // Optionally refetch or leave optimistic local state; upstream hooks may refresh later.
-    } catch (err) {
-      console.error("Error persisting pipeline order:", err);
-      // Revert local state by resetting from props
-      setLocalProjects(projects);
+      await eventsService.upsertEvent(payload);
+
+      showSuccess("Projeto movido com sucesso!");
+    } catch (error: any) {
+      console.error("Error saving pipeline:", error);
+      showError(`Erro ao salvar: ${error?.message || "Tente novamente"}`);
+      // Revert optimistic update
+      setLocalProjects(previousProjects);
     } finally {
       setUpdating(null);
     }
@@ -143,13 +129,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
 
   return (
     <div className="space-y-4">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 overflow-x-auto px-2" style={{ minHeight: 600 }}>
           {columns.map((column) => (
             <DroppableColumn key={column.id} column={column}>
@@ -157,13 +137,13 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
                 <CardTitle className="flex items-center justify-between text-sm font-medium">
                   {column.title}
                   <span className="bg-white/80 px-2 py-1 rounded-full text-xs font-semibold">
-                    {localProjects.filter(p => p.pipeline_status === column.id).length}
+                    {projectsByColumn[column.id].length}
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 flex-1 overflow-y-auto">
-                <SortableContext items={localProjects.filter(p => p.pipeline_status === column.id).map(p => p.id)} strategy={verticalListSortingStrategy}>
-                  {localProjects.filter(p => p.pipeline_status === column.id).map((project) => (
+                <SortableContext items={projectsByColumn[column.id].map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                  {projectsByColumn[column.id].map((project) => (
                     <div key={project.id} id={String(project.id)} className="mb-3">
                       <SortableProjectCard
                         project={project}
@@ -177,7 +157,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
                   ))}
                 </SortableContext>
 
-                {localProjects.filter(p => p.pipeline_status === column.id).length === 0 && dragOverColumn === column.id && (
+                {projectsByColumn[column.id].length === 0 && dragOverColumn === column.id && (
                   <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium bg-primary/5">
                     Solte aqui
                   </div>
@@ -187,16 +167,20 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
           ))}
         </div>
 
-        {/* DragOverlay in portal */}
-        {typeof document !== "undefined" ? createPortal(
-          <DragOverlay>
-            {draggingProject ? <SortableProjectCard project={draggingProject} /> : null}
-          </DragOverlay>,
-          document.body
-        ) : null}
+        <DragOverlay>
+          {draggingProject ? (
+            <Card className="shadow-2xl p-3 bg-white rounded-md w-64 border-2 border-primary">
+              <CardContent>
+                <h3 className="font-semibold text-sm truncate">{draggingProject.name}</h3>
+                <div className="text-xs text-muted-foreground">
+                  Início: {draggingProject.startDate ? format(new Date(draggingProject.startDate), "dd/MM/yyyy", { locale: ptBR }) : "—"}
+                </div>
+                <Badge className={getStatusBadge(draggingProject.pipeline_status)}>{draggingProject.pipeline_status}</Badge>
+              </CardContent>
+            </Card>
+          ) : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );
 }
-
-export default PipelineKanban;
