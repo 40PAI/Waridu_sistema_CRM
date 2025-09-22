@@ -185,35 +185,56 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
         }
       });
       // Append newDest at end of result where appropriate — a simple approach keeps other columns intact, and places destination column items grouped
-      // For display purposes this is acceptable; ordering across columns is determined by pipeline_status grouping.
-      // We'll append destination column items at the end (UI groups by column anyway).
       return result.concat(newDest);
     });
 
-    // Single RPC call to persist change: p_event_id, p_new_status, p_before_id, p_after_id
+    // Single RPC call to persist change: try rpc_move_event then fallback to rpc_move_event_json (robust to signature/casting)
     setUpdating(String(activeProject.id));
     try {
+      // First try direct RPC (named params) - this is efficient when signatures match
       const rpcRes = await supabase.rpc('rpc_move_event', {
-        p_event_id: Number(activeProject.id),
+        p_event_id: activeProject.id,
         p_new_status: toStatus,
-        p_before_id: beforeId ? Number(beforeId) : null,
-        p_after_id: afterId ? Number(afterId) : null,
+        p_before_id: beforeId ?? null,
+        p_after_id: afterId ?? null,
       });
 
       if (rpcRes.error) {
         throw rpcRes.error;
       }
-
-      // success
       setUpdating(null);
       showSuccess("Projeto movido com sucesso!");
-      // Note: the app may rely on realtime or an explicit fetch elsewhere to reconcile final DB state.
     } catch (err: any) {
-      console.error("rpc_move_event error", err);
-      showError("Erro ao mover projeto. A posição foi revertida.");
-      // rollback optimistic update
-      setLocalProjects(previousLocal);
-      setUpdating(null);
+      const msg = (err && (err.message || String(err))) || "";
+      const isNotFound = /could not find the function/i.test(msg) || /pgrst202/i.test(msg) || /function .* does not exist/i.test(msg);
+
+      if (isNotFound) {
+        console.warn("rpc_move_event not found or signature mismatch, retrying with rpc_move_event_json (fallback).", msg);
+        try {
+          const payload = {
+            event_id: String(activeProject.id),
+            new_status: toStatus,
+            before_id: beforeId ? String(beforeId) : null,
+            after_id: afterId ? String(afterId) : null,
+          };
+          const jsonRes = await supabase.rpc('rpc_move_event_json', { payload });
+          if (jsonRes.error) {
+            throw jsonRes.error;
+          }
+          setUpdating(null);
+          showSuccess("Projeto movido com sucesso (via JSON wrapper)!");
+        } catch (err2: any) {
+          console.error('rpc_move_event_json error', err2);
+          showError('Erro ao mover projeto (fallback JSON). A posição foi revertida.');
+          setLocalProjects(previousLocal);
+          setUpdating(null);
+        }
+      } else {
+        console.error('rpc_move_event error', err);
+        showError('Erro ao mover projeto. A posição foi revertida.');
+        setLocalProjects(previousLocal);
+        setUpdating(null);
+      }
     }
   };
 
