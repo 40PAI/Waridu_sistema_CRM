@@ -1,10 +1,8 @@
-"use client";
-
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import usePipelinePhases from "../../hooks/usePipelinePhases";
+import usePipelinePhases from "@/hooks/usePipelinePhases";
 import { Edit, Plus, GripVertical } from "lucide-react";
 import {
   Dialog,
