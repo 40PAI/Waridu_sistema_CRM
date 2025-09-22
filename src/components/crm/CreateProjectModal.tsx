@@ -21,6 +21,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 import usePipelineStages from "@/hooks/usePipelineStages";
+import { useUsers } from "@/hooks/useUsers";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -59,8 +60,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   const { services } = useServices();
   const { users, refreshUsers } = useUsers();
   const { updateEvent } = useEvents();
-  const { user } = useAuth();
-  const { stages, loading: loadingStages } = usePipelineStages();
+  const { stages } = usePipelineStages();
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);

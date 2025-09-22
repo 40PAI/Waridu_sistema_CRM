@@ -32,6 +32,7 @@ import CategoryManager from "@/components/settings/CategoryManager";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import PipelineStageManager from "@/components/settings/PipelineStageManager";
 
 interface Location {
   id: string;
@@ -118,6 +119,11 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
 
       <div>
         <CategoryManager />
+      </div>
+
+      {/* New section: Pipeline Stages configuration */}
+      <div>
+        <PipelineStageManager />
       </div>
 
       <div>
