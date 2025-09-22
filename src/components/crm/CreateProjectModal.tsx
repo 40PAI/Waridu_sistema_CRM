@@ -20,8 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
-import { useUsers } from "@/hooks/useUsers";
-import usePipelinePhases from "@/hooks/usePipelinePhases";
+import usePipelineStages from "@/hooks/usePipelineStages";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -61,7 +60,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   const { users, refreshUsers } = useUsers();
   const { updateEvent } = useEvents();
   const { user } = useAuth();
-  const { phases, loading: loadingPhases } = usePipelinePhases();
+  const { stages, loading: loadingStages } = usePipelineStages();
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -86,7 +85,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
   React.useEffect(() => {
     if (open) {
-      const defaultPipelineStatus = phases && phases.length > 0 ? phases[0].name : "1º Contato";
+      const defaultPipelineStatus = stages && stages.length > 0 ? stages[0].id : "";
       const defaultResponsibleId = users.find(u => (u.role || "").toLowerCase() === "comercial")?.id || "";
       form.reset({
         clientId: preselectedClientId || "",
@@ -103,13 +102,17 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         responsibleId: defaultResponsibleId,
       });
     }
-  }, [open, preselectedClientId, form, phases, users]);
+  }, [open, preselectedClientId, form, stages, users]);
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
   const commercialUserOptions = React.useMemo(() =>
     users.filter(u => (u.role || "").toLowerCase() === "comercial").map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` }))
   , [users]);
+
+  const pipelineOptions = React.useMemo(() => 
+    stages.filter(s => s.is_active).map(s => ({ value: s.id, label: s.name }))
+  , [stages]);
 
   const handleSubmit = async (data: ProjectFormData) => {
     if (!data.pipelineStatus) {
@@ -129,7 +132,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       start_time: data.startTime ? `${data.startTime}:00` : null,
       end_time: data.endTime ? `${data.endTime}:00` : null,
       location: data.location,
-      pipeline_status: data.pipelineStatus,
+      pipeline_stage_id: data.pipelineStatus, // Use stage ID
       estimated_value: data.estimatedValue ?? null,
       service_ids: data.serviceIds,
       client_id: data.clientId,
@@ -298,9 +301,9 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {(loadingPhases ? ["1º Contato", "Orçamento", "Negociação", "Confirmado"] : phases.map(p => p.name)).map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
+                        {pipelineOptions.map((stage) => (
+                          <SelectItem key={stage.value} value={stage.value}>
+                            {stage.label}
                           </SelectItem>
                         ))}
                       </SelectContent>

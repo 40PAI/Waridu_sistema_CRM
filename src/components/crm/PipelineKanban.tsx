@@ -23,6 +23,7 @@ import { DroppableColumn } from "./DroppableColumn";
 import { SortableProjectCard } from "./SortableProjectCard";
 import type { EventProject, PipelineStatus } from "@/types/crm";
 import { supabase } from "@/integrations/supabase/client";
+import usePipelineStages from "@/hooks/usePipelineStages";
 
 interface PipelineKanbanProps {
   projects: EventProject[];
@@ -31,28 +32,11 @@ interface PipelineKanbanProps {
   onViewProject?: (p: EventProject) => void;
 }
 
-const columns = [
-  { id: "1º Contato", title: "1º Contato", color: "bg-gray-100 border-gray-200" },
-  { id: "Orçamento", title: "Orçamento", color: "bg-blue-100 border-blue-200" },
-  { id: "Negociação", title: "Negociação", color: "bg-yellow-100 border-yellow-200" },
-  { id: "Confirmado", title: "Confirmado", color: "bg-green-100 border-green-200" },
-  { id: "Cancelado", title: "Cancelado", color: "bg-red-100 border-red-200" },
-] satisfies { id: PipelineStatus; title: string; color: string }[];
-
-const getStatusBadge = (status?: string) => {
-  switch (status) {
-    case "1º Contato": return "bg-gray-100 text-gray-800";
-    case "Orçamento": return "bg-blue-100 text-blue-800";
-    case "Negociação": return "bg-yellow-100 text-yellow-800";
-    case "Confirmado": return "bg-green-100 text-green-800";
-    case "Cancelado": return "bg-red-100 text-red-800";
-    default: return "bg-gray-100 text-gray-800";
-  }
-};
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 function isColumnId(id: string | null | undefined) {
   if (!id) return false;
-  return columns.some(c => String(c.id) === String(id));
+  return true; // Since columns are now stage IDs
 }
 
 function getProjectById(list: EventProject[], id: string | number) {
@@ -60,8 +44,9 @@ function getProjectById(list: EventProject[], id: string | number) {
 }
 
 export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
+  const { stages } = usePipelineStages();
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
-  const [dragOverColumn, setDragOverColumn] = React.useState<PipelineStatus | null>(null);
+  const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
   const [localProjects, setLocalProjects] = React.useState<EventProject[]>(projects);
   const [updating, setUpdating] = React.useState<string | null>(null);
 
@@ -69,32 +54,33 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
+  const columns = React.useMemo(() => {
+    return stages
+      .filter(s => s.is_active)
+      .sort((a, b) => a.order - b.order)
+      .map(s => ({
+        id: s.id,
+        title: s.name,
+        color: "#e5e7eb", // Default color
+      }));
+  }, [stages]);
+
   const projectsByColumn = React.useMemo(() => {
-    const grouped: Record<PipelineStatus, EventProject[]> = {
-      "1º Contato": [],
-      Orçamento: [],
-      Negociação: [],
-      Confirmado: [],
-      Cancelado: [],
-    };
+    const grouped: Record<string, EventProject[]> = {};
+    columns.forEach(col => grouped[col.id] = []);
+    
     localProjects.forEach((p) => {
-      const key = (p.pipeline_status || "1º Contato") as PipelineStatus;
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(p);
-    });
-    // ensure stable sort by pipeline_rank asc, then updated_at desc
-    Object.keys(grouped).forEach(k => {
-      grouped[k as PipelineStatus].sort((a,b) => {
-        const ra = Number(a.pipeline_rank ?? 0);
-        const rb = Number(b.pipeline_rank ?? 0);
-        if (ra !== rb) return ra - rb;
-        const ta = new Date(a.startDate || a.updated_at || 0).getTime();
-        const tb = new Date(b.startDate || b.updated_at || 0).getTime();
-        return tb - ta;
-      });
+      const stageId = p.pipeline_stage_id || stages.find(s => s.name === p.pipeline_status)?.id;
+      if (stageId && grouped[stageId]) {
+        grouped[stageId].push(p);
+      } else {
+        // Fallback to first column if no match
+        const firstCol = columns[0]?.id;
+        if (firstCol) grouped[firstCol].push(p);
+      }
     });
     return grouped;
-  }, [localProjects]);
+  }, [localProjects, stages, columns]);
 
   const handleDragStart = (event: any) => {
     const { active } = event;
@@ -109,11 +95,11 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       return;
     }
     if (isColumnId(overId)) {
-      setDragOverColumn(overId as PipelineStatus);
+      setDragOverColumn(overId);
       return;
     }
     const pr = getProjectById(localProjects, overId);
-    setDragOverColumn(pr ? (pr.pipeline_status as PipelineStatus) : null);
+    setDragOverColumn(pr ? pr.pipeline_stage_id || null : null);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -128,111 +114,34 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const activeProject = getProjectById(localProjects, activeId);
     if (!activeProject) return;
 
-    const fromStatus = activeProject.pipeline_status || "1º Contato";
-    // resolve target status: either column id or the status of the project being hovered
-    const toStatus = isColumnId(overId) ? (overId as PipelineStatus) : (getProjectById(localProjects, overId)?.pipeline_status || "1º Contato");
+    const fromStageId = activeProject.pipeline_stage_id;
+    const toStageId = isColumnId(overId) ? overId : (getProjectById(localProjects, overId)?.pipeline_stage_id || columns[0]?.id);
 
-    // Build ordered arrays for the destination column AFTER removal of active from origin
-    const originList = localProjects.filter(p => (p.pipeline_status || "1º Contato") === fromStatus)
-      .sort((a,b) => (Number(a.pipeline_rank ?? 0) - Number(b.pipeline_rank ?? 0)) || (new Date(b.updated_at||0).getTime() - new Date(a.updated_at||0).getTime()));
-    const destList = localProjects.filter(p => (p.pipeline_status || "1º Contato") === toStatus)
-      .sort((a,b) => (Number(a.pipeline_rank ?? 0) - Number(b.pipeline_rank ?? 0)) || (new Date(b.updated_at||0).getTime() - new Date(a.updated_at||0).getTime()));
+    if (!toStageId) return;
 
-    // Remove active from origin representation
-    const originIds = originList.map(p => String(p.id));
-    const oldIndex = originIds.indexOf(activeId);
-    if (oldIndex >= 0) originIds.splice(oldIndex, 1);
+    // If moving to a different stage -> persist change
+    if (fromStageId !== toStageId) {
+      setUpdating(String(activeProject.id));
+      try {
+        // Optimistic UI update
+        setLocalProjects(prev => prev.map(p => 
+          p.id === activeProject.id ? { ...p, pipeline_stage_id: toStageId } : p
+        ));
 
-    // Prepare destIds (if moved within same column, start from originIds; else from destList)
-    const destIds = fromStatus === toStatus ? [...originIds] : destList.map(p => String(p.id));
+        // Persist to Supabase
+        const { error } = await supabase
+          .from('events')
+          .update({ pipeline_stage_id: toStageId, updated_at: new Date().toISOString() })
+          .eq('id', activeProject.id);
 
-    // Determine insertion index
-    let insertIndex: number;
-    if (isColumnId(overId)) {
-      insertIndex = destIds.length; // drop into empty area => append
-    } else {
-      // drop onto a project item -> insert before that item
-      const idx = destIds.indexOf(overId);
-      insertIndex = idx >= 0 ? idx : destIds.length;
-    }
+        if (error) throw error;
 
-    // Insert activeId into destIds at insertIndex
-    destIds.splice(insertIndex, 0, activeId);
-
-    // Determine neighbors for RPC: beforeId = id at index-1, afterId = id at index+1
-    const beforeId = insertIndex > 0 ? destIds[insertIndex - 1] : null;
-    const afterId = insertIndex < destIds.length - 1 ? destIds[insertIndex + 1] : null;
-
-    // Optimistic UI update: move activeProject into toStatus and recompose localProjects
-    const previousLocal = localProjects;
-    const movedProject: EventProject = { ...activeProject, pipeline_status: toStatus };
-
-    setLocalProjects(prev => {
-      // Remove active from prev list
-      const withoutActive = prev.filter(p => String(p.id) !== activeId);
-      // Build new destination column array in order
-      const newDest = destIds.map(id => (id === activeId ? movedProject : (prev.find(p => String(p.id) === id) || movedProject))).filter(Boolean) as EventProject[];
-      // Recompose full list: keep other columns items but replace target column with newDest (maintaining original order of other columns)
-      const result: EventProject[] = [];
-      prev.forEach(p => {
-        if ((p.pipeline_status || "1º Contato") === toStatus) {
-          // only add once; skip here because we'll add newDest later
-        } else if ((p.pipeline_status || "1º Contato") === fromStatus && fromStatus === toStatus) {
-          // within same column; skip old original block (we will append newDest in place)
-        } else {
-          // add items that are not in target column
-          if (String(p.id) !== activeId) result.push(p);
-        }
-      });
-      // Append newDest at end of result where appropriate — a simple approach keeps other columns intact, and places destination column items grouped
-      return result.concat(newDest);
-    });
-
-    // Single RPC call to persist change: try rpc_move_event then fallback to rpc_move_event_json (robust to signature/casting)
-    setUpdating(String(activeProject.id));
-    try {
-      // First try direct RPC (named params) - this is efficient when signatures match
-      const rpcRes = await supabase.rpc('rpc_move_event', {
-        p_event_id: activeProject.id,
-        p_new_status: toStatus,
-        p_before_id: beforeId ?? null,
-        p_after_id: afterId ?? null,
-      });
-
-      if (rpcRes.error) {
-        throw rpcRes.error;
-      }
-      setUpdating(null);
-      showSuccess("Projeto movido com sucesso!");
-    } catch (err: any) {
-      const msg = (err && (err.message || String(err))) || "";
-      const isNotFound = /could not find the function/i.test(msg) || /pgrst202/i.test(msg) || /function .* does not exist/i.test(msg);
-
-      if (isNotFound) {
-        console.warn("rpc_move_event not found or signature mismatch, retrying with rpc_move_event_json (fallback).", msg);
-        try {
-          const payload = {
-            event_id: String(activeProject.id),
-            new_status: toStatus,
-            before_id: beforeId ? String(beforeId) : null,
-            after_id: afterId ? String(afterId) : null,
-          };
-          const jsonRes = await supabase.rpc('rpc_move_event_json', { payload });
-          if (jsonRes.error) {
-            throw jsonRes.error;
-          }
-          setUpdating(null);
-          showSuccess("Projeto movido com sucesso (via JSON wrapper)!");
-        } catch (err2: any) {
-          console.error('rpc_move_event_json error', err2);
-          showError('Erro ao mover projeto (fallback JSON). A posição foi revertida.');
-          setLocalProjects(previousLocal);
-          setUpdating(null);
-        }
-      } else {
-        console.error('rpc_move_event error', err);
-        showError('Erro ao mover projeto. A posição foi revertida.');
-        setLocalProjects(previousLocal);
+        showSuccess("Projeto movido com sucesso!");
+      } catch (err: any) {
+        console.error("Error updating project stage:", err);
+        showError("Erro ao mover projeto. Revertendo...");
+        setLocalProjects(projects); // Revert
+      } finally {
         setUpdating(null);
       }
     }
@@ -286,7 +195,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
                 <div className="text-xs text-muted-foreground">
                   Início: {draggingProject.startDate ? format(new Date(draggingProject.startDate), "dd/MM/yyyy", { locale: ptBR }) : "—"}
                 </div>
-                <Badge className={getStatusBadge(draggingProject.pipeline_status)}>{draggingProject.pipeline_status}</Badge>
+                <Badge className="bg-gray-100 text-gray-800">{draggingProject.pipeline_status}</Badge>
               </CardContent>
             </Card>
           ) : null}

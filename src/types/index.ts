@@ -27,8 +27,8 @@ export interface PipelinePhase {
   name: string;
   active: boolean;
   color?: string | null;
-  canonical_status?: string | null; // canonical mapping (optional)
-  position?: number; // ordering index
+  canonical_status?: string | null;
+  sort_order?: number; // Changed from position to sort_order
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -75,20 +75,19 @@ export interface Event {
   roster?: Roster | null;
   expenses?: Expense[] | null;
 
-  // CRM/project-specific fields (optional)
+  // CRM/project-specific fields
   pipeline_status?: PipelineStatus | null;
   estimated_value?: number | null;
   service_ids?: string[] | null;
   client_id?: string | null;
   notes?: string | null;
   tags?: string[] | null;
-  follow_ups?: Array<{ action: string; date: string; notes?: string }> | null; // New: array of follow-up objects
-  responsible_id?: string; // New: UUID of responsible user
-  next_action?: string; // New: next action text
-  next_action_date?: string; // New: next action timestamp (ISO string)
+  follow_ups?: Array<{ action: string; date: string; notes?: string }> | null;
+  responsible_id?: string;
+  next_action?: string;
+  next_action_date?: string;
   updated_at?: string | null;
-
-  // helpful counters used in some components (optional)
+  pipeline_stage_id?: string; // New: FK to pipeline_stages
   follow_ups_count?: number;
   follow_ups_completed?: number;
 }
