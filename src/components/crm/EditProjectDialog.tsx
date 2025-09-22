@@ -63,7 +63,7 @@ const PIPELINE_STATUSES: PipelineStatus[] = [
   "Cancelado",
 ];
 
-export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditProjectDialogProps) {
+export default function EditProjectDialog({ open, onOpenChange, project, onSave }: EditProjectDialogProps) {
   const { clients } = useClients();
   const { services } = useServices();
   const { updateEvent } = useEvents();
