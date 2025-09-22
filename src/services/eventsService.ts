@@ -7,9 +7,9 @@ import type { Roster, Expense } from "@/types";
  * - upsertEvent(payload): insert or update an event row (payload should use snake_case keys)
  * - updateEventDetails(eventId, details): update roster/expenses for an event
  *
- * This implementation sanitizes payloads to only include allowed columns (avoids 400 from PostgREST
- * when unknown columns are present), strips undefined values and validates UUID fields to provide
- * clearer error messages before calling Supabase.
+ * Important security note:
+ * - Clients MUST NOT send `updated_at` or `created_at`. The database trigger manages updated_at.
+ * - This module sanitizes payloads to strip those fields before calling Supabase.
  */
 
 const ALLOWED_COLUMNS = new Set([
@@ -28,8 +28,8 @@ const ALLOWED_COLUMNS = new Set([
   "pipeline_status",
   "estimated_value",
   "service_ids",
-  "created_at",
-  "updated_at",
+  "created_at", -- kept only for select/compat but sanitized before writes below
+  -- "updated_at" intentionally NOT listed: DB manages it via trigger
   "notes",
   "tags",
 ]);
@@ -42,6 +42,16 @@ function sanitizePayload(payload: Record<string, any>) {
     if (v === undefined) return;
     out[k] = v;
   });
+
+  // Always ensure we do NOT forward timestamps that should be DB-managed:
+  if ("updated_at" in out) {
+    delete out.updated_at;
+  }
+  if ("created_at" in out) {
+    // If a client is trying to set created_at, remove it — creation should be server-side
+    delete out.created_at;
+  }
+
   return out;
 }
 
@@ -138,7 +148,7 @@ export const updateEventDetails = async (eventId: number, details: { roster: Ros
   const payload: any = {
     roster: details.roster ?? null,
     expenses: details.expenses ?? null,
-    updated_at: new Date().toISOString(),
+    // DO NOT set updated_at here — trigger will update it
   };
 
   try {
