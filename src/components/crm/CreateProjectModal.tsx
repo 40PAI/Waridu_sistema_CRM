@@ -15,12 +15,13 @@ import { Combobox } from "@/components/ui/combobox";
 import { MultiSelectServices } from "@/components/MultiSelectServices";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
-import { useEmployees } from "@/hooks/useEmployees";
 import { useEvents } from "@/hooks/useEvents";
+import { useUsers } from "@/hooks/useUsers";
 import { useAuth } from "@/contexts/AuthContext";
 import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
+import { supabase } from "@/integrations/supabase/client";
 
 // UUID regex for basic client/responsible validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -29,7 +30,7 @@ const projectSchema = z.object({
   clientId: z.string().min(1, "Cliente é obrigatório").refine((v) => UUID_REGEX.test(v), "Selecione um cliente válido."),
   name: z.string().min(1, "Nome do projeto é obrigatório"),
   serviceIds: z.array(z.string()).min(1, "Selecione pelo menos um serviço"),
-  pipelineStatus: z.enum(["1º Contato", "Orçamento", "Negociação", "Confirmado"], { required_error: "Status é obrigatório" }),
+  pipelineStatus: z.string().min(1, "Status é obrigatório"),
   startDate: z.string().min(1, "Data de início é obrigatória"),
   startTime: z.string().min(1, "Hora de início é obrigatória"),
   endDate: z.string().min(1, "Data de fim é obrigatória"),
@@ -56,14 +57,16 @@ interface CreateProjectModalProps {
 }
 
 export default function CreateProjectModal({ open, onOpenChange, onCreated, preselectedClientId }: CreateProjectModalProps) {
-  const { clients } = useClients();
+  const { clients, fetchClients } = useClients();
   const { services } = useServices();
-  const { employees } = useEmployees(); // Get all employees for responsible dropdown
+  const { users, refreshUsers } = useUsers();
   const { updateEvent } = useEvents();
   const { user } = useAuth();
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [phases, setPhases] = React.useState<string[]>([]);
+  const [loadingPhases, setLoadingPhases] = React.useState(true);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -71,7 +74,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      pipelineStatus: "1º Contato",
+      pipelineStatus: "",
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
       endDate: "",
@@ -89,7 +92,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         clientId: preselectedClientId || "",
         name: "",
         serviceIds: [],
-        pipelineStatus: "1º Contato",
+        pipelineStatus: "",
         startDate: new Date().toISOString().split("T")[0],
         startTime: "09:00",
         endDate: "",
@@ -102,16 +105,46 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     }
   }, [open, preselectedClientId, form]);
 
+  // Fetch pipeline phases dynamically from DB
+  React.useEffect(() => {
+    let mounted = true;
+    const fetchPhases = async () => {
+      setLoadingPhases(true);
+      try {
+        const { data, error } = await supabase
+          .from("pipeline_phases")
+          .select("name")
+          .order("sort_order", { ascending: true })
+          .eq("active", true);
+
+        if (!mounted) return;
+        if (error) {
+          console.warn("Could not load pipeline_phases:", error);
+          // fallback below
+        } else if (data && data.length > 0) {
+          setPhases(data.map((d: any) => d.name));
+        }
+      } catch (err) {
+        console.error("Error loading pipeline phases:", err);
+      } finally {
+        if (mounted) setLoadingPhases(false);
+      }
+    };
+    fetchPhases();
+    return () => { mounted = false; };
+  }, []);
+
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
-  // Use all employees for responsible dropdown, as per user request
-  const employeeOptions = React.useMemo(() => employees.map(e => ({ value: e.id, label: `${e.name} (${e.email})` })), [employees]);
+  const userOptions = React.useMemo(() => users.map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` })), [users]);
 
   const handleSubmit = async (data: ProjectFormData) => {
-    if (!UUID_REGEX.test(data.clientId)) {
-      showError("Cliente inválido. Selecione um cliente válido (UUID).");
+    // Validate: ensure pipelineStatus has a value; if phases not loaded, require non-empty
+    if (!data.pipelineStatus) {
+      showError("Selecione uma fase do pipeline.");
       return;
     }
+
     setSaving(true);
 
     const startISO = toISO(data.startDate, data.startTime);
@@ -137,23 +170,15 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     try {
       const result = await updateEvent(payload as any);
       if (!result) throw new Error("Falha ao salvar evento");
-      showSuccess("Projeto criado com sucesso!");
+      showSuccess("Projeto criado com sucesso");
+      // refresh clients/users lists in case create client was used
+      await fetchClients();
+      await refreshUsers();
       onCreated?.(result.id);
       onOpenChange(false);
     } catch (err: any) {
       console.error("Erro ao criar projeto:", err);
-      const msg = err?.message ?? String(err);
-      if (/uuid/i.test(msg) || /client_id/i.test(msg)) {
-        showError("Erro: client_id inválido (deve ser UUID).");
-      } else if (/start_date|start_time|date/i.test(msg)) {
-        showError("Erro nas datas/horas. Verifique os valores enviados.");
-      } else if (/pipeline_status/i.test(msg)) {
-        showError("Status do pipeline inválido.");
-      } else if (/responsible_id/i.test(msg)) {
-        showError("Responsável inválido. Selecione um funcionário válido.");
-      } else {
-        showError("Falha ao criar projeto: " + msg);
-      }
+      showError("Erro ao criar projeto. Verifique os campos e tente novamente.");
     } finally {
       setSaving(false);
     }
@@ -162,14 +187,12 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        {/* constrain size so it doesn't occupy whole screen and make content horizontal */}
         <DialogContent className="max-w-6xl mx-auto max-h-[80vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Novo Projeto</DialogTitle>
           </DialogHeader>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 pb-4">
-            {/* Left: primary form */}
             <div className="space-y-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -185,7 +208,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                               options={clientOptions}
                               value={field.value}
                               onChange={field.onChange}
-                              placeholder="Selecione um cliente (UUID)"
+                              placeholder="Selecione um cliente"
                               searchPlaceholder="Pesquisar cliente..."
                               className="flex-1"
                             />
@@ -194,9 +217,6 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                             </Button>
                           </div>
                         </FormControl>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Selecione o cliente; o id (UUID) será enviado. Crie um novo cliente se necessário.
-                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -217,10 +237,10 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione um funcionário (UUID)" />
+                              <SelectValue placeholder="Selecione um usuário" />
                             </SelectTrigger>
                             <SelectContent>
-                              {employeeOptions.map(u => (
+                              {userOptions.map(u => (
                                 <SelectItem key={u.value} value={u.value}>
                                   {u.label}
                                 </SelectItem>
@@ -228,9 +248,6 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                             </SelectContent>
                           </Select>
                         </FormControl>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Escolha o responsável comercial da equipa; será enviado o seu id (UUID). Isto determina a pessoa que ficará como ponto de contacto comercial para este projeto.
-                        </p>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -295,7 +312,6 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
               </Form>
             </div>
 
-            {/* Right: services + pipeline + notes */}
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-medium mb-2">Serviços de Interesse *</h3>
@@ -311,10 +327,11 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1º Contato">1º Contato</SelectItem>
-                        <SelectItem value="Orçamento">Orçamento</SelectItem>
-                        <SelectItem value="Negociação">Negociação</SelectItem>
-                        <SelectItem value="Confirmado">Confirmado</SelectItem>
+                        {(!loadingPhases && phases.length > 0 ? phases : ["1º Contato", "Orçamento", "Negociação", "Confirmado"]).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
