@@ -22,11 +22,11 @@ import { showError, showSuccess } from "@/utils/toast";
 import { DroppableColumn } from "./DroppableColumn";
 import { SortableProjectCard } from "./SortableProjectCard";
 import type { EventProject, PipelineStatus } from "@/types/crm";
-import { eventsService } from "@/services";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PipelineKanbanProps {
   projects: EventProject[];
-  onUpdateProject: (p: EventProject) => Promise<void>;
+  onUpdateProject?: (p: EventProject) => Promise<void>;
   onEditProject?: (p: EventProject) => void;
   onViewProject?: (p: EventProject) => void;
 }
@@ -50,11 +50,14 @@ const getStatusBadge = (status?: string) => {
   }
 };
 
-const getOverColumnId = (over: DragOverEvent["over"]) => {
-  if (!over) return null;
-  if (columns.some((c) => c.id === over.id)) return String(over.id) as PipelineStatus;
-  return (over.data?.current as any)?.sortable?.containerId ?? null;
-};
+function isColumnId(id: string | null | undefined) {
+  if (!id) return false;
+  return columns.some(c => String(c.id) === String(id));
+}
+
+function getProjectById(list: EventProject[], id: string | number) {
+  return list.find(p => String(p.id) === String(id)) || null;
+}
 
 export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
@@ -74,19 +77,43 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       Confirmado: [],
       Cancelado: [],
     };
-    localProjects.forEach((p) => grouped[p.pipeline_status]?.push(p));
+    localProjects.forEach((p) => {
+      const key = (p.pipeline_status || "1º Contato") as PipelineStatus;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(p);
+    });
+    // ensure stable sort by pipeline_rank asc, then updated_at desc
+    Object.keys(grouped).forEach(k => {
+      grouped[k as PipelineStatus].sort((a,b) => {
+        const ra = Number(a.pipeline_rank ?? 0);
+        const rb = Number(b.pipeline_rank ?? 0);
+        if (ra !== rb) return ra - rb;
+        const ta = new Date(a.startDate || a.updated_at || 0).getTime();
+        const tb = new Date(b.startDate || b.updated_at || 0).getTime();
+        return tb - ta;
+      });
+    });
     return grouped;
   }, [localProjects]);
 
   const handleDragStart = (event: any) => {
     const { active } = event;
-    const project = localProjects.find((p) => p.id === active.id) ?? null;
+    const project = getProjectById(localProjects, active.id);
     setDraggingProject(project);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const colId = getOverColumnId(event.over) as PipelineStatus | null;
-    setDragOverColumn(colId);
+    const overId = event.over?.id ? String(event.over.id) : null;
+    if (!overId) {
+      setDragOverColumn(null);
+      return;
+    }
+    if (isColumnId(overId)) {
+      setDragOverColumn(overId as PipelineStatus);
+      return;
+    }
+    const pr = getProjectById(localProjects, overId);
+    setDragOverColumn(pr ? (pr.pipeline_status as PipelineStatus) : null);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -95,34 +122,97 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     setDragOverColumn(null);
     if (!over) return;
 
-    const targetColumnId = getOverColumnId(over) as PipelineStatus | null;
-    if (!targetColumnId) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
 
-    const project = localProjects.find((p) => p.id === Number(active.id));
-    if (!project) return;
+    const activeProject = getProjectById(localProjects, activeId);
+    if (!activeProject) return;
 
-    // UI optimistic update
-    const previousProjects = localProjects;
-    setLocalProjects((prev) => prev.map((p) => (p.id === project.id ? { ...p, pipeline_status: targetColumnId } : p)));
-    setUpdating(String(project.id));
+    const fromStatus = activeProject.pipeline_status || "1º Contato";
+    // resolve target status: either column id or the status of the project being hovered
+    const toStatus = isColumnId(overId) ? (overId as PipelineStatus) : (getProjectById(localProjects, overId)?.pipeline_status || "1º Contato");
 
+    // Build ordered arrays for the destination column AFTER removal of active from origin
+    const originList = localProjects.filter(p => (p.pipeline_status || "1º Contato") === fromStatus)
+      .sort((a,b) => (Number(a.pipeline_rank ?? 0) - Number(b.pipeline_rank ?? 0)) || (new Date(b.updated_at||0).getTime() - new Date(a.updated_at||0).getTime()));
+    const destList = localProjects.filter(p => (p.pipeline_status || "1º Contato") === toStatus)
+      .sort((a,b) => (Number(a.pipeline_rank ?? 0) - Number(b.pipeline_rank ?? 0)) || (new Date(b.updated_at||0).getTime() - new Date(a.updated_at||0).getTime()));
+
+    // Remove active from origin representation
+    const originIds = originList.map(p => String(p.id));
+    const oldIndex = originIds.indexOf(activeId);
+    if (oldIndex >= 0) originIds.splice(oldIndex, 1);
+
+    // Prepare destIds (if moved within same column, start from originIds; else from destList)
+    const destIds = fromStatus === toStatus ? [...originIds] : destList.map(p => String(p.id));
+
+    // Determine insertion index
+    let insertIndex: number;
+    if (isColumnId(overId)) {
+      insertIndex = destIds.length; // drop into empty area => append
+    } else {
+      // drop onto a project item -> insert before that item
+      const idx = destIds.indexOf(overId);
+      insertIndex = idx >= 0 ? idx : destIds.length;
+    }
+
+    // Insert activeId into destIds at insertIndex
+    destIds.splice(insertIndex, 0, activeId);
+
+    // Determine neighbors for RPC: beforeId = id at index-1, afterId = id at index+1
+    const beforeId = insertIndex > 0 ? destIds[insertIndex - 1] : null;
+    const afterId = insertIndex < destIds.length - 1 ? destIds[insertIndex + 1] : null;
+
+    // Optimistic UI update: move activeProject into toStatus and recompose localProjects
+    const previousLocal = localProjects;
+    const movedProject: EventProject = { ...activeProject, pipeline_status: toStatus };
+
+    setLocalProjects(prev => {
+      // Remove active from prev list
+      const withoutActive = prev.filter(p => String(p.id) !== activeId);
+      // Build new destination column array in order
+      const newDest = destIds.map(id => (id === activeId ? movedProject : (prev.find(p => String(p.id) === id) || movedProject))).filter(Boolean) as EventProject[];
+      // Recompose full list: keep other columns items but replace target column with newDest (maintaining original order of other columns)
+      const result: EventProject[] = [];
+      prev.forEach(p => {
+        if ((p.pipeline_status || "1º Contato") === toStatus) {
+          // only add once; skip here because we'll add newDest later
+        } else if ((p.pipeline_status || "1º Contato") === fromStatus && fromStatus === toStatus) {
+          // within same column; skip old original block (we will append newDest in place)
+        } else {
+          // add items that are not in target column
+          if (String(p.id) !== activeId) result.push(p);
+        }
+      });
+      // Append newDest at end of result where appropriate — a simple approach keeps other columns intact, and places destination column items grouped
+      // For display purposes this is acceptable; ordering across columns is determined by pipeline_status grouping.
+      // We'll append destination column items at the end (UI groups by column anyway).
+      return result.concat(newDest);
+    });
+
+    // Single RPC call to persist change: p_event_id, p_new_status, p_before_id, p_after_id
+    setUpdating(String(activeProject.id));
     try {
-      // Use eventsService.upsertEvent to ensure payload is sanitized and well-formed
-      const payload: any = {
-        id: project.id,
-        pipeline_status: targetColumnId,
-        updated_at: new Date().toISOString(),
-      };
+      const rpcRes = await supabase.rpc('rpc_move_event', {
+        p_event_id: Number(activeProject.id),
+        p_new_status: toStatus,
+        p_before_id: beforeId ? Number(beforeId) : null,
+        p_after_id: afterId ? Number(afterId) : null,
+      });
 
-      await eventsService.upsertEvent(payload);
+      if (rpcRes.error) {
+        throw rpcRes.error;
+      }
 
+      // success
+      setUpdating(null);
       showSuccess("Projeto movido com sucesso!");
-    } catch (error: any) {
-      console.error("Error saving pipeline:", error);
-      showError(`Erro ao salvar: ${error?.message || "Tente novamente"}`);
-      // Revert optimistic update
-      setLocalProjects(previousProjects);
-    } finally {
+      // Note: the app may rely on realtime or an explicit fetch elsewhere to reconcile final DB state.
+    } catch (err: any) {
+      console.error("rpc_move_event error", err);
+      showError("Erro ao mover projeto. A posição foi revertida.");
+      // rollback optimistic update
+      setLocalProjects(previousLocal);
       setUpdating(null);
     }
   };
@@ -130,7 +220,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   return (
     <div className="space-y-4">
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 overflow-x-auto px-2" style={{ minHeight: 600 }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 overflow-x-auto px-2" style={{ minHeight: 600 }}>
           {columns.map((column) => (
             <DroppableColumn key={column.id} column={column}>
               <CardHeader className="pb-3 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-border">
