@@ -2,31 +2,30 @@
 
 import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
-import CreateProjectModal from "@/components/crm/CreateProjectModal";
-import EditProjectDialog from "@/components/crm/EditProjectDialog";
-import ViewProjectDialog from "@/components/crm/ViewProjectDialog";
 import useEvents from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { EventProject } from "@/types/crm";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function PipelinePage() {
-  const { events, updateEvent, loading } = useEvents();
+  const { events, updateEvent, fetchEvents } = useEvents();
   const { clients } = useClients();
   const { services } = useServices();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const [openCreateProject, setOpenCreateProject] = React.useState(false);
-  const [openEditProject, setOpenEditProject] = React.useState(false);
-  const [openViewProject, setOpenViewProject] = React.useState(false);
-  const [editingProject, setEditingProject] = React.useState<EventProject | null>(null);
-  const [viewingProject, setViewingProject] = React.useState<EventProject | null>(null);
+  // refs to pipeline columns (passed down to kanban)
+  const columnRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Refs for columns to enable auto-scroll after creation
-  const columnRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const [editingProject, setEditingProject] = useState<EventProject | null>(null);
+  const [viewingProject, setViewingProject] = useState<EventProject | null>(null);
 
-  const projects: EventProject[] = React.useMemo(() => {
+  const projects: EventProject[] = useMemo(() => {
     return (events || [])
       .filter((e) => !!(e as any).pipeline_status)
       .map((e) => ({
@@ -47,6 +46,38 @@ export default function PipelinePage() {
         updated_at: (e as any).updated_at,
       }));
   }, [events]);
+
+  // Navigate to new project page
+  const handleNewProject = () => {
+    navigate("/crm/projects/new");
+  };
+
+  // If we return from create with createdProjectId in location.state, scroll to that column
+  useEffect(() => {
+    const createdProjectId = (location.state as any)?.createdProjectId;
+    if (!createdProjectId) return;
+
+    // find project in list
+    const created = projects.find(p => String(p.id) === String(createdProjectId));
+    if (!created) {
+      // maybe events haven't refreshed yet; wait and retry when projects change
+      return;
+    }
+
+    const status = created.pipeline_status || "1º Contato";
+    const colEl = columnRefs.current[status];
+    if (colEl) {
+      colEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // Clean history state so refresh doesn't trigger again
+    // replace state without createdProjectId
+    try {
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+    } catch {
+      // ignore
+    }
+  }, [location, projects]);
 
   const handleUpdateProject = async (updatedProject: EventProject) => {
     const fullEvent: any = {
@@ -72,68 +103,36 @@ export default function PipelinePage() {
       updated_at: new Date().toISOString(),
     };
     await updateEvent(fullEvent);
+    // ensure list is fresh
+    await fetchEvents();
   };
 
   const handleEditProject = (project: EventProject) => {
     setEditingProject(project);
-    setOpenEditProject(true);
   };
 
   const handleViewProject = (project: EventProject) => {
     setViewingProject(project);
-    setOpenViewProject(true);
-  };
-
-  const handleProjectCreated = (projectId: number) => {
-    // Find the created project to get its status for scrolling
-    const createdProject = projects.find(p => p.id === projectId);
-    if (createdProject) {
-      const status = createdProject.pipeline_status || "1º Contato";
-      // Scroll to the column after a short delay to allow DOM update
-      setTimeout(() => {
-        const columnElement = columnRefs.current[status];
-        if (columnElement) {
-          columnElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 500);
-    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Pipeline</h1>
-        <Button onClick={() => setOpenCreateProject(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Projeto
-        </Button>
+        <div>
+          <Button onClick={handleNewProject}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Projeto
+          </Button>
+        </div>
       </div>
-      {loading ? <p>Carregando...</p> : <PipelineKanban 
-        projects={projects} 
-        onUpdateProject={handleUpdateProject} 
-        onEditProject={handleEditProject} 
+
+      <PipelineKanban
+        projects={projects}
+        onUpdateProject={handleUpdateProject}
+        onEditProject={handleEditProject}
         onViewProject={handleViewProject}
         columnRefs={columnRefs}
-      />}
-
-      <CreateProjectModal
-        open={openCreateProject}
-        onOpenChange={setOpenCreateProject}
-        onCreated={handleProjectCreated}
-        preselectedClientId={undefined}
-      />
-
-      <EditProjectDialog
-        open={openEditProject}
-        onOpenChange={setOpenEditProject}
-        project={editingProject}
-        onSave={handleUpdateProject}
-      />
-
-      <ViewProjectDialog
-        open={openViewProject}
-        onOpenChange={setOpenViewProject}
-        project={viewingProject}
       />
     </div>
   );
