@@ -67,6 +67,12 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
   const [serviceDescription, setServiceDescription] = React.useState("");
   const [savingService, setSavingService] = React.useState(false);
 
+  // State for Locations management
+  const [newLocationName, setNewLocationName] = React.useState("");
+  const [editingLocation, setEditingLocation] = React.useState<Location | null>(null);
+  const [isLocationEditDialogOpen, setIsLocationEditDialogOpen] = React.useState(false);
+  const [savingLocation, setSavingLocation] = React.useState(false);
+
   const handleAddService = () => {
     setEditingService(null);
     setServiceName("");
@@ -113,6 +119,47 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
     }
   };
 
+  // Location handlers
+  const handleAddLocation = async () => {
+    if (!newLocationName.trim()) {
+      showError("Nome da localização é obrigatório.");
+      return;
+    }
+    setSavingLocation(true);
+    try {
+      await onAddLocation(newLocationName.trim());
+      setNewLocationName("");
+    } catch (error) {
+      // Error handled by hook
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
+  const openEditLocationDialog = (location: Location) => {
+    setEditingLocation({ ...location });
+    setNewLocationName(location.name); // Use newLocationName for editing input
+    setIsLocationEditDialogOpen(true);
+  };
+
+  const handleSaveLocationEdit = async () => {
+    if (!editingLocation || !newLocationName.trim()) {
+      showError("Nome da localização é obrigatório.");
+      return;
+    }
+    setSavingLocation(true);
+    try {
+      await onUpdateLocation(editingLocation.id, newLocationName.trim());
+      setIsLocationEditDialogOpen(false);
+      setEditingLocation(null);
+      setNewLocationName("");
+    } catch (error) {
+      // Error handled by hook
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Configurações do Admin</h1>
@@ -142,16 +189,28 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
               <CardDescription>Gerencie os locais onde seus materiais estão armazenados.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex w-full max-w-sm items-center space-x-2">
-                <Input placeholder="Ex: Armazém Central" />
-                <Button onClick={() => {}}>Adicionar</Button>
+              <div className="flex w-full max-w-sm items-end space-x-2">
+                <div className="flex-1 space-y-1.5">
+                  <Label htmlFor="new-location-name">Nome da Localização</Label>
+                  <Input
+                    id="new-location-name"
+                    placeholder="Ex: Armazém Central"
+                    value={newLocationName}
+                    onChange={(e) => setNewLocationName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddLocation()}
+                    disabled={savingLocation}
+                  />
+                </div>
+                <Button onClick={handleAddLocation} disabled={savingLocation || !newLocationName.trim()}>
+                  Adicionar
+                </Button>
               </div>
               <div className="rounded-md border divide-y">
                 {locations.map(loc => (
                   <div key={loc.id} className="flex items-center justify-between p-3">
                     <span className="text-sm">{loc.name}</span>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditLocationDialog(loc)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
@@ -338,6 +397,30 @@ const AdminSettings = ({ roles, onAddRole, onUpdateRole, onDeleteRole, locations
             <Button onClick={handleSaveService} disabled={savingService}>
               {savingService ? "Salvando..." : "Salvar"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para editar localização */}
+      <Dialog open={isLocationEditDialogOpen} onOpenChange={setIsLocationEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Localização</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-location-name">Nome da Localização</Label>
+              <Input
+                id="edit-location-name"
+                value={newLocationName}
+                onChange={(e) => setNewLocationName(e.target.value)}
+                disabled={savingLocation}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLocationEditDialogOpen(false)} disabled={savingLocation}>Cancelar</Button>
+            <Button onClick={handleSaveLocationEdit} disabled={savingLocation || !newLocationName.trim()}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
