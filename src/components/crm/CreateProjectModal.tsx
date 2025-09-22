@@ -22,6 +22,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 import { supabase } from "@/integrations/supabase/client";
+import { usePipelinePhases } from "@/hooks/usePipelinePhases"; // Importar usePipelinePhases
 
 // UUID regex for basic client/responsible validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -62,11 +63,10 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   const { users, refreshUsers } = useUsers();
   const { updateEvent } = useEvents();
   const { user } = useAuth();
+  const { phases, loading: loadingPhases } = usePipelinePhases(); // Usar usePipelinePhases
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [phases, setPhases] = React.useState<string[]>([]);
-  const [loadingPhases, setLoadingPhases] = React.useState(true);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -74,72 +74,49 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      pipelineStatus: "",
+      pipelineStatus: "", // Será definido no useEffect
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
       endDate: "",
       endTime: "",
-      responsibleId: "",
+      responsibleId: "", // Será definido no useEffect
       location: "",
       estimatedValue: undefined,
       notes: "",
     },
   });
 
+  // Definir valores padrão para pipelineStatus e responsibleId
   React.useEffect(() => {
     if (open) {
+      const defaultPipelineStatus = phases.length > 0 ? phases[0].name : "1º Contato";
+      const defaultResponsibleId = users.find(u => u.role === 'Comercial')?.id || "";
+
       form.reset({
         clientId: preselectedClientId || "",
         name: "",
         serviceIds: [],
-        pipelineStatus: "",
+        pipelineStatus: defaultPipelineStatus,
         startDate: new Date().toISOString().split("T")[0],
         startTime: "09:00",
         endDate: "",
         endTime: "",
-        responsibleId: "",
+        responsibleId: defaultResponsibleId,
         location: "",
         estimatedValue: undefined,
         notes: "",
       });
     }
-  }, [open, preselectedClientId, form]);
-
-  // Fetch pipeline phases dynamically from DB
-  React.useEffect(() => {
-    let mounted = true;
-    const fetchPhases = async () => {
-      setLoadingPhases(true);
-      try {
-        const { data, error } = await supabase
-          .from("pipeline_phases")
-          .select("name")
-          .order("sort_order", { ascending: true })
-          .eq("active", true);
-
-        if (!mounted) return;
-        if (error) {
-          console.warn("Could not load pipeline_phases:", error);
-          // fallback below
-        } else if (data && data.length > 0) {
-          setPhases(data.map((d: any) => d.name));
-        }
-      } catch (err) {
-        console.error("Error loading pipeline phases:", err);
-      } finally {
-        if (mounted) setLoadingPhases(false);
-      }
-    };
-    fetchPhases();
-    return () => { mounted = false; };
-  }, []);
+  }, [open, preselectedClientId, form, phases, users]); // Adicionar phases e users como dependências
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
-  const userOptions = React.useMemo(() => users.map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` })), [users]);
+  // Filtrar usuários para mostrar apenas 'Comercial' para o responsável
+  const commercialUserOptions = React.useMemo(() => 
+    users.filter(u => u.role === 'Comercial').map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` }))
+  , [users]);
 
   const handleSubmit = async (data: ProjectFormData) => {
-    // Validate: ensure pipelineStatus has a value; if phases not loaded, require non-empty
     if (!data.pipelineStatus) {
       showError("Selecione uma fase do pipeline.");
       return;
@@ -171,7 +148,6 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       const result = await updateEvent(payload as any);
       if (!result) throw new Error("Falha ao salvar evento");
       showSuccess("Projeto criado com sucesso");
-      // refresh clients/users lists in case create client was used
       await fetchClients();
       await refreshUsers();
       onCreated?.(result.id);
@@ -240,7 +216,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                               <SelectValue placeholder="Selecione um usuário" />
                             </SelectTrigger>
                             <SelectContent>
-                              {userOptions.map(u => (
+                              {commercialUserOptions.map(u => ( // Usar commercialUserOptions
                                 <SelectItem key={u.value} value={u.value}>
                                   {u.label}
                                 </SelectItem>
@@ -327,7 +303,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {(!loadingPhases && phases.length > 0 ? phases : ["1º Contato", "Orçamento", "Negociação", "Confirmado"]).map((status) => (
+                        {(loadingPhases ? ["1º Contato", "Orçamento", "Negociação", "Confirmado"] : phases.map(p => p.name)).map((status) => ( // Usar phases.map(p => p.name)
                           <SelectItem key={status} value={status}>
                             {status}
                           </SelectItem>

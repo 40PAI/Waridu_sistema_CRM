@@ -8,23 +8,16 @@ import { usePipelinePhases } from "@/hooks/usePipelinePhases";
 import { Edit, Plus, GripVertical } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast"; // Keep this import if needed for other toast functionalities, but not for success/error
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Corrected: Added Card imports
-import { showSuccess, showError } from "@/utils/toast"; // Corrected: Import showSuccess and showError
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { showSuccess, showError } from "@/utils/toast";
 
-type PipelinePhase = {
-  id: string;
-  name: string;
-  sort_order?: number;
-  active: boolean;
-  position?: number;
-  updated_at?: string | null;
-};
+// Usar o tipo PipelinePhase do types/index.ts
+import type { PipelinePhase } from "@/types";
 
 const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: { phase: PipelinePhase; onEdit: (p: PipelinePhase) => void; onToggleActive: (id: string, active: boolean) => void; }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: phase.id });
@@ -71,11 +64,11 @@ const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: { phase: PipelineP
 
 const PipelinePhaseManager = () => {
   const { phases, addPhase, updatePhase, togglePhaseActive, reorderPhases, loading } = usePipelinePhases();
-  // const { toast } = useToast ? useToast() : { toast: undefined }; // Removed as showSuccess/showError are used directly
   const [newPhaseName, setNewPhaseName] = React.useState("");
   const [editingPhase, setEditingPhase] = React.useState<PipelinePhase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
+  const [saving, setSaving] = React.useState(false); // Usado para adicionar/editar
+  const [isReordering, setIsReordering] = React.useState(false); // Novo estado para reordenação
 
   // Local optimistic state
   const [localPhases, setLocalPhases] = React.useState<PipelinePhase[]>([]);
@@ -89,26 +82,28 @@ const PipelinePhaseManager = () => {
   // Sync phases into localPhases when phases change (and when not dragging)
   React.useEffect(() => {
     setLocalPhases((prev) => {
-      // If lengths differ or ids differ, replace to ensure fresh
       const prevIds = prev.map(p => p.id).join(",");
       const nextIds = (phases || []).map((p: any) => p.id).join(",");
       if (prevIds !== nextIds) {
         return (phases || []).map((p: any) => ({ ...p }));
       }
-      // otherwise keep prev (avoid clobbering optimistic during drag)
       return prev;
     });
   }, [phases]);
 
   const handleAddPhase = async () => {
-    const name = newPhaseName?.trim();
-    if (!name) return;
+    const name = newPhaseName.trim(); // Remover optional chaining após a validação
+    if (!name) {
+      showError("Nome da fase é obrigatório.");
+      return;
+    }
     setSaving(true);
     try {
       await addPhase(name);
       setNewPhaseName("");
     } catch (err: any) {
       console.error("Add phase error:", err);
+      showError(err?.message || "Erro ao adicionar fase."); // Feedback ao usuário
     } finally {
       setSaving(false);
     }
@@ -120,8 +115,11 @@ const PipelinePhaseManager = () => {
   };
 
   const handleSaveEdit = async () => {
-    const name = editingPhase?.name?.trim();
-    if (!editingPhase || !name) return;
+    const name = editingPhase?.name?.trim(); // Usar optional chaining aqui
+    if (!editingPhase || !name) {
+      showError("Nome da fase é obrigatório.");
+      return;
+    }
     setSaving(true);
     try {
       await updatePhase(editingPhase.id, name);
@@ -129,6 +127,7 @@ const PipelinePhaseManager = () => {
       setEditingPhase(null);
     } catch (err: any) {
       console.error("Update phase error:", err);
+      showError(err?.message || "Erro ao atualizar fase."); // Feedback ao usuário
     } finally {
       setSaving(false);
     }
@@ -139,6 +138,7 @@ const PipelinePhaseManager = () => {
       await togglePhaseActive(id, active);
     } catch (err: any) {
       console.error("Toggle active error:", err);
+      showError(err?.message || "Erro ao alterar status da fase."); // Feedback ao usuário
     }
   };
 
@@ -162,16 +162,17 @@ const PipelinePhaseManager = () => {
     // Build orderedIds (use position order as persisted)
     const orderedIds = next.map(p => p.id);
 
+    setIsReordering(true); // Iniciar estado de reordenação
     try {
-      // Call hook to persist order (expects ordered ids)
       await reorderPhases(orderedIds);
-      // success: optionally show toast
-      showSuccess("Ordem salva"); // Corrected: Use showSuccess
+      showSuccess("Ordem salva");
     } catch (err: any) {
       console.error("Reorder save failed:", err);
       // rollback
       setLocalPhases(previous);
-      showError("Falha ao salvar ordem — revertendo."); // Corrected: Use showError
+      showError("Falha ao salvar ordem — revertendo.");
+    } finally {
+      setIsReordering(false); // Finalizar estado de reordenação
     }
   };
 
@@ -192,10 +193,10 @@ const PipelinePhaseManager = () => {
               value={newPhaseName}
               onChange={(e) => setNewPhaseName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddPhase()}
-              disabled={loading || saving}
+              disabled={loading || saving || isReordering} // Desabilitar durante reordenação
             />
           </div>
-          <Button onClick={handleAddPhase} disabled={loading || saving || !(newPhaseName?.trim())}>
+          <Button onClick={handleAddPhase} disabled={loading || saving || isReordering || !(newPhaseName.trim())}>
             <Plus className="h-4 w-4 mr-2" /> Adicionar
           </Button>
         </div>

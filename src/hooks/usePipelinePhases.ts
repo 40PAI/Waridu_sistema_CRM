@@ -1,17 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
-
-export type PipelinePhase = {
-  id: string;
-  name: string;
-  color?: string | null;
-  sort_order?: number;
-  position?: number;
-  active: boolean;
-  created_at?: string | null;
-  updated_at?: string | null;
-};
+import type { PipelinePhase } from "@/types"; // Usar o tipo atualizado
 
 export const usePipelinePhases = () => {
   const [phases, setPhases] = useState<PipelinePhase[]>([]);
@@ -23,10 +13,9 @@ export const usePipelinePhases = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch ordered by position asc, then updated_at desc for stable ordering
       const { data, error } = await supabase
         .from("pipeline_phases")
-        .select("*")
+        .select("id, name, color, active, position, created_at, updated_at, canonical_status") // Incluir canonical_status
         .order("position", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false });
 
@@ -71,7 +60,7 @@ export const usePipelinePhases = () => {
     try {
       const { data, error } = await supabase
         .from("pipeline_phases")
-        .update({ name: newName.trim() })
+        .update({ name: newName.trim(), updated_at: new Date().toISOString() }) // Adicionar updated_at
         .eq("id", id)
         .select()
         .single();
@@ -92,7 +81,7 @@ export const usePipelinePhases = () => {
     try {
       const { data, error } = await supabase
         .from("pipeline_phases")
-        .update({ active })
+        .update({ active, updated_at: new Date().toISOString() }) // Adicionar updated_at
         .eq("id", id)
         .select()
         .single();
@@ -109,20 +98,13 @@ export const usePipelinePhases = () => {
     }
   };
 
-  /**
-   * Persist order of phases using orderedIds array.
-   * The server stores a 'position' integer (0..n-1).
-   * We upsert in batch using onConflict 'id' to update position.
-   */
   const reorderPhases = async (orderedIds: string[]) => {
     if (!Array.isArray(orderedIds)) {
       throw new Error("orderedIds must be an array of ids");
     }
 
-    // Prepare updates: { id, position }
-    const updates = orderedIds.map((id, idx) => ({ id, position: idx }));
+    const updates = orderedIds.map((id, idx) => ({ id, position: idx, updated_at: new Date().toISOString() })); // Incluir updated_at
 
-    // Upsert in chunks to avoid payload limits if large (simple chunking)
     const chunkSize = 100;
     try {
       for (let i = 0; i < updates.length; i += chunkSize) {
@@ -134,7 +116,6 @@ export const usePipelinePhases = () => {
         if (error) throw error;
       }
 
-      // Re-fetch to ensure canonical order from DB
       await fetchPhases();
       showSuccess("Ordem das fases salva!");
     } catch (err: any) {
@@ -153,6 +134,6 @@ export const usePipelinePhases = () => {
     addPhase,
     updatePhase,
     togglePhaseActive,
-    reorderPhases, // signature: (orderedIds: string[]) => Promise<void>
+    reorderPhases,
   };
 };

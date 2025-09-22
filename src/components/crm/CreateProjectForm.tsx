@@ -21,6 +21,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
+import { usePipelinePhases } from "@/hooks/usePipelinePhases"; // Importar usePipelinePhases
 
 // UUID regex for basic client/responsible validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -59,11 +60,10 @@ export default function CreateProjectForm({ onCreated, onCancel, preselectedClie
   const { services } = useServices();
   const { users, refreshUsers } = useUsers();
   const { updateEvent } = useEvents();
+  const { phases, loading: loadingPhases } = usePipelinePhases(); // Usar usePipelinePhases
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [phases, setPhases] = React.useState<string[]>([]);
-  const [loadingPhases, setLoadingPhases] = React.useState(true);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -71,69 +71,45 @@ export default function CreateProjectForm({ onCreated, onCancel, preselectedClie
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      pipelineStatus: "",
+      pipelineStatus: "", // Será definido no useEffect
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
       endDate: "",
       endTime: "17:00",
-      responsibleId: "",
+      responsibleId: "", // Será definido no useEffect
       location: "",
       estimatedValue: undefined,
       notes: "",
     },
   });
 
+  // Definir valores padrão para pipelineStatus e responsibleId
   React.useEffect(() => {
+    const defaultPipelineStatus = phases.length > 0 ? phases[0].name : "1º Contato";
+    const defaultResponsibleId = users.find(u => u.role === 'Comercial')?.id || "";
+
     form.reset({
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      pipelineStatus: "",
+      pipelineStatus: defaultPipelineStatus,
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
       endDate: "",
       endTime: "17:00",
-      responsibleId: "",
+      responsibleId: defaultResponsibleId,
       location: "",
       estimatedValue: undefined,
       notes: "",
     });
-  }, [preselectedClientId, form]);
-
-  // Fetch pipeline phases dynamically from DB
-  React.useEffect(() => {
-    let mounted = true;
-    const fetchPhases = async () => {
-      setLoadingPhases(true);
-      try {
-        const { data, error } = await supabase
-          .from("pipeline_phases")
-          .select("name")
-          .order("sort_order", { ascending: true })
-          .eq("active", true);
-
-        if (!mounted) return;
-        if (error) {
-          console.warn("Could not load pipeline_phases:", error);
-          // fallback below
-        } else if (data && data.length > 0) {
-          setPhases(data.map((d: any) => d.name));
-        }
-      } catch (err) {
-        console.error("Error loading pipeline phases:", err);
-      } finally {
-        if (mounted) setLoadingPhases(false);
-      }
-    };
-    fetchPhases();
-    return () => { mounted = false; };
-  }, []);
+  }, [preselectedClientId, form, phases, users]); // Adicionar phases e users como dependências
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
-  // Filter users to only show 'Comercial' role for responsible dropdown
-  const commercialUsers = users.filter(u => u.role === 'Comercial');
-  const userOptions = React.useMemo(() => commercialUsers.map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` })), [commercialUsers]);
+  // Filtrar usuários para mostrar apenas 'Comercial' para o responsável
+  const commercialUserOptions = React.useMemo(() => 
+    users.filter(u => u.role === 'Comercial').map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` }))
+  , [users]);
 
   const handleSubmit = async (data: ProjectFormData) => {
     // Validate: ensure pipelineStatus has a value; if phases not loaded, require non-empty
@@ -232,7 +208,7 @@ export default function CreateProjectForm({ onCreated, onCancel, preselectedClie
                           <SelectValue placeholder="Selecione responsável" />
                         </SelectTrigger>
                         <SelectContent>
-                          {userOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                          {commercialUserOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </FormControl>
@@ -247,7 +223,7 @@ export default function CreateProjectForm({ onCreated, onCancel, preselectedClie
                       <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {(loadingPhases ? ["1º Contato", "Orçamento", "Negociação", "Confirmado", "Cancelado"] : phases).map(s => (
+                          {(loadingPhases ? ["1º Contato", "Orçamento", "Negociação", "Confirmado", "Cancelado"] : phases.map(p => p.name)).map(s => (
                             <SelectItem key={s} value={s}>{s}</SelectItem>
                           ))}
                         </SelectContent>

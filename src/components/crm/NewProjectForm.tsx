@@ -19,7 +19,11 @@ import { useEvents } from "@/hooks/useEvents";
 import { useUsers } from "@/hooks/useUsers";
 import { showError, showSuccess } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Plus } from "lucide-react";
+import CreateClientModal from "@/components/crm/CreateClientModal";
+import { usePipelinePhases } from "@/hooks/usePipelinePhases"; // Importar usePipelinePhases
 
+// UUID regex for basic client/responsible validation
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const projectSchema = z.object({
@@ -56,9 +60,9 @@ export default function NewProjectForm({ preselectedClientId, onCreated, onCance
   const { services } = useServices();
   const { users, refreshUsers } = useUsers();
   const { updateEvent } = useEvents();
+  const { phases, loading: loadingPhases } = usePipelinePhases(); // Usar usePipelinePhases
 
-  const [phases, setPhases] = React.useState<string[]>([]);
-  const [loadingPhases, setLoadingPhases] = React.useState(true);
+  const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
   const form = useForm<ProjectFormData>({
@@ -67,47 +71,45 @@ export default function NewProjectForm({ preselectedClientId, onCreated, onCance
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      pipelineStatus: "",
+      pipelineStatus: "", // Será definido no useEffect
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
       endDate: "",
       endTime: "17:00",
-      responsibleId: "",
+      responsibleId: "", // Será definido no useEffect
       location: "",
       estimatedValue: undefined,
       notes: "",
     },
   });
 
+  // Definir valores padrão para pipelineStatus e responsibleId
   React.useEffect(() => {
-    let mounted = true;
-    const fetchPhases = async () => {
-      setLoadingPhases(true);
-      try {
-        const { data, error } = await supabase
-          .from("pipeline_phases")
-          .select("name")
-          .order("sort_order", { ascending: true })
-          .eq("active", true);
+    const defaultPipelineStatus = phases.length > 0 ? phases[0].name : "1º Contato";
+    const defaultResponsibleId = users.find(u => u.role === 'Comercial')?.id || "";
 
-        if (!mounted) return;
-        if (error) {
-          console.warn("Could not load pipeline_phases:", error);
-        } else if (data && data.length > 0) {
-          setPhases(data.map((d: any) => d.name));
-        }
-      } catch (err) {
-        console.error("Error loading pipeline phases:", err);
-      } finally {
-        if (mounted) setLoadingPhases(false);
-      }
-    };
-    fetchPhases();
-    return () => { mounted = false; };
-  }, []);
+    form.reset({
+      clientId: preselectedClientId || "",
+      name: "",
+      serviceIds: [],
+      pipelineStatus: defaultPipelineStatus,
+      startDate: new Date().toISOString().split("T")[0],
+      startTime: "09:00",
+      endDate: "",
+      endTime: "17:00",
+      responsibleId: defaultResponsibleId,
+      location: "",
+      estimatedValue: undefined,
+      notes: "",
+    });
+  }, [preselectedClientId, form, phases, users]); // Adicionar phases e users como dependências
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
-  const userOptions = React.useMemo(() => users.map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` })), [users]);
+
+  // Filtrar usuários para mostrar apenas 'Comercial' para o responsável
+  const commercialUserOptions = React.useMemo(() => 
+    users.filter(u => u.role === 'Comercial').map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` }))
+  , [users]);
 
   const handleSubmit = async (data: ProjectFormData) => {
     if (!data.pipelineStatus) {
@@ -143,7 +145,7 @@ export default function NewProjectForm({ preselectedClientId, onCreated, onCance
       await fetchClients();
       await refreshUsers();
       onCreated?.(result.id);
-      form.reset();
+      form.reset(); // Reset form after successful creation
     } catch (err: any) {
       console.error("Error creating project:", err);
       showError("Erro ao criar projeto. Verifique os campos e tente novamente.");
@@ -153,153 +155,160 @@ export default function NewProjectForm({ preselectedClientId, onCreated, onCance
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Novo Projeto</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome do Projeto *</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="clientId" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cliente Associado *</FormLabel>
-                  <FormControl>
-                    <div className="flex gap-2">
-                      <Combobox
-                        options={clientOptions}
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Selecione um cliente"
-                        searchPlaceholder="Pesquisar cliente..."
-                        className="flex-1"
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField control={form.control} name="responsibleId" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Responsável Comercial *</FormLabel>
-                  <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione responsável" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {userOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="pipelineStatus" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status do Projeto *</FormLabel>
-                  <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {(loadingPhases ? ["1º Contato", "Orçamento", "Negociação", "Confirmado"] : phases).map(s => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <FormField control={form.control} name="startDate" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data de Início *</FormLabel>
-                  <FormControl><Input type="date" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="startTime" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hora de Início *</FormLabel>
-                  <FormControl><Input type="time" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="endDate" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data de Fim *</FormLabel>
-                  <FormControl><Input type="date" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="endTime" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hora de Fim *</FormLabel>
-                  <FormControl><Input type="time" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-
-            <div className="space-y-4">
-              <FormField control={form.control} name="serviceIds" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Serviços de Interesse</FormLabel>
-                  <FormControl>
-                    <MultiSelectServices selected={field.value} onChange={field.onChange} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
+    <>
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle>Novo Projeto</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="location" render={({ field }) => (
+                <FormField control={form.control} name="name" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Local *</FormLabel>
+                    <FormLabel>Nome do Projeto *</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="estimatedValue" render={({ field }) => (
+
+                <FormField control={form.control} name="clientId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor Estimado</FormLabel>
-                    <FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl>
+                    <FormLabel>Cliente Associado *</FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2">
+                        <Combobox
+                          options={clientOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Selecione um cliente"
+                          searchPlaceholder="Pesquisar cliente..."
+                          className="flex-1"
+                        />
+                        <Button type="button" variant="outline" onClick={() => setIsCreateClientOpen(true)} title="Criar Novo Cliente">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
               </div>
 
-              <FormField control={form.control} name="notes" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observações</FormLabel>
-                  <FormControl><Textarea rows={4} {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="responsibleId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Responsável Comercial *</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione responsável" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {commercialUserOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" type="button" onClick={() => onCancel?.()}>Cancelar</Button>
-              <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar Projeto"}</Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+                <FormField control={form.control} name="pipelineStatus" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status do Projeto *</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(loadingPhases ? ["1º Contato", "Orçamento", "Negociação", "Confirmado", "Cancelado"] : phases.map(p => p.name)).map(s => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <FormField control={form.control} name="startDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Início *</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="startTime" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora de Início *</FormLabel>
+                    <FormControl><Input type="time" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="endDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Fim *</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="endTime" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora de Fim *</FormLabel>
+                    <FormControl><Input type="time" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              <div className="space-y-4">
+                <FormField control={form.control} name="serviceIds" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Serviços de Interesse</FormLabel>
+                    <FormControl>
+                      <MultiSelectServices selected={field.value} onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="location" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Local *</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="estimatedValue" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor Estimado</FormLabel>
+                      <FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                <FormField control={form.control} name="notes" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Observações</FormLabel>
+                    <FormControl><Textarea rows={4} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" type="button" onClick={() => onCancel?.()}>Cancelar</Button>
+                <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar Projeto"}</Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      <CreateClientModal open={isCreateClientOpen} onOpenChange={setIsCreateClientOpen} />
+    </>
   );
 }
