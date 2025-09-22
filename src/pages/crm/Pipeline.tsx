@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { EventProject } from "@/types/crm";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import CreateProjectForm from "@/components/crm/CreateProjectForm"; // Import the new form component
 
 export default function PipelinePage() {
   const { events, updateEvent, fetchEvents } = useEvents();
@@ -22,6 +24,7 @@ export default function PipelinePage() {
   // refs to pipeline columns (passed down to kanban)
   const columnRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  const [activeTab, setActiveTab] = useState("pipeline"); // State to manage active tab
   const [editingProject, setEditingProject] = useState<EventProject | null>(null);
   const [viewingProject, setViewingProject] = useState<EventProject | null>(null);
 
@@ -49,7 +52,7 @@ export default function PipelinePage() {
 
   // Navigate to new project page
   const handleNewProject = () => {
-    navigate("/crm/projects/new");
+    setActiveTab("new-project"); // Switch to the new project tab
   };
 
   // If we return from create with createdProjectId in location.state, scroll to that column
@@ -77,6 +80,7 @@ export default function PipelinePage() {
     } catch {
       // ignore
     }
+    setActiveTab("pipeline"); // Switch back to pipeline view after creation
   }, [location, projects]);
 
   const handleUpdateProject = async (updatedProject: EventProject) => {
@@ -115,6 +119,17 @@ export default function PipelinePage() {
     setViewingProject(project);
   };
 
+  const handleProjectCreated = (projectId: number) => {
+    // After project is created, refresh events and switch back to pipeline tab
+    fetchEvents();
+    setActiveTab("pipeline");
+    navigate("/crm/pipeline", { state: { createdProjectId: projectId } }); // Pass ID for scrolling
+  };
+
+  const handleCancelCreate = () => {
+    setActiveTab("pipeline"); // Switch back to pipeline tab
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -127,13 +142,26 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      <PipelineKanban
-        projects={projects}
-        onUpdateProject={handleUpdateProject}
-        onEditProject={handleEditProject}
-        onViewProject={handleViewProject}
-        columnRefs={columnRefs}
-      />
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="new-project">➕ Novo Projeto</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pipeline">
+          <PipelineKanban
+            projects={projects}
+            onUpdateProject={handleUpdateProject}
+            onEditProject={handleEditProject}
+            onViewProject={handleViewProject}
+            columnRefs={columnRefs}
+          />
+        </TabsContent>
+
+        <TabsContent value="new-project">
+          <CreateProjectForm onCreated={handleProjectCreated} onCancel={handleCancelCreate} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
