@@ -50,7 +50,7 @@ export default function usePipelinePhases() {
     async (name: string, opts?: { color?: string; canonical_status?: string }) => {
       try {
         // compute next sort_order
-        const maxOrder = phases.reduce((m, p) => Math.max(m, Number(p.sort_order ?? 0)), 0);
+        const maxOrder = phases.reduce((m, p) => Math.max(m, Number((p as any).sort_order ?? 0)), 0);
         const payload: any = {
           name: name.trim(),
           active: true,
