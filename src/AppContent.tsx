@@ -9,7 +9,7 @@ import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import ResetPasswordPage from "@/pages/ResetPassword";
 import Calendar from "@/pages/Calendar";
-import CreateEventPage from "@/pages/CreateEvent"; // corrected import name
+import CreateEventPage from "@/pages/CreateEvent"; // page expects onAddEvent prop
 import RosterManagement from "@/pages/RosterManagement";
 import Employees from "@/pages/Employees";
 import Roles from "@/pages/Roles";
@@ -64,6 +64,12 @@ import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 const CalendarWrapper = () => {
   const { events } = useEvents();
   return <Calendar events={events} />;
+};
+
+const CreateEventWrapper = () => {
+  const { updateEvent } = useEvents();
+  // Pass updateEvent as onAddEvent; CreateEventPage expects onAddEvent(payload)
+  return <CreateEventPage onAddEvent={updateEvent} />;
 };
 
 const RosterManagementWrapper = () => {
@@ -192,7 +198,7 @@ const AppContent = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Index />} />
             <Route path="/calendar" element={<CalendarWrapper />} />
-            <Route path="/create-event" element={<CreateEventPage />} />
+            <Route path="/create-event" element={<CreateEventWrapper />} />
             <Route path="/roster-management" element={<RosterManagementWrapper />} />
             <Route path="/employees" element={<EmployeesWrapper />} />
             <Route path="/roles" element={<RolesWrapper />} />
