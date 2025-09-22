@@ -21,6 +21,18 @@ export interface Role {
   name: RoleName | string;
 }
 
+/* PipelinePhase: represents a phase row in pipeline_phases table */
+export interface PipelinePhase {
+  id: string;
+  name: string;
+  active: boolean;
+  color?: string | null;
+  canonical_status?: string | null; // canonical mapping (optional)
+  position?: number; // ordering index
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 /* Event statuses (operational) */
 export type EventStatus = 'Planejado' | 'Em Andamento' | 'Concluído' | 'Cancelado';
 
