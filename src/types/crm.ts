@@ -24,6 +24,8 @@ export interface EventProject {
   pipeline_rank?: number;
   // Add updated_at for sorting fallback
   updated_at?: string;
+  // Add pipeline_stage_id for linking to pipeline_stages table
+  pipeline_stage_id?: string;
 }
 
 export type CreatePayload = {

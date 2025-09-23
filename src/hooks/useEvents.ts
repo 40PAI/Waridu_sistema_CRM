@@ -42,6 +42,7 @@ export const useEvents = () => {
         next_action: row.next_action ?? undefined,
         next_action_date: row.next_action_date ?? undefined,
         updated_at: row.updated_at ?? undefined,
+        pipeline_stage_id: row.pipeline_stage_id ?? undefined, // Added pipeline_stage_id
       })) as Event[];
     },
     { enabled: true, keepPreviousData: false }
