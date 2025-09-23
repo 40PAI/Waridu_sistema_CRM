@@ -29,7 +29,7 @@ const ALLOWED_COLUMNS = new Set([
   "estimated_value",
   "service_ids",
   "notes",
-  "tags",
+  // "tags", // <<-- ESTA LINHA FOI REMOVIDA/COMENTADA
   "pipeline_stage_id",
   "responsible_id",
 ]);
