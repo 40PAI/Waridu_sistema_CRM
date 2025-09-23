@@ -19,9 +19,10 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { showSuccess, showError } from "@/utils/toast";
+import type { PipelinePhase } from "@/types";
 
-const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEdit: (s: any) => void; onToggleActive: (id: string, active: boolean) => void; }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stage.id });
+const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: { phase: PipelinePhase; onEdit: (p: PipelinePhase) => void; onToggleActive: (id: string, active: boolean) => void; }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: phase.id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -37,7 +38,7 @@ const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEd
         isDragging && "ring-2 ring-primary shadow-lg"
       )}
       role="listitem"
-      aria-label={`Phase ${stage.name}`}
+      aria-label={`Phase ${phase.name}`}
     >
       <div className="flex items-center gap-3 flex-1">
         <button {...listeners} {...attributes} className="cursor-grab text-muted-foreground hover:text-foreground" aria-label="Reordenar fase">
@@ -45,86 +46,86 @@ const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEd
         </button>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium truncate">{stage.name}</span>
-            <Badge variant={stage.active ? "default" : "secondary"} className="text-xs">
-              {stage.active ? "Ativa" : "Inativa"}
+            <span className="text-sm font-medium truncate">{phase.name}</span>
+            <Badge variant={phase.is_active ? "default" : "secondary"} className="text-xs">
+              {phase.is_active ? "Ativa" : "Inativa"}
             </Badge>
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(stage)} aria-label={`Editar ${stage.name}`}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(phase)} aria-label={`Editar ${phase.name}`}>
           <Edit className="h-4 w-4" />
         </Button>
-        <Switch checked={stage.active} onCheckedChange={(v) => onToggleActive(stage.id, !!v)} aria-label={`Ativar ${stage.name}`} />
+        <Switch checked={phase.is_active} onCheckedChange={(v) => onToggleActive(phase.id, !!v)} aria-label={`Ativar ${phase.name}`} />
       </div>
     </div>
   );
 };
 
-const PipelineStageManager = () => {
-  const { stages, addStage, updateStage, toggleStageActive, reorderPhases, loading } = usePipelineStages();
-  const [newStageName, setNewStageName] = React.useState("");
-  const [newStageColor, setNewStageColor] = React.useState<string>("#e5e7eb");
-  const [editingStage, setEditingStage] = React.useState<any | null>(null);
+const PipelinePhaseManager = () => {
+  const { phases, addPhase, updatePhase, togglePhaseActive, reorderPhases, loading } = usePipelineStages();
+  const [newPhaseName, setNewPhaseName] = React.useState("");
+  const [editingPhase, setEditingPhase] = React.useState<PipelinePhase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [isReordering, setIsReordering] = React.useState(false);
 
-  const [localStages, setLocalStages] = React.useState<any[]>([]);
+  const [localPhases, setLocalPhases] = React.useState<PipelinePhase[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Sync localStages with upstream stages whenever stages change.
-  // Skip sync while actively reordering to avoid clobbering drag state.
   React.useEffect(() => {
-    if (!isReordering) {
-      setLocalStages((stages || []).map((p: any) => ({ ...p })));
-    }
-  }, [stages, isReordering]);
+    setLocalPhases((prev) => {
+      const prevIds = prev.map(p => p.id).join(",");
+      const nextIds = (phases || []).map((p: any) => p.id).join(",");
+      if (prevIds !== nextIds) {
+        return (phases || []).map((p: any) => ({ ...p }));
+      }
+      return prev;
+    });
+  }, [phases]);
 
-  const handleAddStage = async () => {
-    const name = newStageName.trim();
+  const handleAddPhase = async () => {
+    const name = newPhaseName.trim();
     if (!name) {
       showError("Nome da fase é obrigatório.");
       return;
     }
     setSaving(true);
     try {
-      const maxOrder = stages.reduce((m, s) => Math.max(m, s.order || 0), 0);
-      await addStage(name, { color: newStageColor });
-      setNewStageName("");
-      setNewStageColor("#e5e7eb");
+      await addPhase(name);
+      setNewPhaseName("");
     } catch (err: any) {
-      console.error("Add stage error:", err);
+      console.error("Add phase error:", err);
       showError(err?.message || "Erro ao adicionar fase.");
     } finally {
       setSaving(false);
     }
   };
 
-  const openEditDialog = (stage: any) => {
-    setEditingStage({ ...stage });
+  const openEditDialog = (phase: PipelinePhase) => {
+    setEditingPhase({ ...phase });
     setIsEditDialogOpen(true);
   };
 
   const handleSaveEdit = async () => {
-    const name = editingStage?.name?.trim();
-    if (!editingStage || !name) {
+    const name = editingPhase?.name?.trim();
+    if (!editingPhase || !name) {
       showError("Nome da fase é obrigatório.");
       return;
     }
     setSaving(true);
     try {
-      await updateStage(editingStage.id, name, { color: editingStage.color });
+      await updatePhase(editingPhase.id, name);
       setIsEditDialogOpen(false);
-      setEditingStage(null);
+      setEditingPhase(null);
     } catch (err: any) {
-      console.error("Update stage error:", err);
+      console.error("Update phase error:", err);
       showError(err?.message || "Erro ao atualizar fase.");
     } finally {
       setSaving(false);
@@ -133,15 +134,10 @@ const PipelineStageManager = () => {
 
   const handleToggleActive = async (id: string, active: boolean) => {
     try {
-      // Optimistic UI update: reflect change immediately
-      setLocalStages(prev => prev.map(p => p.id === id ? { ...p, active } : p));
-      await toggleStageActive(id, active);
-      // fetchStages inside hook will sync actual state; we already updated optimistically.
+      await togglePhaseActive(id, active);
     } catch (err: any) {
       console.error("Toggle active error:", err);
       showError(err?.message || "Erro ao alterar status da fase.");
-      // revert (best-effort) by re-syncing with upstream stages
-      setLocalStages((stages || []).map((p: any) => ({ ...p })));
     }
   };
 
@@ -151,17 +147,17 @@ const PipelineStageManager = () => {
     const activeId = String(active.id);
     const overId = String(over.id);
 
-    const oldIndex = localStages.findIndex(s => String(s.id) === activeId);
-    const newIndex = localStages.findIndex(s => String(s.id) === overId);
+    const oldIndex = localPhases.findIndex(p => String(p.id) === activeId);
+    const newIndex = localPhases.findIndex(p => String(p.id) === overId);
 
     if (oldIndex === -1 || newIndex === -1) return;
     if (oldIndex === newIndex) return;
 
-    const previous = [...localStages];
-    const next: any[] = arrayMove(previous, oldIndex, newIndex);
-    setLocalStages(next);
+    const previous = [...localPhases];
+    const next: PipelinePhase[] = arrayMove(previous, oldIndex, newIndex);
+    setLocalPhases(next);
 
-    const orderedIds = next.map(s => s.id);
+    const orderedIds = next.map(p => p.id);
 
     setIsReordering(true);
     try {
@@ -169,7 +165,7 @@ const PipelineStageManager = () => {
       showSuccess("Ordem salva");
     } catch (err: any) {
       console.error("Reorder save failed:", err);
-      setLocalStages(previous);
+      setLocalPhases(previous);
       showError("Falha ao salvar ordem — revertendo.");
     } finally {
       setIsReordering(false);
@@ -185,34 +181,28 @@ const PipelineStageManager = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex w-full max-w-xl grid-cols-1 md:grid-cols-3 gap-3 items-end">
-          <div className="space-y-1.5 md:col-span-2">
+        <div className="flex w-full max-w-sm items-center space-x-2">
+          <div className="flex-1 space-y-1.5">
             <Label>Nome da nova fase</Label>
             <Input
               placeholder="Ex: Orçamento"
-              value={newStageName}
-              onChange={(e) => setNewStageName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddStage()}
+              value={newPhaseName}
+              onChange={(e) => setNewPhaseName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddPhase()}
               disabled={loading || saving || isReordering}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label>Cor</Label>
-            <Input type="color" value={newStageColor} onChange={(e) => setNewStageColor(e.target.value)} disabled={loading || saving || isReordering} />
-          </div>
-          <div className="md:col-span-3">
-            <Button onClick={handleAddStage} disabled={loading || saving || isReordering || !(newStageName.trim())}>
-              <Plus className="h-4 w-4 mr-2" /> Adicionar
-            </Button>
-          </div>
+          <Button onClick={handleAddPhase} disabled={loading || saving || isReordering || !(newPhaseName.trim())}>
+            <Plus className="h-4 w-4 mr-2" /> Adicionar
+          </Button>
         </div>
 
         <div className="rounded-md border">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={localStages.map(s => s.id)} strategy={verticalListSortingStrategy}>
-              {localStages.length > 0 ? (
-                localStages.map((stage) => (
-                  <SortableStageItem key={stage.id} stage={stage} onEdit={openEditDialog} onToggleActive={handleToggleActive} />
+            <SortableContext items={localPhases.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              {localPhases.length > 0 ? (
+                localPhases.map((phase) => (
+                  <SortablePhaseItem key={phase.id} phase={phase} onEdit={openEditDialog} onToggleActive={handleToggleActive} />
                 ))
               ) : (
                 <div className="p-4 text-sm text-muted-foreground text-center">Nenhuma fase configurada.</div>
@@ -230,24 +220,15 @@ const PipelineStageManager = () => {
               <div className="space-y-2">
                 <Label>Nome da Fase</Label>
                 <Input
-                  value={editingStage?.name ?? ""}
-                  onChange={(e) => setEditingStage(prev => prev ? { ...prev, name: e.target.value } : prev)}
-                  disabled={saving}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Cor</Label>
-                <Input
-                  type="color"
-                  value={editingStage?.color ?? "#e5e7eb"}
-                  onChange={(e) => setEditingStage(prev => prev ? { ...prev, color: e.target.value } : prev)}
+                  value={editingPhase?.name ?? ""}
+                  onChange={(e) => setEditingPhase(prev => prev ? { ...prev, name: e.target.value } : prev)}
                   disabled={saving}
                 />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={saving}>Cancelar</Button>
-              <Button onClick={handleSaveEdit} disabled={saving || !editingStage?.name?.trim()}>Salvar</Button>
+              <Button onClick={handleSaveEdit} disabled={saving || !editingPhase?.name?.trim()}>Salvar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -256,4 +237,4 @@ const PipelineStageManager = () => {
   );
 };
 
-export default PipelineStageManager;
+export default PipelinePhaseManager;
