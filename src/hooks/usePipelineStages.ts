@@ -7,6 +7,7 @@ export interface PipelineStage {
   name: string;
   order: number;
   is_active: boolean;
+  active?: boolean; // keep for backwards compatibility
   color?: string | null;
   created_at?: string;
 }
@@ -15,8 +16,7 @@ export interface PipelineStage {
  * usePipelineStages
  * - Tries to load stages from pipeline_stages (new table).
  * - Falls back to pipeline_phases (older name) if pipeline_stages doesn't exist or errors.
- * - Normalizes records to PipelineStage shape.
- * - Performs writes against the detected table, but will retry on the other table when the first write fails with table-not-found.
+ * - Normalizes records to PipelineStage shape, and ensures both `is_active` and `active` exist and match.
  */
 export default function usePipelineStages() {
   const [stages, setStages] = useState<PipelineStage[]>([]);
@@ -27,23 +27,31 @@ export default function usePipelineStages() {
   const detectedTableRef = useRef<'pipeline_stages' | 'pipeline_phases'>('pipeline_stages');
 
   const normalizeRow = (row: any, source: 'pipeline_stages' | 'pipeline_phases'): PipelineStage => {
+    // Normalize booleans and order to stable fields.
     if (source === 'pipeline_stages') {
+      const isActive = Boolean(row.is_active);
+      const order = Number(row.sort_order ?? row.order ?? 0);
       return {
         id: row.id,
         name: row.name,
-        order: Number(row.sort_order ?? row.order ?? 0),
-        is_active: Boolean(row.is_active),
+        order,
+        is_active: isActive,
+        active: isActive,
         color: row.color ?? null,
         created_at: row.created_at ?? null,
       };
     }
 
-    // pipeline_phases shape (older)
+    // pipeline_phases (older)
+    const activeVal = row.active ?? row.is_active ?? false;
+    const isActive = Boolean(activeVal);
+    const order = Number(row.sort_order ?? row.sort_order ?? 0);
     return {
       id: row.id,
       name: row.name,
-      order: Number(row.sort_order ?? row.sort_order ?? 0),
-      is_active: Boolean(row.active ?? row.is_active),
+      order,
+      is_active: isActive,
+      active: isActive,
       color: row.color ?? null,
       created_at: row.created_at ?? null,
     };
@@ -107,10 +115,9 @@ export default function usePipelineStages() {
   // Helper to detect "table not found" errors from PostgREST
   const isTableNotFoundError = (err: any) => {
     if (!err) return false;
-    // Supabase/PostgREST error shape often includes code 'PGRST205' for table not found
     if (err.code === 'PGRST205') return true;
     const msg = String(err.message || err);
-    return msg.includes("Could not find the table") || msg.includes("relation") && msg.includes("does not exist");
+    return msg.includes("Could not find the table") || (msg.includes("relation") && msg.includes("does not exist"));
   };
 
   // Generic write helper: try on preferredTable, if table-not-found then try otherTable and update detection
@@ -122,11 +129,9 @@ export default function usePipelineStages() {
         const other: 'pipeline_stages' | 'pipeline_phases' = preferredTable === 'pipeline_stages' ? 'pipeline_phases' : 'pipeline_stages';
         try {
           const res = await fn(other);
-          // If succeeded on other, update detection
           detectedTableRef.current = other;
           return res;
         } catch (err2: any) {
-          // rethrow original or second error
           throw err2 || err;
         }
       }
@@ -138,7 +143,7 @@ export default function usePipelineStages() {
     async (name: string, opts?: { color?: string }) => {
       try {
         const table = detectedTableRef.current;
-        const maxOrder = stages.reduce((m, s) => Math.max(m, Number(s.order ?? 0)), 0);
+        const maxOrder = stages.reduce((m, p) => Math.max(m, Number(p.order ?? 0)), 0);
         const payload: any = {
           name: name.trim(),
           sort_order: maxOrder + 1,
@@ -146,10 +151,10 @@ export default function usePipelineStages() {
           color: opts?.color ?? null,
         };
 
-        // adapt payload keys for pipeline_phases (uses active & sort_order)
         const writeFn = async (writeTable: string) => {
           const body = { ...payload };
           if (writeTable === 'pipeline_phases') {
+            // older table expects 'active' instead of 'is_active'
             body.active = body.is_active;
             delete body.is_active;
           }
@@ -203,17 +208,14 @@ export default function usePipelineStages() {
     async (id: string, active: boolean) => {
       try {
         const table = detectedTableRef.current;
-        const updatesTableSpecific = (writeTable: string) => {
+        const writeFn = async (writeTable: string) => {
           const updates: any = writeTable === 'pipeline_phases' ? { active } : { is_active: active };
-          return supabase.from(writeTable).update(updates).eq("id", id).select().single();
-        };
-
-        const data = await tryWriteWithTableFallback(table, async (t) => {
-          const { data, error } = await updatesTableSpecific(t);
+          const { data, error } = await supabase.from(writeTable).update(updates).eq("id", id).select().single();
           if (error) throw error;
           return data;
-        });
+        };
 
+        const data = await tryWriteWithTableFallback(table, writeFn);
         showSuccess(active ? "Fase ativada" : "Fase desativada");
         await fetchStages();
         return normalizeRow(data, detectedTableRef.current);
@@ -232,7 +234,9 @@ export default function usePipelineStages() {
       try {
         const table = detectedTableRef.current;
         const writeFn = async (writeTable: string) => {
-          const updates = orderedIds.map((id, idx) => supabase.from(writeTable).update({ sort_order: idx + 1 }).eq("id", id));
+          const updates = orderedIds.map((id, idx) =>
+            supabase.from(writeTable).update({ sort_order: idx + 1 }).eq("id", id),
+          );
           const results = await Promise.all(updates);
           const firstErr = results.find((r: any) => r.error);
           if (firstErr && firstErr.error) throw firstErr.error;
