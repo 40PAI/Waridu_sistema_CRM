@@ -157,6 +157,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
       console.log("Updating project with data:", updatedProject);
 
       // Call the hook updateEvent to persist to Supabase
+      // DO NOT include created_at/updated_at here — DB triggers manage timestamps and eventsService sanitizes payloads.
       const result = await updateEvent({
         id: updatedProject.id,
         name: updatedProject.name,
@@ -177,18 +178,15 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         notes: updatedProject.notes,
         tags: updatedProject.tags,
         responsible_id: (updatedProject as any).responsible_id, // Save the responsible ID
-        updated_at: new Date().toISOString(),
       } as any);
 
       if (!result) throw new Error("Falha ao atualizar projeto");
 
-      // Optional parent callback
       if (onSave) {
         try {
           await onSave(updatedProject);
         } catch (parentError) {
           console.warn("Parent callback error:", parentError);
-          // Don't fail the whole operation for parent callback errors
         }
       }
 

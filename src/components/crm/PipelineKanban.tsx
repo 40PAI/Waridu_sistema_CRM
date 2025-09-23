@@ -125,16 +125,15 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
           p.id === activeProject.id ? ({ ...p, pipeline_stage_id: toStageId } as any) : p
         ));
 
-        // First try to update pipeline_stage_id (preferred)
+        // Update only the business fields (do NOT send created_at/updated_at)
         const { error } = await supabase
           .from('events')
-          .update({ pipeline_stage_id: toStageId, updated_at: new Date().toISOString() })
+          .update({ pipeline_stage_id: toStageId })
           .eq('id', activeProject.id);
 
         if (error) {
           // If PostgREST complains about missing column (PGRST204), fall back to pipeline_status update
           if (error.code === 'PGRST204') {
-            // Try to map stage -> status name
             const stage = stages.find(s => String(s.id) === String(toStageId));
             const statusValue = (stage && (stage.name || (stage as any).canonical_status)) || null;
             if (!statusValue) {
@@ -142,13 +141,12 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
             }
             const { error: altError } = await supabase
               .from('events')
-              .update({ pipeline_status: statusValue, updated_at: new Date().toISOString() })
+              .update({ pipeline_status: statusValue })
               .eq('id', activeProject.id);
 
             if (altError) throw altError;
 
             showSuccess("Projeto movido (fallback para pipeline_status).");
-            // notify parent optionally
             if (onUpdateProject) {
               try {
                 await onUpdateProject({ ...activeProject, pipeline_status: statusValue } as EventProject);

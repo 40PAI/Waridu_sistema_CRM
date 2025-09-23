@@ -138,8 +138,8 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       client_id: data.clientId,
       description: data.notes || null,
       status: "Planejado",
-      updated_at: new Date().toISOString(),
       responsible_id: data.responsibleId || null,
+      // NOTE: do NOT include updated_at/created_at here — DB triggers and central sanitizer manage timestamps.
     };
 
     try {
