@@ -116,24 +116,64 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
 
     if (fromStageId !== toStageId) {
       setUpdating(String(activeProject.id));
+      // Keep a snapshot to revert if needed
+      const prevLocal = [...localProjects];
+
       try {
+        // Optimistic UI update
         setLocalProjects(prev => prev.map(p =>
           p.id === activeProject.id ? ({ ...p, pipeline_stage_id: toStageId } as any) : p
         ));
 
-        // Persist to Supabase
+        // First try to update pipeline_stage_id (preferred)
         const { error } = await supabase
           .from('events')
           .update({ pipeline_stage_id: toStageId, updated_at: new Date().toISOString() })
           .eq('id', activeProject.id);
 
-        if (error) throw error;
+        if (error) {
+          // If PostgREST complains about missing column (PGRST204), fall back to pipeline_status update
+          if (error.code === 'PGRST204') {
+            // Try to map stage -> status name
+            const stage = stages.find(s => String(s.id) === String(toStageId));
+            const statusValue = (stage && (stage.name || (stage as any).canonical_status)) || null;
+            if (!statusValue) {
+              throw error;
+            }
+            const { error: altError } = await supabase
+              .from('events')
+              .update({ pipeline_status: statusValue, updated_at: new Date().toISOString() })
+              .eq('id', activeProject.id);
 
-        showSuccess("Projeto movido com sucesso!");
+            if (altError) throw altError;
+
+            showSuccess("Projeto movido (fallback para pipeline_status).");
+            // notify parent optionally
+            if (onUpdateProject) {
+              try {
+                await onUpdateProject({ ...activeProject, pipeline_status: statusValue } as EventProject);
+              } catch {
+                // ignore parent callback errors
+              }
+            }
+          } else {
+            throw error;
+          }
+        } else {
+          showSuccess("Projeto movido com sucesso!");
+          if (onUpdateProject) {
+            try {
+              await onUpdateProject({ ...activeProject, pipeline_stage_id: toStageId } as EventProject);
+            } catch {
+              // ignore parent callback errors
+            }
+          }
+        }
       } catch (err: any) {
         console.error("Error updating project stage:", err);
-        showError("Erro ao mover projeto. Revertendo...");
-        setLocalProjects(projects);
+        showError("Erro ao mover projeto. Revertendo.");
+        // revert optimistic update
+        setLocalProjects(prevLocal);
       } finally {
         setUpdating(null);
       }
@@ -197,3 +237,4 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     </div>
   );
 }
+export default PipelineKanban;
