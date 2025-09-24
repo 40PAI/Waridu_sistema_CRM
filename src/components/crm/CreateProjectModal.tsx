@@ -23,6 +23,7 @@ import CreateClientModal from "@/components/crm/CreateClientModal";
 import usePipelineStages from "@/hooks/usePipelineStages";
 import { useUsers } from "@/hooks/useUsers";
 import { computeRank } from "@/utils/rankUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -126,32 +127,40 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     const startISO = toISO(data.startDate, data.startTime);
     const endISO = data.endDate ? toISO(data.endDate, data.endTime || data.startTime) : startISO;
 
-    // Calculate initial rank (place at end of target column)
-    const targetColumnTasks = projectsByColumn[data.pipelinePhaseId] || [];
-    const initialRank = Number(computeRank(
-      targetColumnTasks.length > 0 ? targetColumnTasks[targetColumnTasks.length - 1].pipeline_rank : null,
-      null
-    ));
-
-    const payload: Record<string, any> = {
-      name: data.name,
-      start_date: startISO,
-      end_date: endISO,
-      start_time: data.startTime ? `${data.startTime}:00` : null,
-      end_time: data.endTime ? `${data.endTime}:00` : null,
-      location: data.location,
-      pipeline_phase_id: data.pipelinePhaseId, // Use phase ID as source of truth
-      pipeline_rank: initialRank,
-      estimated_value: data.estimatedValue ?? null,
-      service_ids: data.serviceIds,
-      client_id: data.clientId,
-      description: data.notes || null,
-      status: "Planejado",
-      responsible_id: data.responsibleId || null,
-      // NOTE: do NOT include updated_at/created_at here — DB triggers manage timestamps.
-    };
-
     try {
+      // Query the current max pipeline_rank in the target phase to compute a stable rank
+      const { data: maxRow, error: maxErr } = await supabase
+        .from("events")
+        .select("pipeline_rank")
+        .eq("pipeline_phase_id", data.pipelinePhaseId)
+        .order("pipeline_rank", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (maxErr) {
+        console.warn("Could not fetch max rank for phase:", maxErr);
+      }
+
+      const leftRank = maxRow?.pipeline_rank ?? null;
+      const initialRank = Number(computeRank(leftRank, null));
+
+      const payload: Record<string, any> = {
+        name: data.name,
+        start_date: startISO,
+        end_date: endISO,
+        start_time: data.startTime ? `${data.startTime}:00` : null,
+        end_time: data.endTime ? `${data.endTime}:00` : null,
+        location: data.location,
+        pipeline_phase_id: data.pipelinePhaseId, // Use phase ID as source of truth
+        pipeline_rank: initialRank,
+        estimated_value: data.estimatedValue ?? null,
+        service_ids: data.serviceIds,
+        client_id: data.clientId,
+        description: data.notes || null,
+        status: "Planejado",
+        responsible_id: data.responsibleId || null,
+      };
+
       const result = await updateEvent(payload as any);
       if (!result) throw new Error("Falha ao salvar evento");
       showSuccess("Projeto criado com sucesso");
