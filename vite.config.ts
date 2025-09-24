@@ -5,8 +5,12 @@ import path from "path";
 
 export default defineConfig(() => ({
   server: {
-    host: "::",
-    port: 8080,
+    host: "0.0.0.0",
+    port: 5000,
+    strictPort: true,
+    hmr: {
+      port: 5000,
+    },
   },
   plugins: [dyadComponentTagger(), react()],
   resolve: {
