@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { useServices } from "@/hooks/useServices";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns"; // Importar format para formatação de datas
+import { ptBR } from "date-fns/locale"; // Importar ptBR para formatação de datas
 
 export default function CommercialServicesPage() {
   const { services } = useServices();
@@ -41,6 +43,7 @@ export default function CommercialServicesPage() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Data de Criação</TableHead>
+                  <TableHead>Última Alteração</TableHead> {/* Adicionado */}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -60,11 +63,12 @@ export default function CommercialServicesPage() {
                     </TableCell>
                     <TableCell className="max-w-lg truncate">{svc.description || "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={svc.status && String(svc.status).toLowerCase() === "ativo" ? "default" : "secondary"}>
-                        {svc.status ? String(svc.status) : (svc.status === undefined ? "Ativo" : "Inativo")}
+                      <Badge variant={svc.is_active ? "default" : "secondary"}>
+                        {svc.is_active ? "Ativo" : "Inativo"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{svc.created_at ? new Date(svc.created_at).toLocaleString() : "—"}</TableCell>
+                    <TableCell>{svc.created_at ? format(new Date(svc.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—"}</TableCell>
+                    <TableCell>{svc.updated_at ? format(new Date(svc.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—"}</TableCell> {/* Adicionado */}
                   </TableRow>
                 ))}
               </TableBody>

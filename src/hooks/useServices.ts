@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { useServerState, useMutationWithInvalidation } from "./useServerState"; // Importar useServerState e useMutationWithInvalidation
+import { format } from "date-fns"; // Importar format para formatação de datas
 
 export interface Service {
   id: string;
   name: string;
   description?: string | null;
-  status?: string | boolean | null;
+  is_active: boolean; // Adicionado
   created_at?: string | null;
-  updated_at?: string | null; // added to reflect DB column and avoid TS errors
+  updated_at?: string | null; // Adicionado
+  deleted_at?: string | null; // Adicionado para soft delete
 }
 
 export const useServices = () => {
@@ -19,19 +21,21 @@ export const useServices = () => {
     async () => {
       const { data, error } = await supabase
         .from("services")
-        .select("*")
+        .select("id, name, description, is_active, created_at, updated_at, deleted_at") // Incluir novas colunas
+        .is('deleted_at', null) // Filtrar por soft delete
         .order("name", { ascending: true });
 
       if (error) throw error;
 
-      // Normalizar forma (manter status como está, se presente)
+      // Normalizar forma
       const formatted = (data || []).map((row: any) => ({
         id: row.id,
         name: row.name,
         description: row.description ?? null,
-        status: row.status ?? null,
+        is_active: row.is_active, // Usar is_active
         created_at: row.created_at ?? null,
         updated_at: row.updated_at ?? null,
+        deleted_at: row.deleted_at ?? null,
       })) as Service[];
 
       return formatted;
@@ -41,11 +45,11 @@ export const useServices = () => {
 
   // Mutações para criar, atualizar e deletar serviços
   const createServiceMutation = useMutationWithInvalidation(
-    async (payload: { name: string; description?: string }) => {
+    async (payload: { name: string; description?: string; is_active?: boolean }) => {
       const { data, error } = await supabase.from("services").insert({
         name: payload.name,
         description: payload.description ?? null,
-        status: "ativo",
+        is_active: payload.is_active ?? true, // Padrão para ativo
         updated_at: new Date().toISOString(),
       }).select().single();
       if (error) throw error;
@@ -68,7 +72,8 @@ export const useServices = () => {
 
   const deleteServiceMutation = useMutationWithInvalidation(
     async (id: string) => {
-      const { error } = await supabase.from("services").delete().eq("id", id);
+      // Soft delete: atualizar deleted_at
+      const { error } = await supabase.from("services").update({ deleted_at: new Date().toISOString() }).eq("id", id);
       if (error) throw error;
       return true;
     },
@@ -76,16 +81,7 @@ export const useServices = () => {
   );
 
   // Heurística para tratar um serviço como ativo:
-  // suporta algumas representações possíveis (booleano true, 'ativo', 'Ativo', 'active')
-  const activeServices = (servicesQuery.data || []).filter((s) => {
-    if (s.status === undefined || s.status === null) {
-      // Se o status não estiver presente, considere-o ativo (compatibilidade com versões anteriores)
-      return true;
-    }
-    if (typeof s.status === "boolean") return s.status === true;
-    const st = String(s.status).toLowerCase();
-    return st === "ativo" || st === "active" || st === "true" || st === "1";
-  });
+  const activeServices = (servicesQuery.data || []).filter((s) => s.is_active);
 
   return {
     services: servicesQuery.data ?? [],
@@ -93,7 +89,7 @@ export const useServices = () => {
     loading: servicesQuery.isLoading,
     error: servicesQuery.isError ? (servicesQuery.error as Error) : null,
     refreshServices: () => servicesQuery.refetch(),
-    createService: async (payload: { name: string; description?: string }) => {
+    createService: async (payload: { name: string; description?: string; is_active?: boolean }) => {
       try {
         const result = await createServiceMutation.mutateAndInvalidate(payload);
         showSuccess("Serviço criado com sucesso!");
@@ -113,13 +109,23 @@ export const useServices = () => {
         throw err;
       }
     },
+    toggleServiceActive: async (id: string, is_active: boolean) => {
+      try {
+        const result = await updateServiceMutation.mutateAndInvalidate({ id, updates: { is_active } });
+        showSuccess(`Serviço ${is_active ? "ativado" : "desativado"} com sucesso!`);
+        return result;
+      } catch (err: any) {
+        showError("Erro ao atualizar status do serviço.");
+        throw err;
+      }
+    },
     deleteService: async (id: string) => {
       try {
         await deleteServiceMutation.mutateAndInvalidate(id);
-        showSuccess("Serviço removido com sucesso!");
+        showSuccess("Serviço eliminado (soft delete) com sucesso!");
         return true;
       } catch (err: any) {
-        showError("Erro ao remover serviço.");
+        showError("Erro ao eliminar serviço.");
         throw err;
       }
     }

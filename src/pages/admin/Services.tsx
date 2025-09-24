@@ -24,9 +24,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns"; // Importar format para formatação de datas
+import { ptBR } from "date-fns/locale"; // Importar ptBR para formatação de datas
 
 export default function AdminServicesPage() {
-  const { services, refreshServices, createService, updateService, deleteService, loading } = useServices();
+  const { services, refreshServices, createService, updateService, toggleServiceActive, deleteService, loading } = useServices();
   const { user } = useAuth();
   const role = user?.profile?.role;
 
@@ -105,18 +107,13 @@ export default function AdminServicesPage() {
     }
   };
 
-  const toggleActive = async (svc: any) => {
+  const handleToggleActive = async (svc: any) => {
     if (!canManage) {
       showError("Sem permissão para alterar status.");
       return;
     }
-    const current = svc.status;
-    // Normalize to string
-    const currentStr = current === undefined || current === null ? "ativo" : String(current).toLowerCase();
-    const newStatus = currentStr === "ativo" || currentStr === "true" || currentStr === "1" ? "inativo" : "ativo";
     try {
-      await updateService(svc.id, { status: newStatus });
-      showSuccess(`Serviço ${newStatus === "ativo" ? "ativado" : "desativado"}`);
+      await toggleServiceActive(svc.id, !svc.is_active);
       // refreshServices is called by the mutation hook
     } catch (err: any) {
       showError(err?.message || "Erro ao atualizar status");
@@ -198,12 +195,12 @@ export default function AdminServicesPage() {
                     </TableCell>
                     <TableCell className="max-w-lg truncate">{svc.description || "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={(svc.status && String(svc.status).toLowerCase() === "ativo") ? "default" : "secondary"}>
-                        {(svc.status && String(svc.status).toLowerCase() === "ativo") ? "Ativo" : "Inativo"}
+                      <Badge variant={svc.is_active ? "default" : "secondary"}>
+                        {svc.is_active ? "Ativo" : "Inativo"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{svc.created_at ? new Date(svc.created_at).toLocaleString() : "—"}</TableCell>
-                    <TableCell>{svc.updated_at ? new Date(svc.updated_at).toLocaleString() : (svc.created_at ? new Date(svc.created_at).toLocaleString() : "—")}</TableCell>
+                    <TableCell>{svc.created_at ? format(new Date(svc.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—"}</TableCell>
+                    <TableCell>{svc.updated_at ? format(new Date(svc.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : (svc.created_at ? format(new Date(svc.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         {/* Edit available to those with manage permission */}
@@ -221,8 +218,8 @@ export default function AdminServicesPage() {
 
                         {/* Toggle active/inactive available to those with manage permission */}
                         {canManage ? (
-                          <Button variant="outline" size="sm" onClick={() => toggleActive(svc)}>
-                            {svc.status && String(svc.status).toLowerCase() === "ativo" ? (
+                          <Button variant="outline" size="sm" onClick={() => handleToggleActive(svc)}>
+                            {svc.is_active ? (
                               <>
                                 <ToggleLeft className="h-4 w-4 mr-1" />
                                 Desativar
@@ -236,7 +233,7 @@ export default function AdminServicesPage() {
                           </Button>
                         ) : (
                           <Button variant="outline" size="sm" disabled>
-                            {svc.status && String(svc.status).toLowerCase() === "ativo" ? "Desativar" : "Ativar"}
+                            {svc.is_active ? "Desativar" : "Ativar"}
                           </Button>
                         )}
 

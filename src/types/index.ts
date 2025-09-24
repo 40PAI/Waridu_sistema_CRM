@@ -180,9 +180,10 @@ export interface Service {
   id: string;
   name: string;
   description?: string | null;
-  status?: string | boolean | null;
+  is_active: boolean; // Alterado de status para is_active
   created_at?: string | null;
   updated_at?: string | null;
+  deleted_at?: string | null; // Adicionado para soft delete
 }
 
 /* Communication types */
