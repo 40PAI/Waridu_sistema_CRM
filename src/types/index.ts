@@ -76,10 +76,7 @@ export interface Event {
   expenses?: Expense[] | null;
 
   // CRM/project-specific fields
-  pipeline_status?: PipelineStatus | null; // Derived via trigger
-  pipeline_phase_id?: string | null; // Primary source of truth for pipeline
-  pipeline_phase_label?: string | null; // Derived via trigger
-  pipeline_rank?: number | null; // For ordering in Kanban
+  pipeline_status?: PipelineStatus | null;
   estimated_value?: number | null;
   service_ids?: string[] | null;
   client_id?: string | null;
@@ -90,6 +87,7 @@ export interface Event {
   next_action?: string;
   next_action_date?: string;
   updated_at?: string | null;
+  pipeline_stage_id?: string; // New: FK to pipeline_stages
   follow_ups_count?: number;
   follow_ups_completed?: number;
 }

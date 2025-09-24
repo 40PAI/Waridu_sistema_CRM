@@ -23,7 +23,7 @@ import { DroppableColumn } from "./DroppableColumn";
 import { SortableProjectCard } from "./SortableProjectCard";
 import type { EventProject } from "@/types/crm";
 import { supabase } from "@/integrations/supabase/client";
-import usePipelinePhases from "@/hooks/usePipelinePhases";
+import usePipelineStages from "@/hooks/usePipelineStages";
 import { computeRank } from "@/utils/rankUtils";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -43,7 +43,7 @@ function getProjectById(list: EventProject[], id: string | number) {
 }
 
 export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
-  const { phases } = usePipelinePhases();
+  const { stages } = usePipelineStages();
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
   const [localProjects, setLocalProjects] = React.useState<EventProject[]>(projects);
@@ -55,38 +55,27 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const columns = React.useMemo(() => {
-    return phases
-      .filter(s => s.active)
-      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    return stages
+      .filter(s => s.is_active)
+      .sort((a, b) => a.order - b.order)
       .map(s => ({
         id: s.id,
         title: s.name,
         color: s.color || "#f3f4f6",
       }));
-  }, [phases]);
+  }, [stages]);
 
   const projectsByColumn = React.useMemo(() => {
     const grouped: Record<string, EventProject[]> = {};
     columns.forEach(col => (grouped[col.id] = []));
     localProjects.forEach((p) => {
-      const phaseId = (p as any).pipeline_phase_id || null;
-      if (phaseId && grouped[phaseId]) {
-        grouped[phaseId].push(p);
+      const stageId = (p as any).pipeline_stage_id || null;
+      if (stageId && grouped[stageId]) {
+        grouped[stageId].push(p);
       } else {
         const firstCol = columns[0]?.id;
         if (firstCol) grouped[firstCol].push(p);
       }
-    });
-    // Sort inside each column by pipeline_rank then updated_at desc
-    Object.keys(grouped).forEach(k => {
-      grouped[k].sort((a, b) => {
-        const ra = (a as any).pipeline_rank ?? 0;
-        const rb = (b as any).pipeline_rank ?? 0;
-        if (ra !== rb) return Number(ra) - Number(rb);
-        const ua = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-        const ub = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-        return ub - ua;
-      });
     });
     return grouped;
   }, [localProjects, columns]);
@@ -108,16 +97,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       return;
     }
     const pr = getProjectById(localProjects, overId);
-    setDragOverColumn(pr ? (pr as any).pipeline_phase_id || null : null);
-  };
-
-  const calculateNewIndex = (overId: string, columnTasks: EventProject[], activeId: string) => {
-    if (isColumnId(overId)) {
-      return columnTasks.length;
-    }
-    const overIndex = columnTasks.findIndex(t => String(t.id) === String(overId));
-    if (overIndex === -1) return columnTasks.length;
-    return overIndex;
+    setDragOverColumn(pr ? (pr as any).pipeline_stage_id || null : null);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -132,101 +112,74 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const activeProject = getProjectById(localProjects, activeId);
     if (!activeProject) return;
 
-    const fromPhaseId = (activeProject as any).pipeline_phase_id || null;
-    const toPhaseId = isColumnId(overId) ? overId : (getProjectById(localProjects, overId) as any)?.pipeline_phase_id || columns[0]?.id;
+    const fromStageId = (activeProject as any).pipeline_stage_id || null;
+    const toStageId = isColumnId(overId) ? overId : (getProjectById(localProjects, overId) as any)?.pipeline_stage_id || columns[0]?.id;
 
-    if (!toPhaseId) return;
+    if (!toStageId) return;
 
-    // Determine new rank inside toPhase column
-    const columnTasks = projectsByColumn[toPhaseId] || [];
-    const newIndex = calculateNewIndex(overId, columnTasks, activeId);
-
-    const leftRank = newIndex > 0 ? columnTasks[newIndex - 1]?.pipeline_rank : null;
-    const rightRank = newIndex < columnTasks.length ? columnTasks[newIndex]?.pipeline_rank : null;
-    const newRank = Number(computeRank(leftRank ?? null, rightRank ?? null).toString()); // store as number (BIGINT on DB)
-
-    if (fromPhaseId !== toPhaseId) {
+    if (fromStageId !== toStageId) {
       setUpdating(String(activeProject.id));
+      // Keep a snapshot to revert if needed
       const prevLocal = [...localProjects];
 
       try {
-        // optimistic UI
+        // Optimistic UI update
         setLocalProjects(prev => prev.map(p =>
-          p.id === activeProject.id ? ({ ...p, pipeline_phase_id: toPhaseId, pipeline_rank: newRank } as any) : p
+          p.id === activeProject.id ? ({ ...p, pipeline_stage_id: toStageId } as any) : p
         ));
 
+        // Update only the business fields (do NOT send created_at/updated_at)
         const { error } = await supabase
           .from('events')
-          .update({ pipeline_phase_id: toPhaseId, pipeline_rank: newRank })
+          .update({ pipeline_phase_id: toStageId, pipeline_rank: computeRank(null, null) }) // Example: set to default rank; adjust as needed
           .eq('id', activeProject.id);
 
-        if (error) throw error;
+        if (error) {
+          // If PostgREST complains about missing column (PGRST204), fall back to pipeline_status update
+          if (error.code === 'PGRST204') {
+            const stage = stages.find(s => String(s.id) === String(toStageId));
+            const statusValue = (stage && (stage.name || (stage as any).canonical_status)) || null;
+            if (!statusValue) {
+              throw error;
+            }
+            const { error: altError } = await supabase
+              .from('events')
+              .update({ pipeline_status: statusValue })
+              .eq('id', activeProject.id);
 
-        showSuccess("Projeto movido com sucesso!");
-        if (onUpdateProject) {
-          try { await onUpdateProject({ ...activeProject, pipeline_phase_id: toPhaseId, pipeline_rank: newRank } as EventProject); } catch {}
+            if (altError) throw altError;
+
+            showSuccess("Projeto movido (fallback para pipeline_status).");
+            if (onUpdateProject) {
+              try {
+                await onUpdateProject({ ...activeProject, pipeline_status: statusValue } as EventProject);
+              } catch {
+                // ignore parent callback errors
+              }
+            }
+          } else {
+            throw error;
+          }
+        } else {
+          showSuccess("Projeto movido com sucesso!");
+          if (onUpdateProject) {
+            try {
+              await onUpdateProject({ ...activeProject, pipeline_phase_id: toStageId } as EventProject);
+            } catch {
+              // ignore parent callback errors
+            }
+          }
         }
-
+        // Invalidate cache
         qc.invalidateQueries({ queryKey: ['events'] });
       } catch (err: any) {
         console.error("Error updating project stage:", err);
         showError("Erro ao mover projeto. Revertendo.");
+        // revert optimistic update
         setLocalProjects(prevLocal);
       } finally {
         setUpdating(null);
       }
-      return;
-    }
-
-    // If same phase, reorder within column (no immediate server write for ordering unless desired)
-    // For now, compute newRank and persist single update
-    const sameColumnTasks = columnTasks;
-    const oldIndex = sameColumnTasks.findIndex(t => String(t.id) === activeId);
-    const targetIndex = calculateNewIndex(overId, sameColumnTasks, activeId);
-
-    if (oldIndex === -1 || oldIndex === targetIndex) return;
-
-    // compute rank for new position
-    const left = targetIndex > 0 ? sameColumnTasks[targetIndex - 1]?.pipeline_rank : null;
-    const right = targetIndex < sameColumnTasks.length ? sameColumnTasks[targetIndex]?.pipeline_rank : null;
-    const rankForReorder = Number(computeRank(left ?? null, right ?? null).toString());
-
-    // optimistic reorder
-    const prevLocal = [...localProjects];
-    const newLocal = localProjects.map(p => ({ ...p }));
-    const colIds = newLocal.filter(n => (n as any).pipeline_phase_id === toPhaseId).map(n => n.id);
-    // reposition in localProjects
-    newLocal.sort((a, b) => {
-      const pa = (a as any).pipeline_phase_id ?? "";
-      const pb = (b as any).pipeline_phase_id ?? "";
-      if (pa !== pb) return pa < pb ? -1 : 1;
-      const ra = (a as any).pipeline_rank ?? 0;
-      const rb = (b as any).pipeline_rank ?? 0;
-      if (ra !== rb) return ra - rb;
-      const ua = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-      const ub = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-      return ub - ua;
-    });
-
-    setLocalProjects(prev => {
-      // set active task rank locally
-      return prev.map(p => p.id === activeId ? ({ ...p, pipeline_rank: rankForReorder } as any) : p);
-    });
-
-    try {
-      const { error } = await supabase
-        .from('events')
-        .update({ pipeline_rank: rankForReorder })
-        .eq('id', activeId);
-
-      if (error) throw error;
-
-      qc.invalidateQueries({ queryKey: ['events'] });
-      showSuccess("Ordem atualizada.");
-    } catch (err: any) {
-      console.error("Error updating rank:", err);
-      showError("Erro ao salvar ordem. Revertendo.");
-      setLocalProjects(prevLocal);
     }
   };
 

@@ -4,7 +4,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
-import usePipelinePhases from "@/hooks/usePipelinePhases"; // Changed from usePipelineStages
+import usePipelineStages from "@/hooks/usePipelineStages";
 import { useUsers } from "@/hooks/useUsers";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -36,7 +36,7 @@ const projectSchema = z.object({
   location: z.string().min(1),
   estimatedValue: z.number().min(0).optional(),
   notes: z.string().optional(),
-  pipelinePhaseId: z.string().min(1), // Changed to pipelinePhaseId
+  pipelineStatus: z.string().min(1),
   responsibleId: z.string().optional(),
 });
 
@@ -60,7 +60,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   const { services } = useServices();
   const { users, refreshUsers } = useUsers();
   const { updateEvent } = useEvents();
-  const { phases } = usePipelinePhases(); // Changed from stages
+  const { stages } = usePipelineStages();
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -71,7 +71,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      pipelinePhaseId: "", // Changed to pipelinePhaseId
+      pipelineStatus: "",
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
       endDate: "",
@@ -85,13 +85,13 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
   React.useEffect(() => {
     if (open) {
-      const defaultPipelinePhaseId = phases && phases.length > 0 ? phases[0].id : "";
+      const defaultPipelineStatus = stages && stages.length > 0 ? stages[0].id : "";
       const defaultResponsibleId = users.find(u => (u.role || "").toLowerCase() === "comercial")?.id || "";
       form.reset({
         clientId: preselectedClientId || "",
         name: "",
         serviceIds: [],
-        pipelinePhaseId: defaultPipelinePhaseId, // Changed to pipelinePhaseId
+        pipelineStatus: defaultPipelineStatus,
         startDate: new Date().toISOString().split("T")[0],
         startTime: "09:00",
         endDate: "",
@@ -102,7 +102,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         responsibleId: defaultResponsibleId,
       });
     }
-  }, [open, preselectedClientId, form, phases, users]); // Changed from stages
+  }, [open, preselectedClientId, form, stages, users]);
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
@@ -110,12 +110,12 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     users.filter(u => (u.role || "").toLowerCase() === "comercial").map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` }))
   , [users]);
 
-  const pipelinePhaseOptions = React.useMemo(() => 
-    phases.filter(p => p.active).map(p => ({ value: p.id, label: p.name }))
-  , [phases]); // Changed from stages
+  const pipelineOptions = React.useMemo(() => 
+    stages.filter(s => s.is_active).map(s => ({ value: s.id, label: s.name }))
+  , [stages]);
 
   const handleSubmit = async (data: ProjectFormData) => {
-    if (!data.pipelinePhaseId) { // Changed to pipelinePhaseId
+    if (!data.pipelineStatus) {
       showError("Selecione uma fase do pipeline.");
       return;
     }
@@ -132,7 +132,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       start_time: data.startTime ? `${data.startTime}:00` : null,
       end_time: data.endTime ? `${data.endTime}:00` : null,
       location: data.location,
-      pipeline_phase_id: data.pipelinePhaseId, // Changed to pipeline_phase_id
+      pipeline_stage_id: data.pipelineStatus, // Use stage ID
       estimated_value: data.estimatedValue ?? null,
       service_ids: data.serviceIds,
       client_id: data.clientId,
@@ -296,14 +296,14 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
               <div>
                 <h3 className="text-sm font-medium mb-2">Status do Projeto *</h3>
-                <FormField control={form.control} name="pipelinePhaseId" render={({ field }) => ( // Changed to pipelinePhaseId
+                <FormField control={form.control} name="pipelineStatus" render={({ field }) => (
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {pipelinePhaseOptions.map((phase) => ( // Changed to pipelinePhaseOptions
-                          <SelectItem key={phase.value} value={phase.value}>
-                            {phase.label}
+                        {pipelineOptions.map((stage) => (
+                          <SelectItem key={stage.value} value={stage.value}>
+                            {stage.label}
                           </SelectItem>
                         ))}
                       </SelectContent>

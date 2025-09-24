@@ -9,8 +9,7 @@ export interface EventProject {
   id: number;
   name: string;
   client_id?: string;
-  pipeline_status: PipelineStatus; // Derived via trigger
-  pipeline_phase_id?: string; // Primary source of truth for pipeline
+  pipeline_status: PipelineStatus;
   service_ids: string[];
   estimated_value?: number;
   startDate: string;
@@ -25,12 +24,14 @@ export interface EventProject {
   pipeline_rank?: number;
   // Add updated_at for sorting fallback
   updated_at?: string;
+  // Add pipeline_stage_id for linking to pipeline_stages table
+  pipeline_stage_id?: string;
 }
 
 export type CreatePayload = {
   name: string;
   client_id?: string;
-  pipeline_phase_id?: string; // Changed to pipeline_phase_id
+  pipeline_status?: PipelineStatus;
   service_ids?: string[];
   estimated_value?: number;
   startDate: string;

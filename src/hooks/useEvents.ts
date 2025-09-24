@@ -32,9 +32,6 @@ export const useEvents = () => {
         roster: row.roster ?? undefined,
         expenses: row.expenses ?? undefined,
         pipeline_status: row.pipeline_status ?? undefined,
-        pipeline_phase_id: row.pipeline_phase_id ?? undefined, // Added pipeline_phase_id
-        pipeline_phase_label: row.pipeline_phase_label ?? undefined, // Added pipeline_phase_label
-        pipeline_rank: row.pipeline_rank ?? undefined, // Added pipeline_rank
         estimated_value: row.estimated_value ?? undefined,
         service_ids: row.service_ids ?? undefined,
         client_id: row.client_id ?? undefined,
@@ -45,6 +42,7 @@ export const useEvents = () => {
         next_action: row.next_action ?? undefined,
         next_action_date: row.next_action_date ?? undefined,
         updated_at: row.updated_at ?? undefined,
+        pipeline_phase_id: row.pipeline_phase_id ?? undefined, // Added pipeline_phase_id
       })) as Event[];
     },
     { enabled: true, keepPreviousData: false }

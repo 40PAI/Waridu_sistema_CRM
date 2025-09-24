@@ -16,7 +16,7 @@ import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
 import { useEvents } from "@/hooks/useEvents";
 import { useUsers } from "@/hooks/useUsers";
-import usePipelinePhases from "@/hooks/usePipelinePhases"; // Changed from usePipelineStages
+import usePipelineStages from "@/hooks/usePipelineStages"; // Import usePipelineStages
 import { showError, showSuccess } from "@/utils/toast";
 import { MultiSelectServices } from "@/components/MultiSelectServices";
 
@@ -27,7 +27,7 @@ const editProjectSchema = z.object({
   id: z.number(),
   name: z.string().min(1, "Nome do projeto é obrigatório"),
   client_id: z.string().min(1, "Cliente é obrigatório").refine((val) => UUID_REGEX.test(val), "ID do cliente inválido"),
-  pipeline_phase_id: z.string().min(1, "Fase do pipeline é obrigatória").refine((val) => UUID_REGEX.test(val), "ID da fase inválido"), // Changed to pipeline_phase_id
+  pipeline_stage_id: z.string().min(1, "Fase do pipeline é obrigatória").refine((val) => UUID_REGEX.test(val), "ID da fase inválido"), // Changed to pipeline_stage_id
   service_ids: z.array(z.string().refine((val) => UUID_REGEX.test(val), "ID do serviço inválido")).min(1, "Selecione pelo menos um serviço"),
   estimated_value: z.number().min(0, "Valor deve ser positivo").optional(),
   startDate: z.string().min(1, "Data de início é obrigatória"),
@@ -61,7 +61,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
   const { services } = useServices();
   const { updateEvent } = useEvents();
   const { users: commercialUsers } = useUsers('Comercial');
-  const { phases } = usePipelinePhases(); // Changed from stages
+  const { stages } = usePipelineStages(); // Use pipeline stages
 
   const [loading, setLoading] = React.useState(false);
 
@@ -71,7 +71,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
       id: 0,
       name: "",
       client_id: "",
-      pipeline_phase_id: "", // Changed to pipeline_phase_id
+      pipeline_stage_id: "", // Changed to pipeline_stage_id
       service_ids: [],
       estimated_value: undefined,
       startDate: "",
@@ -90,7 +90,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         id: project.id,
         name: project.name,
         client_id: project.client_id || "",
-        pipeline_phase_id: project.pipeline_phase_id || phases.find(p => p.name === project.pipeline_status)?.id || "", // Map pipeline_status to phase_id
+        pipeline_stage_id: project.pipeline_stage_id || stages.find(s => s.name === project.pipeline_status)?.id || "", // Map pipeline_status to stage_id
         service_ids: project.service_ids || [],
         estimated_value: project.estimated_value,
         startDate: project.startDate,
@@ -103,16 +103,16 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
       };
       editForm.reset(formData);
     }
-  }, [open, project, editForm, phases]); // Changed from stages
+  }, [open, project, editForm, stages]);
 
   // Filter to only commercial users for the responsible dropdown
   const commercialUserOptions = React.useMemo(() =>
     commercialUsers.map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email})` }))
   , [commercialUsers]);
 
-  const pipelinePhaseOptions = React.useMemo(() =>
-    phases.filter(p => p.active).map(p => ({ value: p.id, label: p.name }))
-  , [phases]); // Changed from stages
+  const pipelineStageOptions = React.useMemo(() =>
+    stages.filter(s => s.is_active).map(s => ({ value: s.id, label: s.name }))
+  , [stages]);
 
   const submit = async (data: EditProjectFormData) => {
     if (loading) return;
@@ -123,8 +123,8 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         id: data.id,
         name: data.name,
         client_id: data.client_id,
-        pipeline_status: phases.find(p => p.id === data.pipeline_phase_id)?.name as any || "1º Contato", // Map phase_id back to pipeline_status for EventProject type
-        pipeline_phase_id: data.pipeline_phase_id, // Include pipeline_phase_id
+        pipeline_status: stages.find(s => s.id === data.pipeline_stage_id)?.name as any || "1º Contato", // Map stage_id back to pipeline_status for EventProject type
+        pipeline_stage_id: data.pipeline_stage_id, // Include pipeline_stage_id
         service_ids: data.service_ids,
         estimated_value: data.estimated_value,
         startDate: data.startDate,
@@ -151,7 +151,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         roster: undefined,
         expenses: undefined,
         pipeline_status: updatedProject.pipeline_status, // Keep this for trigger
-        pipeline_phase_id: updatedProject.pipeline_phase_id, // Send pipeline_phase_id
+        pipeline_stage_id: updatedProject.pipeline_stage_id, // Send pipeline_stage_id
         estimated_value: updatedProject.estimated_value,
         service_ids: updatedProject.service_ids,
         client_id: updatedProject.client_id,
@@ -236,7 +236,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={editForm.control}
-                name="pipeline_phase_id" // Changed to pipeline_phase_id
+                name="pipeline_stage_id" // Changed to pipeline_stage_id
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fase do Pipeline *</FormLabel>
@@ -247,9 +247,9 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {pipelinePhaseOptions.map(phase => ( // Changed to pipelinePhaseOptions
-                          <SelectItem key={phase.value} value={phase.value}>
-                            {phase.label}
+                        {pipelineStageOptions.map(stage => (
+                          <SelectItem key={stage.value} value={stage.value}>
+                            {stage.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -295,7 +295,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                 name="estimated_value"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor Estimado (AOA)</Label>
+                    <FormLabel>Valor Estimado (AOA)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"

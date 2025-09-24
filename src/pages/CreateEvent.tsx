@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { showSuccess, showError } from "@/utils/toast";
-import usePipelinePhases from "@/hooks/usePipelinePhases"; // Import usePipelinePhases
 
 // Simple schema to validate key client-side required fields
 const eventSchema = z.object({
@@ -24,7 +23,7 @@ const eventSchema = z.object({
   endTime: z.string().optional(),
   location: z.string().min(1, "Local é obrigatório"),
   revenue: z.number().optional(),
-  pipeline_phase_id: z.string().optional(), // Changed to pipeline_phase_id
+  pipeline_status: z.string().optional(),
   estimated_value: z.number().optional(),
   client_id: z.string().optional(),
   service_ids: z.array(z.string()).optional(),
@@ -45,7 +44,6 @@ function toISO(dateStr: string, timeStr: string) {
 
 const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
   const navigate = useNavigate();
-  const { phases } = usePipelinePhases(); // Use usePipelinePhases
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -57,7 +55,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
       startTime: "09:00",
       endTime: "18:00",
       revenue: 0,
-      pipeline_phase_id: "", // Changed to pipeline_phase_id
+      pipeline_status: "",
       estimated_value: 0,
       client_id: "",
       service_ids: [],
@@ -79,7 +77,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
         end_time: data.endTime ? `${data.endTime}:00` : null,
         location: data.location,
         revenue: data.revenue ?? null,
-        pipeline_phase_id: data.pipeline_phase_id || null, // Changed to pipeline_phase_id
+        pipeline_status: data.pipeline_status || null,
         estimated_value: data.estimated_value ?? null,
         client_id: data.client_id || null,
         service_ids: data.service_ids || null,
@@ -96,7 +94,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
 
       await onAddEvent(payload);
       showSuccess("Evento criado!");
-      if (data.pipeline_phase_id) { // Changed to pipeline_phase_id
+      if (data.pipeline_status) {
         navigate("/crm/pipeline");
       } else {
         navigate("/roster-management");
@@ -113,10 +111,6 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
       }
     }
   };
-
-  const pipelinePhaseOptions = React.useMemo(() =>
-    phases.filter(p => p.active).map(p => ({ value: p.id, label: p.name }))
-  , [phases]);
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -180,24 +174,23 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
             <div className="grid md:grid-cols-2 gap-4">
               <FormField control={form.control} name="estimated_value" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valor Estimado (AOA)</Label>
+                  <FormLabel>Valor Estimado (AOA)</FormLabel>
                   <FormControl><Input type="number" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="pipeline_phase_id" render={({ field }) => ( // Changed to pipeline_phase_id
+              <FormField control={form.control} name="pipeline_status" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Fase Inicial do Pipeline</FormLabel>
+                  <FormLabel>Status Inicial</FormLabel>
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">Sem pipeline</SelectItem>
-                        {pipelinePhaseOptions.map((phase) => (
-                          <SelectItem key={phase.value} value={phase.value}>
-                            {phase.label}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="1º Contato">1º Contato</SelectItem>
+                        <SelectItem value="Orçamento">Orçamento</SelectItem>
+                        <SelectItem value="Negociação">Negociação</SelectItem>
+                        <SelectItem value="Confirmado">Confirmado</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>

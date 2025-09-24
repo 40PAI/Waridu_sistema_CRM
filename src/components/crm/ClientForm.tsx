@@ -31,7 +31,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
       notes: initialData?.notes || "",
       sector: initialData?.sector,
       persona: initialData?.persona,
-      // service_ids: initialData?.service_ids || [], // Removed from defaultValues
+      service_ids: initialData?.service_ids || [], // <-- use service_ids (array of service ids)
     },
   });
 
@@ -159,8 +159,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
           )}
         />
 
-        {/* MultiSelectServices is now managed outside the form schema */}
-        {/* <FormField
+        <FormField
           control={form.control}
           name="service_ids"
           render={({ field }) => (
@@ -172,7 +171,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
               <FormMessage />
             </FormItem>
           )}
-        /> */}
+        />
 
         <Button type="submit" disabled={loading}>
           {loading ? "Salvando..." : "Salvar Cliente"}
