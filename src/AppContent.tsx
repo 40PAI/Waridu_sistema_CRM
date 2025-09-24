@@ -148,19 +148,9 @@ const MaterialRequestsWrapper = () => {
 };
 
 const AdminSettingsWrapper = () => {
-  const { roles } = useRoles();
-  const { locations } = useLocations();
+  // AdminSettings now manages its own roles and locations internally
   return (
-    <AdminSettings
-      roles={roles || []}
-      onAddRole={() => {}} // No longer directly passed
-      onUpdateRole={() => {}} // No longer directly passed
-      onDeleteRole={() => {}} // No longer directly passed
-      locations={locations}
-      onAddLocation={() => {}} // No longer directly passed
-      onUpdateLocation={() => {}} // No longer directly passed
-      onDeleteLocation={() => {}} // No longer directly passed
-    />
+    <AdminSettings />
   );
 };
 

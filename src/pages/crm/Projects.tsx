@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EditProjectDialog } from "@/components/crm/EditProjectDialog";
 import { ViewProjectDialog } from "@/components/crm/ViewProjectDialog";
+import CreateProjectModal from "@/components/crm/CreateProjectModal"; // Import CreateProjectModal
+import { useQueryClient } from "@tanstack/react-query"; // Import useQueryClient
+import { showSuccess } from "@/utils/toast"; // Import showSuccess
 
 // Ensure no static caching for real-time data consistency
 export const dynamic = 'force-dynamic';
@@ -19,6 +22,7 @@ export const revalidate = 0;
 export default function ProjectsPage() {
   const { events, loading, updateEvent } = useEvents();
   const { services } = useServices();
+  const qc = useQueryClient(); // Get query client for invalidation
 
   // service filter (array of service ids)
   const [serviceFilter, setServiceFilter] = useState<string[]>([]);
@@ -26,6 +30,9 @@ export default function ProjectsPage() {
   const [openViewProject, setOpenViewProject] = useState(false);
   const [editingProject, setEditingProject] = useState<EventProject | null>(null);
   const [viewingProject, setViewingProject] = useState<EventProject | null>(null);
+  const [openCreateProjectModal, setOpenCreateProjectModal] = useState(false);
+  const [defaultPhaseForNewProject, setDefaultPhaseForNewProject] = useState<string | undefined>(undefined);
+
 
   const allProjects: EventProject[] = (events || [])
     .filter((e) => !!e.pipeline_status)
@@ -93,6 +100,11 @@ export default function ProjectsPage() {
     setOpenViewProject(true);
   };
 
+  const handleCreateProjectInColumn = (phaseId: string) => {
+    setDefaultPhaseForNewProject(phaseId);
+    setOpenCreateProjectModal(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -143,6 +155,18 @@ export default function ProjectsPage() {
         onUpdateProject={handleUpdateProject}
         onEditProject={onEditProject}
         onViewProject={onViewProject}
+        onCreateProjectInColumn={handleCreateProjectInColumn}
+      />
+
+      <CreateProjectModal
+        open={openCreateProjectModal}
+        onOpenChange={setOpenCreateProjectModal}
+        onCreated={(id) => {
+          showSuccess(`Projeto ${id} criado com sucesso!`);
+          qc.invalidateQueries({ queryKey: ['events'] }); // Invalidate events query
+        }}
+        preselectedClientId={undefined}
+        defaultPhaseId={defaultPhaseForNewProject}
       />
 
       <EditProjectDialog
