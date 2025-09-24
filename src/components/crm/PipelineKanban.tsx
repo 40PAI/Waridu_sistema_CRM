@@ -25,15 +25,12 @@ import type { EventProject } from "@/types/crm";
 import usePipelineStages from "@/hooks/usePipelineStages";
 import { useQueryClient } from "@tanstack/react-query";
 import { moveEventRPC } from "@/services/kanbanService";
-import { Button } from "@/components/ui/button"; // Importar Button
-import { Plus } from "lucide-react"; // Importar Plus
 
 interface PipelineKanbanProps {
   projects: EventProject[];
   onUpdateProject?: (p: EventProject) => Promise<void>;
   onEditProject?: (p: EventProject) => void;
   onViewProject?: (p: EventProject) => void;
-  onCreateProject?: () => void; // Adicionar prop para criar projeto
 }
 
 function isColumnId(id: string | null | undefined, columns: any[]) {
@@ -44,7 +41,7 @@ function getProjectById(list: EventProject[], id: string | number) {
   return list.find(p => String(p.id) === String(id)) || null;
 }
 
-export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject, onCreateProject }: PipelineKanbanProps) {
+export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
   const { stages } = usePipelineStages();
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
@@ -217,19 +214,6 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Pipeline Kanban</h2>
-          <p className="text-muted-foreground">Arraste e solte projetos entre as fases.</p>
-        </div>
-        {onCreateProject && (
-          <Button onClick={onCreateProject}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Projeto
-          </Button>
-        )}
-      </div>
-
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 overflow-x-auto px-2" style={{ minHeight: 600 }}>
           {columns.map((column) => (

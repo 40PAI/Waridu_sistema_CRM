@@ -112,7 +112,6 @@ export default function PipelinePage() {
             onUpdateProject={handleUpdateProject} 
             onEditProject={handleEditProject} 
             onViewProject={handleViewProject} 
-            onCreateProject={() => setOpenCreateProject(true)} // Passar a função para o Kanban
           />
         </TabsContent>
 
