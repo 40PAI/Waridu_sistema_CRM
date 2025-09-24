@@ -15,7 +15,7 @@ export const createDefaultQueryClient = () => {
     defaultOptions: {
       queries: {
         // No caching between page loads, always fetch fresh
-        gcTime: 0, // Changed from cacheTime to gcTime for @tanstack/react-query v5
+        gcTime: 0,
         staleTime: 0,
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
@@ -39,7 +39,7 @@ export function useServerState<TData>(
   }
 ) {
   // Explicitly define the type for useQuery options
-  const queryOptions: UseQueryOptions<TData, Error, TData, TData, QueryKey> = {
+  const queryOptions: UseQueryOptions<TData, Error, TData, QueryKey> = { // Corrected type arguments
     queryKey: key,
     queryFn: async () => {
       const res = await fetcher();
@@ -50,7 +50,7 @@ export function useServerState<TData>(
     // For now, removing it as it's causing a type error and might not be strictly necessary for this use case
     // If previous data behavior is critical, consider migrating to placeholderData or a custom solution.
     staleTime: 0,
-    gcTime: 0, // Changed from cacheTime to gcTime for @tanstack/react-query v5
+    gcTime: 0,
   };
 
   const query = useQuery<TData, Error, TData, QueryKey>(queryOptions);

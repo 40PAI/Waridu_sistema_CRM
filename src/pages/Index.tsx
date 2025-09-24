@@ -8,6 +8,7 @@ import { useEvents } from "@/hooks/useEvents";
 import { useMaterials } from "@/hooks/useMaterials";
 import type { Event } from "@/types";
 import { parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
+import { ptBR } from "date-fns/locale"; // Import ptBR
 import { useMemo } from "react";
 
 const getMaterialStatusVariant = (status: string) => {

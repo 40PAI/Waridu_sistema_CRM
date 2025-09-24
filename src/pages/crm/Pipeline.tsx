@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { EventProject } from "@/types/crm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { showSuccess } from "@/utils/toast"; // Import showSuccess
 
 // Ensure no static caching for real-time data consistency
 export const dynamic = 'force-dynamic';
