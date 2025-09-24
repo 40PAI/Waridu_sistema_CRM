@@ -12,6 +12,11 @@ export default defineConfig(() => ({
       port: 5000,
     },
   },
+  preview: {
+    host: "0.0.0.0",
+    port: 5000,
+    strictPort: true,
+  },
   plugins: [dyadComponentTagger(), react()],
   resolve: {
     alias: {
