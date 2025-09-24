@@ -76,6 +76,7 @@ export const useServices = () => {
         name: payload.name,
         description: payload.description ?? null,
         status: "ativo",
+        updated_at: new Date().toISOString(), // Add updated_at on creation
       }).select().single();
       if (error) {
         showError("Erro ao criar serviço.");

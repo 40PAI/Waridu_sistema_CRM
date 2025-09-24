@@ -11,6 +11,7 @@ import { useServices } from "@/hooks/useServices";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { EventProject } from "@/types/crm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Ensure no static caching for real-time data consistency
 export const dynamic = 'force-dynamic';
@@ -98,12 +99,33 @@ export default function PipelinePage() {
         </Button>
       </div>
 
-      <PipelineKanban 
-        projects={projects} 
-        onUpdateProject={handleUpdateProject} 
-        onEditProject={handleEditProject} 
-        onViewProject={handleViewProject} 
-      />
+      <Tabs defaultValue="kanban">
+        <TabsList className="grid w-full grid-cols-2 md:w-auto">
+          <TabsTrigger value="kanban">Kanban</TabsTrigger>
+          <TabsTrigger value="new-project">Novo Projeto</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="kanban">
+          <PipelineKanban 
+            projects={projects} 
+            onUpdateProject={handleUpdateProject} 
+            onEditProject={handleEditProject} 
+            onViewProject={handleViewProject} 
+          />
+        </TabsContent>
+
+        <TabsContent value="new-project">
+          <CreateProjectModal
+            open={true} // Always open when this tab is active
+            onOpenChange={() => {}} // No-op as it's controlled by tab
+            onCreated={(id) => {
+              showSuccess(`Projeto ${id} criado com sucesso!`);
+              // Optionally switch back to kanban view or refresh
+            }}
+            preselectedClientId={undefined}
+          />
+        </TabsContent>
+      </Tabs>
 
       <CreateProjectModal
         open={openCreateProject}

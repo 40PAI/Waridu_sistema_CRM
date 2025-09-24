@@ -37,7 +37,7 @@ export default function AdminServicesPage() {
   const canCreate = hasActionPermission(role, "services:create");
   const canManage = hasActionPermission(role, "services:manage");
   const canDelete = hasActionPermission(role, "services:delete");
-  const isGestorComercial = role === "Coordenador";
+  const isGestorComercial = role === "Coordenador"; // Assuming Coordenador is Gestor Comercial
 
   const [query, setQuery] = React.useState("");
   const [filtered, setFiltered] = React.useState(services);

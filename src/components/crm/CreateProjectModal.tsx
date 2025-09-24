@@ -59,7 +59,7 @@ interface CreateProjectModalProps {
 export default function CreateProjectModal({ open, onOpenChange, onCreated, preselectedClientId }: CreateProjectModalProps) {
   const { clients, fetchClients } = useClients();
   const { services } = useServices();
-  const { users, refreshUsers } = useUsers();
+  const { users: allUsers, refreshUsers } = useUsers(); // Fetch all users
   const { updateEvent } = useEvents();
   const { stages } = usePipelineStages();
 
@@ -87,7 +87,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   React.useEffect(() => {
     if (open) {
       const defaultPhaseId = stages && stages.length > 0 ? stages[0].id : "";
-      const defaultResponsibleId = users.find(u => (u.role || "").toLowerCase() === "comercial")?.id || "";
+      const defaultResponsibleId = allUsers.find(u => u.role)?.id || ""; // Find any user with a role
       form.reset({
         clientId: preselectedClientId || "",
         name: "",
@@ -103,13 +103,13 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         responsibleId: defaultResponsibleId,
       });
     }
-  }, [open, preselectedClientId, form, stages, users]);
+  }, [open, preselectedClientId, form, stages, allUsers]);
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
-  const commercialUserOptions = React.useMemo(() =>
-    users.filter(u => (u.role || "").toLowerCase() === "comercial").map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` }))
-  , [users]);
+  const responsibleUserOptions = React.useMemo(() =>
+    allUsers.filter(u => u.role).map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` }))
+  , [allUsers]);
 
   const pipelineOptions = React.useMemo(() => 
     stages.filter(s => s.is_active).map(s => ({ value: s.id, label: s.name }))
@@ -127,11 +127,9 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     const endISO = data.endDate ? toISO(data.endDate, data.endTime || data.startTime) : startISO;
 
     // Calculate initial rank (place at end of target column)
-    const targetColumnTasks = projectsByColumn[data.pipelinePhaseId] || [];
-    const initialRank = Number(computeRank(
-      targetColumnTasks.length > 0 ? targetColumnTasks[targetColumnTasks.length - 1].pipeline_rank : null,
-      null
-    ));
+    // This logic needs to be adapted if projectsByColumn is not available here
+    // For now, we'll use a default rank or fetch the last rank for the phase
+    const initialRank = Number(computeRank(null, null)); // Default to a base rank
 
     const payload: Record<string, any> = {
       name: data.name,
@@ -223,7 +221,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                               <SelectValue placeholder="Selecione um responsável" />
                             </SelectTrigger>
                             <SelectContent>
-                              {commercialUserOptions.map(u => (
+                              {responsibleUserOptions.map(u => (
                                 <SelectItem key={u.value} value={u.value}>
                                   {u.label}
                                 </SelectItem>

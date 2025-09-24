@@ -60,7 +60,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
   const { clients } = useClients();
   const { services } = useServices();
   const { updateEvent } = useEvents();
-  const { users: commercialUsers } = useUsers('Comercial');
+  const { users: allUsers } = useUsers(); // Fetch all users
   const { stages } = usePipelineStages();
 
   const [loading, setLoading] = React.useState(false);
@@ -112,10 +112,10 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
     }
   }, [open, project, editForm, stages]);
 
-  // Filter to only commercial users for the responsible dropdown
-  const commercialUserOptions = React.useMemo(() =>
-    commercialUsers.map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email})` }))
-  , [commercialUsers]);
+  // Filter to only users with a role (all registered employees) for the responsible dropdown
+  const responsibleUserOptions = React.useMemo(() =>
+    allUsers.filter(u => u.role).map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email})` }))
+  , [allUsers]);
 
   const pipelineStageOptions = React.useMemo(() =>
     stages.filter(s => s.is_active).map(s => ({ value: s.id, label: s.name }))
@@ -276,7 +276,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                           <SelectValue placeholder="Selecione um responsável" />
                         </SelectTrigger>
                         <SelectContent>
-                          {commercialUserOptions.map(u => (
+                          {responsibleUserOptions.map(u => (
                             <SelectItem key={u.value} value={u.value}>
                               {u.label}
                             </SelectItem>
