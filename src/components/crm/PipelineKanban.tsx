@@ -25,12 +25,15 @@ import type { EventProject } from "@/types/crm";
 import usePipelineStages from "@/hooks/usePipelineStages";
 import { useQueryClient } from "@tanstack/react-query";
 import { moveEventRPC } from "@/services/kanbanService";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface PipelineKanbanProps {
   projects: EventProject[];
   onUpdateProject?: (p: EventProject) => Promise<void>;
   onEditProject?: (p: EventProject) => void;
   onViewProject?: (p: EventProject) => void;
+  onCreateProjectInColumn: (phaseId: string) => void; // New prop for column-specific creation
 }
 
 function isColumnId(id: string | null | undefined, columns: any[]) {
@@ -41,7 +44,7 @@ function getProjectById(list: EventProject[], id: string | number) {
   return list.find(p => String(p.id) === String(id)) || null;
 }
 
-export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject }: PipelineKanbanProps) {
+export function PipelineKanban({ projects, onUpdateProject, onEditProject, onViewProject, onCreateProjectInColumn }: PipelineKanbanProps) {
   const { stages } = usePipelineStages();
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
@@ -126,19 +129,22 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   const calculateNeighbors = (overId: string, targetPhaseId: string, activeId: string) => {
     const columnItems = projectsByColumn[targetPhaseId] || [];
     
+    // Filter out the active item from the columnItems to get correct neighbors
+    const filteredColumnItems = columnItems.filter(item => String(item.id) !== activeId);
+
     if (isColumnId(overId, columns)) {
       // Dropped on column container -> place at end
-      const lastItem = columnItems[columnItems.length - 1];
+      const lastItem = filteredColumnItems[filteredColumnItems.length - 1];
       return {
         beforeId: lastItem ? lastItem.id : null,
         afterId: null,
       };
     } else {
       // Dropped on another task -> find neighbors
-      const overIndex = columnItems.findIndex(t => String(t.id) === overId);
+      const overIndex = filteredColumnItems.findIndex(t => String(t.id) === overId);
       if (overIndex === -1) {
         // Target not found, place at end
-        const lastItem = columnItems[columnItems.length - 1];
+        const lastItem = filteredColumnItems[filteredColumnItems.length - 1];
         return {
           beforeId: lastItem ? lastItem.id : null,
           afterId: null,
@@ -146,8 +152,8 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       }
       
       // Insert before the target item
-      const beforeId = overIndex > 0 ? columnItems[overIndex - 1].id : null;
-      const afterId = columnItems[overIndex].id;
+      const beforeId = overIndex > 0 ? filteredColumnItems[overIndex - 1].id : null;
+      const afterId = filteredColumnItems[overIndex].id;
       
       return { beforeId, afterId };
     }
@@ -173,7 +179,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     if (!toPhaseId) return;
 
     // Only proceed if moving to a different phase or different position
-    if (fromPhaseId !== toPhaseId) {
+    if (fromPhaseId !== toPhaseId || (fromPhaseId === toPhaseId && active.id !== over.id)) {
       setUpdating(String(activeProject.id));
 
       try {
@@ -241,12 +247,14 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
                     </div>
                   ))}
                 </SortableContext>
-
-                {projectsByColumn[column.id].length === 0 && dragOverColumn === column.id && (
-                  <div className="flex items-center justify-center h-20 border-2 border-dashed border-primary rounded-md text-primary font-medium bg-primary/5">
-                    Solte aqui
-                  </div>
-                )}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full mt-4" 
+                  onClick={() => onCreateProjectInColumn(column.id)}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar Projeto
+                </Button>
               </CardContent>
             </DroppableColumn>
           ))}

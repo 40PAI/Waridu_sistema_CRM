@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
-import CreateProjectModal from "@/components/crm/CreateProjectModal";
+import CreateProjectModal, { createProject } from "@/components/crm/CreateProjectModal"; // Import createProject
 import { EditProjectDialog } from "@/components/crm/EditProjectDialog";
 import { ViewProjectDialog } from "@/components/crm/ViewProjectDialog";
 import useEvents from "@/hooks/useEvents";
@@ -13,6 +13,7 @@ import { Plus } from "lucide-react";
 import type { EventProject } from "@/types/crm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showSuccess } from "@/utils/toast"; // Import showSuccess
+import { useQueryClient } from "@tanstack/react-query"; // Import useQueryClient
 
 // Ensure no static caching for real-time data consistency
 export const dynamic = 'force-dynamic';
@@ -22,8 +23,10 @@ export default function PipelinePage() {
   const { events, updateEvent, loading } = useEvents();
   const { clients } = useClients();
   const { services } = useServices();
+  const qc = useQueryClient(); // Get query client for invalidation
 
-  const [openCreateProject, setOpenCreateProject] = React.useState(false);
+  const [openCreateProjectModal, setOpenCreateProjectModal] = React.useState(false);
+  const [defaultPhaseForNewProject, setDefaultPhaseForNewProject] = React.useState<string | undefined>(undefined);
   const [openEditProject, setOpenEditProject] = React.useState(false);
   const [openViewProject, setOpenViewProject] = React.useState(false);
   const [editingProject, setEditingProject] = React.useState<EventProject | null>(null);
@@ -82,6 +85,16 @@ export default function PipelinePage() {
     setOpenViewProject(true);
   };
 
+  const handleCreateProjectInColumn = (phaseId: string) => {
+    setDefaultPhaseForNewProject(phaseId);
+    setOpenCreateProjectModal(true);
+  };
+
+  const handleGlobalNewProjectClick = () => {
+    setDefaultPhaseForNewProject(undefined); // No pre-selected phase
+    setOpenCreateProjectModal(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -94,47 +107,29 @@ export default function PipelinePage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Pipeline</h1>
-        <Button onClick={() => setOpenCreateProject(true)}>
+        <Button onClick={handleGlobalNewProjectClick}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Projeto
         </Button>
       </div>
 
-      <Tabs defaultValue="kanban">
-        <TabsList className="grid w-full grid-cols-2 md:w-auto">
-          <TabsTrigger value="kanban">Kanban</TabsTrigger>
-          <TabsTrigger value="new-project">Novo Projeto</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="kanban">
-          <PipelineKanban 
-            projects={projects} 
-            onUpdateProject={handleUpdateProject} 
-            onEditProject={handleEditProject} 
-            onViewProject={handleViewProject} 
-          />
-        </TabsContent>
-
-        <TabsContent value="new-project">
-          <CreateProjectModal
-            open={true} // Always open when this tab is active
-            onOpenChange={() => {}} // No-op as it's controlled by tab
-            onCreated={(id) => {
-              showSuccess(`Projeto ${id} criado com sucesso!`);
-              // Optionally switch back to kanban view or refresh
-            }}
-            preselectedClientId={undefined}
-          />
-        </TabsContent>
-      </Tabs>
+      <PipelineKanban 
+        projects={projects} 
+        onUpdateProject={handleUpdateProject} 
+        onEditProject={handleEditProject} 
+        onViewProject={handleViewProject} 
+        onCreateProjectInColumn={handleCreateProjectInColumn}
+      />
 
       <CreateProjectModal
-        open={openCreateProject}
-        onOpenChange={setOpenCreateProject}
+        open={openCreateProjectModal}
+        onOpenChange={setOpenCreateProjectModal}
         onCreated={(id) => {
-          console.log("Project created with id:", id);
+          showSuccess(`Projeto ${id} criado com sucesso!`);
+          qc.invalidateQueries({ queryKey: ['events'] }); // Invalidate events query
         }}
         preselectedClientId={undefined}
+        defaultPhaseId={defaultPhaseForNewProject}
       />
 
       <EditProjectDialog

@@ -9,7 +9,7 @@ import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import ResetPasswordPage from "@/pages/ResetPassword";
 import Calendar from "@/pages/Calendar";
-import CreateEventPage from "@/pages/CreateEvent"; // page expects onAddEvent prop
+// import CreateEventPage from "@/pages/CreateEvent"; // page expects onAddEvent prop
 import RosterManagement from "@/pages/RosterManagement";
 import Employees from "@/pages/Employees";
 import Roles from "@/pages/Roles";
@@ -66,11 +66,11 @@ const CalendarWrapper = () => {
   return <Calendar events={events || []} />;
 };
 
-const CreateEventWrapper = () => {
-  const { updateEvent } = useEvents();
-  // Pass updateEvent as onAddEvent; CreateEventPage expects onAddEvent(payload)
-  return <CreateEventPage onAddEvent={updateEvent} />;
-};
+// const CreateEventWrapper = () => {
+//   const { updateEvent } = useEvents();
+//   // Pass updateEvent as onAddEvent; CreateEventPage expects onAddEvent(payload)
+//   return <CreateEventPage onAddEvent={updateEvent} />;
+// };
 
 const RosterManagementWrapper = () => {
   const { events, updateEventDetails, updateEvent } = useEvents();
@@ -148,18 +148,18 @@ const MaterialRequestsWrapper = () => {
 };
 
 const AdminSettingsWrapper = () => {
-  const { roles, addRole, updateRole, deleteRole } = useRoles();
-  const { locations, addLocation, updateLocation, deleteLocation } = useLocations();
+  const { roles } = useRoles();
+  const { locations } = useLocations();
   return (
     <AdminSettings
       roles={roles || []}
-      onAddRole={addRole}
-      onUpdateRole={updateRole}
-      onDeleteRole={deleteRole}
+      onAddRole={() => {}} // No longer directly passed
+      onUpdateRole={() => {}} // No longer directly passed
+      onDeleteRole={() => {}} // No longer directly passed
       locations={locations}
-      onAddLocation={addLocation}
-      onUpdateLocation={updateLocation}
-      onDeleteLocation={deleteLocation}
+      onAddLocation={() => {}} // No longer directly passed
+      onUpdateLocation={() => {}} // No longer directly passed
+      onDeleteLocation={() => {}} // No longer directly passed
     />
   );
 };
@@ -198,7 +198,7 @@ const AppContent = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Index />} />
             <Route path="/calendar" element={<CalendarWrapper />} />
-            <Route path="/create-event" element={<CreateEventWrapper />} />
+            {/* <Route path="/create-event" element={<CreateEventWrapper />} /> */}
             <Route path="/roster-management" element={<RosterManagementWrapper />} />
             <Route path="/employees" element={<EmployeesWrapper />} />
             <Route path="/roles" element={<RolesWrapper />} />

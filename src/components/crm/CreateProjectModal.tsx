@@ -4,7 +4,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +22,7 @@ import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 import usePipelineStages from "@/hooks/usePipelineStages";
 import { useUsers } from "@/hooks/useUsers";
-import { computeRank } from "@/utils/rankUtils";
+import { supabase } from "@/integrations/supabase/client"; // Import supabase for createProject
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -49,19 +49,57 @@ function toISO(dateStr: string, timeStr: string) {
   return new Date(Date.UTC(y, m - 1, d, hh || 0, mm || 0, ss || 0)).toISOString();
 }
 
+// New function to get insert rank
+async function getInsertRank(phaseId: string) {
+  const { data } = await supabase
+    .from('events')
+    .select('pipeline_rank')
+    .eq('pipeline_phase_id', phaseId)
+    .order('pipeline_rank', { ascending: true })
+    .limit(1);
+  if (!data?.length) return '1000000';              // primeiro item
+  const right = BigInt(data[0].pipeline_rank);
+  return (right - 1000000n).toString();             // insere acima do primeiro
+}
+
+// Centralized createProject function
+export async function createProject(payload: {
+  name: string;
+  pipeline_phase_id: string;
+  client_id?: string | null;
+  estimated_value?: number | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  location?: string | null;
+  notes?: string | null;
+  service_ids?: string[] | null;
+  responsible_id?: string | null;
+}) {
+  const pipeline_rank = await getInsertRank(payload.pipeline_phase_id);
+  const { data, error } = await supabase
+    .from('events')
+    .insert([{ ...payload, pipeline_rank }])
+    .select('id,name,pipeline_phase_id,pipeline_rank,updated_at');
+  if (error) throw error;
+  return data?.[0];
+}
+
 interface CreateProjectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: (projectId: number) => void;
   preselectedClientId?: string;
+  defaultPhaseId?: string; // New prop
 }
 
-export default function CreateProjectModal({ open, onOpenChange, onCreated, preselectedClientId }: CreateProjectModalProps) {
+export default function CreateProjectModal({ open, onOpenChange, onCreated, preselectedClientId, defaultPhaseId }: CreateProjectModalProps) {
   const { clients, fetchClients } = useClients();
   const { services } = useServices();
   const { users: allUsers, refreshUsers } = useUsers(); // Fetch all users
-  const { updateEvent } = useEvents();
   const { stages } = usePipelineStages();
+  const qc = useQueryClient(); // Get query client for invalidation
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -72,7 +110,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      pipelinePhaseId: "",
+      pipelinePhaseId: defaultPhaseId || "",
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
       endDate: "",
@@ -86,13 +124,13 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
   React.useEffect(() => {
     if (open) {
-      const defaultPhaseId = stages && stages.length > 0 ? stages[0].id : "";
-      const defaultResponsibleId = allUsers.find(u => u.role)?.id || ""; // Find any user with a role
+      const defaultPhase = defaultPhaseId || (stages && stages.length > 0 ? stages[0].id : "");
+      const defaultResponsible = allUsers.find(u => u.role)?.id || ""; // Find any user with a role
       form.reset({
         clientId: preselectedClientId || "",
         name: "",
         serviceIds: [],
-        pipelinePhaseId: defaultPhaseId,
+        pipelinePhaseId: defaultPhase,
         startDate: new Date().toISOString().split("T")[0],
         startTime: "09:00",
         endDate: "",
@@ -100,10 +138,10 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         location: "",
         estimatedValue: undefined,
         notes: "",
-        responsibleId: defaultResponsibleId,
+        responsibleId: defaultResponsible,
       });
     }
-  }, [open, preselectedClientId, form, stages, allUsers]);
+  }, [open, preselectedClientId, defaultPhaseId, form, stages, allUsers]);
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
@@ -126,12 +164,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     const startISO = toISO(data.startDate, data.startTime);
     const endISO = data.endDate ? toISO(data.endDate, data.endTime || data.startTime) : startISO;
 
-    // Calculate initial rank (place at end of target column)
-    // This logic needs to be adapted if projectsByColumn is not available here
-    // For now, we'll use a default rank or fetch the last rank for the phase
-    const initialRank = Number(computeRank(null, null)); // Default to a base rank
-
-    const payload: Record<string, any> = {
+    const payload = {
       name: data.name,
       start_date: startISO,
       end_date: endISO,
@@ -139,22 +172,20 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       end_time: data.endTime ? `${data.endTime}:00` : null,
       location: data.location,
       pipeline_phase_id: data.pipelinePhaseId, // Use phase ID as source of truth
-      pipeline_rank: initialRank,
       estimated_value: data.estimatedValue ?? null,
       service_ids: data.serviceIds,
       client_id: data.clientId,
-      description: data.notes || null,
-      status: "Planejado",
+      notes: data.notes || null,
       responsible_id: data.responsibleId || null,
-      // NOTE: do NOT include updated_at/created_at here — DB triggers manage timestamps.
     };
 
     try {
-      const result = await updateEvent(payload as any);
+      const result = await createProject(payload); // Use the new centralized createProject
       if (!result) throw new Error("Falha ao salvar evento");
       showSuccess("Projeto criado com sucesso");
       await fetchClients();
       await refreshUsers();
+      qc.invalidateQueries({ queryKey: ['events'] }); // Invalidate events query
       onCreated?.(result.id);
       onOpenChange(false);
     } catch (err: any) {

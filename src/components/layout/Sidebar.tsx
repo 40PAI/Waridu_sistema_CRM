@@ -20,7 +20,7 @@ const SidebarNav = () => {
       items.push(
         { to: "/", icon: <Home className="h-4 w-4 mr-2" />, label: "Dashboard" },
         { to: "/calendar", icon: <Calendar className="h-4 w-4 mr-2" />, label: "Calendário" },
-        { to: "/create-event", icon: <CalendarDays className="h-4 w-4 mr-2" />, label: "Criar Evento" },
+        // { to: "/create-event", icon: <CalendarDays className="h-4 w-4 mr-2" />, label: "Criar Evento" }, // REMOVED
         { to: "/roster-management", icon: <Users className="h-4 w-4 mr-2" />, label: "Escalações" },
         { to: "/employees", icon: <Users2 className="h-4 w-4 mr-2" />, label: "Funcionários" },
         { to: "/roles", icon: <Package className="h-4 w-4 mr-2" />, label: "Funções" },
@@ -82,7 +82,7 @@ const SidebarNav = () => {
   const navItems = getNavItems();
 
   // Group items for display
-  const mainGroup = navItems.filter(item => ['/', '/calendar', '/create-event', '/roster-management', '/employees', '/roles', '/materials', '/material-requests'].includes(item.to));
+  const mainGroup = navItems.filter(item => ['/', '/calendar', '/roster-management', '/employees', '/roles', '/materials', '/material-requests'].includes(item.to));
   const crmGroup = navItems.filter(item => item.to.startsWith('/crm/'));
   const financeGroup = navItems.filter(item => item.to.startsWith('/finance'));
   const technicianGroup = navItems.filter(item => item.to.startsWith('/technician'));

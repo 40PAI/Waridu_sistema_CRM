@@ -2,7 +2,7 @@ export type Role = 'Admin' | 'Coordenador' | 'Gestor de Material' | 'Financeiro'
 
 export const PAGE_PERMISSIONS: Record<Role, string[]> = {
   Admin: [
-    '/', '/calendar', '/create-event', '/roster-management',
+    '/', '/calendar', '/roster-management',
     '/employees', '/roles', '/materials', '/material-requests',
     '/admin/tasks', '/admin/create-task',
     '/finance/dashboard', '/finance-profitability', '/finance-calendar', '/finance-costs', '/finance/reports',
@@ -14,7 +14,7 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/admin/services'
   ],
   Coordenador: [
-    '/', '/calendar', '/create-event', '/roster-management',
+    '/', '/calendar', '/roster-management',
     '/employees', '/roles', '/materials', '/admin/tasks', '/admin/create-task',
     '/invite-member', '/admin/members', '/admin/users',
     '/notifications',
