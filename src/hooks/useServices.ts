@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
+import { useServerState, useMutationWithInvalidation } from "./useServerState"; // Importar useServerState e useMutationWithInvalidation
 
 export interface Service {
   id: string;
@@ -12,19 +13,10 @@ export interface Service {
 }
 
 export const useServices = () => {
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchServices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchServices = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Usar useServerState para buscar serviços com uma chave de consulta padronizada
+  const servicesQuery = useServerState<Service[]>(
+    ["services"],
+    async () => {
       const { data, error } = await supabase
         .from("services")
         .select("*")
@@ -32,7 +24,7 @@ export const useServices = () => {
 
       if (error) throw error;
 
-      // Normalize shape (keep status as-is if present)
+      // Normalizar forma (manter status como está, se presente)
       const formatted = (data || []).map((row: any) => ({
         id: row.id,
         name: row.name,
@@ -42,22 +34,52 @@ export const useServices = () => {
         updated_at: row.updated_at ?? null,
       })) as Service[];
 
-      setServices(formatted);
-    } catch (err: any) {
-      console.error("Error fetching services:", err);
-      const errorMessage = err instanceof Error ? err.message : "Erro ao carregar serviços.";
-      setError(errorMessage);
-      showError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return formatted;
+    },
+    { enabled: true, keepPreviousData: false }
+  );
 
-  // Heuristic to treat a service as active:
-  // support a few possible representations (boolean true, 'ativo', 'Ativo', 'active')
-  const activeServices = services.filter((s) => {
+  // Mutações para criar, atualizar e deletar serviços
+  const createServiceMutation = useMutationWithInvalidation(
+    async (payload: { name: string; description?: string }) => {
+      const { data, error } = await supabase.from("services").insert({
+        name: payload.name,
+        description: payload.description ?? null,
+        status: "ativo",
+        updated_at: new Date().toISOString(),
+      }).select().single();
+      if (error) throw error;
+      return data;
+    },
+    ["services"]
+  );
+
+  const updateServiceMutation = useMutationWithInvalidation(
+    async ({ id, updates }: { id: string; updates: Partial<Service> }) => {
+      const { data, error } = await supabase.from("services").update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      }).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    ["services"]
+  );
+
+  const deleteServiceMutation = useMutationWithInvalidation(
+    async (id: string) => {
+      const { error } = await supabase.from("services").delete().eq("id", id);
+      if (error) throw error;
+      return true;
+    },
+    ["services"]
+  );
+
+  // Heurística para tratar um serviço como ativo:
+  // suporta algumas representações possíveis (booleano true, 'ativo', 'Ativo', 'active')
+  const activeServices = (servicesQuery.data || []).filter((s) => {
     if (s.status === undefined || s.status === null) {
-      // If status not present, consider it active (backwards compatibility)
+      // Se o status não estiver presente, considere-o ativo (compatibilidade com versões anteriores)
       return true;
     }
     if (typeof s.status === "boolean") return s.status === true;
@@ -66,47 +88,40 @@ export const useServices = () => {
   });
 
   return {
-    services,
+    services: servicesQuery.data ?? [],
     activeServices,
-    loading,
-    error,
-    refreshServices: fetchServices,
+    loading: servicesQuery.isLoading,
+    error: servicesQuery.isError ? (servicesQuery.error as Error) : null,
+    refreshServices: () => servicesQuery.refetch(),
     createService: async (payload: { name: string; description?: string }) => {
-      const { data, error } = await supabase.from("services").insert({
-        name: payload.name,
-        description: payload.description ?? null,
-        status: "ativo",
-        updated_at: new Date().toISOString(), // Add updated_at on creation
-      }).select().single();
-      if (error) {
+      try {
+        const result = await createServiceMutation.mutateAndInvalidate(payload);
+        showSuccess("Serviço criado com sucesso!");
+        return result;
+      } catch (err: any) {
         showError("Erro ao criar serviço.");
-        throw error;
+        throw err;
       }
-      showSuccess("Serviço criado com sucesso!");
-      await fetchServices();
-      return data as Service;
     },
     updateService: async (id: string, updates: Partial<Service>) => {
-      const { data, error } = await supabase.from("services").update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      }).eq("id", id).select().single();
-      if (error) {
+      try {
+        const result = await updateServiceMutation.mutateAndInvalidate({ id, updates });
+        showSuccess("Serviço atualizado com sucesso!");
+        return result;
+      } catch (err: any) {
         showError("Erro ao atualizar serviço.");
-        throw error;
+        throw err;
       }
-      showSuccess("Serviço atualizado com sucesso!");
-      await fetchServices();
-      return data as Service;
     },
     deleteService: async (id: string) => {
-      const { error } = await supabase.from("services").delete().eq("id", id);
-      if (error) {
+      try {
+        await deleteServiceMutation.mutateAndInvalidate(id);
+        showSuccess("Serviço removido com sucesso!");
+        return true;
+      } catch (err: any) {
         showError("Erro ao remover serviço.");
-        throw error;
+        throw err;
       }
-      showSuccess("Serviço removido com sucesso!");
-      await fetchServices();
     }
   };
 };

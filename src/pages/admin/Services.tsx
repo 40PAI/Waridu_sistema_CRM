@@ -97,7 +97,7 @@ export default function AdminServicesPage() {
         showSuccess("Serviço criado");
       }
       setIsDialogOpen(false);
-      await refreshServices();
+      // refreshServices is called by the mutation hook
     } catch (err: any) {
       showError(err?.message || "Erro ao salvar serviço");
     } finally {
@@ -117,7 +117,7 @@ export default function AdminServicesPage() {
     try {
       await updateService(svc.id, { status: newStatus });
       showSuccess(`Serviço ${newStatus === "ativo" ? "ativado" : "desativado"}`);
-      await refreshServices();
+      // refreshServices is called by the mutation hook
     } catch (err: any) {
       showError(err?.message || "Erro ao atualizar status");
     }
@@ -131,7 +131,7 @@ export default function AdminServicesPage() {
     try {
       await deleteService(id);
       showSuccess("Serviço eliminado permanentemente");
-      await refreshServices();
+      // refreshServices is called by the mutation hook
     } catch (err: any) {
       showError(err?.message || "Erro ao eliminar serviço");
     }
