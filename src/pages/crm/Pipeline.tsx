@@ -9,11 +9,13 @@ import { useServices } from "@/hooks/useServices";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { EventProject } from "@/types/crm";
+import usePipelinePhases from "@/hooks/usePipelinePhases"; // Import usePipelinePhases
 
 export default function PipelinePage() {
   const { events, updateEvent, loading } = useEvents();
   const { clients } = useClients();
   const { services } = useServices();
+  const { phases } = usePipelinePhases(); // Use usePipelinePhases
 
   const [openCreateProject, setOpenCreateProject] = React.useState(false);
   const [openEditProject, setOpenEditProject] = React.useState(false);
@@ -23,12 +25,13 @@ export default function PipelinePage() {
 
   const projects: EventProject[] = React.useMemo(() => {
     return (events || [])
-      .filter((e) => !!(e as any).pipeline_status)
+      .filter((e) => !!(e as any).pipeline_phase_id) // Filter by pipeline_phase_id
       .map((e) => ({
         id: e.id,
         name: e.name || `Evento ${e.id}`,
         client_id: (e as any).client_id,
-        pipeline_status: (e as any).pipeline_status,
+        pipeline_status: (e as any).pipeline_status, // Derived from trigger
+        pipeline_phase_id: (e as any).pipeline_phase_id, // Use pipeline_phase_id
         service_ids: (e as any).service_ids || [],
         estimated_value: (e as any).estimated_value,
         startDate: e.startDate,
@@ -37,6 +40,9 @@ export default function PipelinePage() {
         status: e.status ?? "Planejado",
         tags: (e as any).tags ?? [],
         notes: (e as any).notes ?? "",
+        responsible_id: (e as any).responsible_id ?? "",
+        pipeline_rank: (e as any).pipeline_rank ?? 0, // Include pipeline_rank
+        updated_at: e.updated_at ?? "", // Include updated_at
       }));
   }, [events]);
 
@@ -48,13 +54,16 @@ export default function PipelinePage() {
       endDate: updatedProject.endDate,
       location: updatedProject.location,
       status: updatedProject.status,
-      pipeline_status: updatedProject.pipeline_status,
+      pipeline_status: updatedProject.pipeline_status, // Keep this for trigger
+      pipeline_phase_id: updatedProject.pipeline_phase_id, // Send pipeline_phase_id
+      pipeline_rank: updatedProject.pipeline_rank, // Send pipeline_rank
       estimated_value: updatedProject.estimated_value,
       service_ids: updatedProject.service_ids,
       client_id: updatedProject.client_id,
       notes: updatedProject.notes,
       tags: updatedProject.tags,
-      updated_at: new Date().toISOString(),
+      responsible_id: updatedProject.responsible_id,
+      updated_at: new Date().toISOString(), // Let DB trigger handle this
     };
     await updateEvent(fullEvent);
   };

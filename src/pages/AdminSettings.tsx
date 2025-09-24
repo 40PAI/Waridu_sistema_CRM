@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RoleManager } from "@/components/settings/RoleManager";
 import CategoryManager from "@/components/settings/CategoryManager";
-import PipelineStageManager from "@/components/settings/PipelineStageManager";
+import PipelinePhaseManager from "@/components/settings/PipelinePhaseManager"; // Changed from PipelineStageManager
 import { useServices } from "@/hooks/useServices";
 import { useClients } from "@/hooks/useClients";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,7 +73,7 @@ export default function AdminSettings() {
         </TabsContent>
 
         <TabsContent value="pipeline" className="pt-6">
-          <PipelineStageManager />
+          <PipelinePhaseManager /> {/* Changed component name */}
         </TabsContent>
 
         <TabsContent value="locations" className="pt-6">

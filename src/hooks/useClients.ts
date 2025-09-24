@@ -57,7 +57,7 @@ export const useClients = () => {
         .from("clients")
         .upsert({
           ...payload,
-          service_ids: payload.service_ids || [], // Ensure service_ids is saved as array
+          // service_ids: payload.service_ids || [], // Removed from payload as it's no longer in clientSchema
         })
         .select()
         .single();

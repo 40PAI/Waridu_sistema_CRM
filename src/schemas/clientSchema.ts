@@ -9,7 +9,7 @@ export const clientSchema = z.object({
   notes: z.string().optional(),
   sector: z.enum(["Tecnologia", "Financeiro", "Saúde"]).optional(),
   persona: z.enum(["CEO", "CTO", "Marketing"]).optional(),
-  service_ids: z.array(z.string()).optional(), // Changed from tags to service_ids for MultiSelectServices
+  // service_ids: z.array(z.string()).optional(), // Removed from schema
 });
 
 export type ClientFormData = z.infer<typeof clientSchema>;
