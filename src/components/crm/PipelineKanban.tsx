@@ -24,6 +24,8 @@ import { SortableProjectCard } from "./SortableProjectCard";
 import type { EventProject } from "@/types/crm";
 import { supabase } from "@/integrations/supabase/client";
 import usePipelineStages from "@/hooks/usePipelineStages";
+import { computeRank } from "@/utils/rankUtils";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PipelineKanbanProps {
   projects: EventProject[];
@@ -46,6 +48,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
   const [localProjects, setLocalProjects] = React.useState<EventProject[]>(projects);
   const [updating, setUpdating] = React.useState<string | null>(null);
+  const qc = useQueryClient();
 
   React.useEffect(() => setLocalProjects(projects), [projects]);
 
@@ -128,7 +131,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
         // Update only the business fields (do NOT send created_at/updated_at)
         const { error } = await supabase
           .from('events')
-          .update({ pipeline_stage_id: toStageId })
+          .update({ pipeline_phase_id: toStageId, pipeline_rank: computeRank(null, null) }) // Example: set to default rank; adjust as needed
           .eq('id', activeProject.id);
 
         if (error) {
@@ -161,12 +164,14 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
           showSuccess("Projeto movido com sucesso!");
           if (onUpdateProject) {
             try {
-              await onUpdateProject({ ...activeProject, pipeline_stage_id: toStageId } as EventProject);
+              await onUpdateProject({ ...activeProject, pipeline_phase_id: toStageId } as EventProject);
             } catch {
               // ignore parent callback errors
             }
           }
         }
+        // Invalidate cache
+        qc.invalidateQueries({ queryKey: ['events'] });
       } catch (err: any) {
         console.error("Error updating project stage:", err);
         showError("Erro ao mover projeto. Revertendo.");
@@ -235,4 +240,5 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     </div>
   );
 }
+
 export default PipelineKanban;

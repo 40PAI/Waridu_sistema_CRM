@@ -29,8 +29,9 @@ const ALLOWED_COLUMNS = new Set([
   "estimated_value",
   "service_ids",
   "notes",
-  "pipeline_stage_id", // Added pipeline_stage_id
-  "responsible_id",
+  "pipeline_phase_id",
+  "pipeline_rank",
+  // Remova "pipeline_status", "pipeline_phase_label" se não quiser sobrescrever
 ]);
 
 function sanitizePayload(payload: Record<string, any>) {
@@ -41,8 +42,11 @@ function sanitizePayload(payload: Record<string, any>) {
     out[k] = v;
   });
 
-  if ("updated_at" in out) delete out.updated_at;
-  if ("created_at" in out) delete out.created_at;
+  // Não sobrescrever campos derivados
+  delete out.pipeline_status;
+  delete out.pipeline_phase_label;
+  delete out.created_at;
+  delete out.updated_at;
 
   return out;
 }
@@ -62,8 +66,8 @@ function validateUuidFields(sanitized: Record<string, any>) {
     invalids.push(`client_id="${String(sanitized.client_id)}"`);
   }
 
-  if (sanitized.pipeline_stage_id !== undefined && sanitized.pipeline_stage_id !== null && !isUuid(sanitized.pipeline_stage_id)) {
-    invalids.push(`pipeline_stage_id="${String(sanitized.pipeline_stage_id)}"`);
+  if (sanitized.pipeline_phase_id !== undefined && sanitized.pipeline_phase_id !== null && !isUuid(sanitized.pipeline_phase_id)) {
+    invalids.push(`pipeline_phase_id="${String(sanitized.pipeline_phase_id)}"`);
   }
 
   if (sanitized.service_ids !== undefined && sanitized.service_ids !== null) {
@@ -85,8 +89,25 @@ function validateUuidFields(sanitized: Record<string, any>) {
 export const fetchEvents = async (): Promise<any[]> => {
   const { data, error } = await supabase
     .from("events")
-    .select("*")
-    .order("start_date", { ascending: false });
+    .select(`
+      id,
+      name,
+      pipeline_phase_id,
+      pipeline_phase_label,
+      pipeline_status,
+      pipeline_rank,
+      updated_at,
+      start_date,
+      end_date,
+      location,
+      service_ids,
+      estimated_value,
+      client_id,
+      notes
+    `)
+    .order('pipeline_phase_id', { ascending: true })
+    .order('pipeline_rank', { ascending: true })
+    .order('updated_at', { ascending: false });
 
   if (error) throw error;
   return data || [];
