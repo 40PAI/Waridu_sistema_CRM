@@ -1,23 +1,27 @@
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { DateRangePicker } from "@/components/common/DateRangePicker";
-import { useEvents } from "@/hooks/useEvents";
-import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
-import { useEmployees } from "@/hooks/useEmployees";
+import { Download, FileDown } from "lucide-react";
 import { parseISO, isWithinInterval, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Event, EventStatus } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DateRange } from "react-day-picker";
-import { Download, TrendingUp, TrendingDown, DollarSign, Calendar as CalendarIcon, PieChart as PieChartIcon, FileText, FileDown } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
+// Import new modular components
+import { ReportFiltersComponent } from "@/components/finance/reports/ReportFiltersComponent";
+import { ConsolidatedMetricsCard } from "@/components/finance/reports/ConsolidatedMetricsCard";
+import { EventProfitabilityTable } from "@/components/finance/reports/EventProfitabilityTable";
+import { ExpenseCategoriesChart } from "@/components/finance/reports/ExpenseCategoriesChart";
+import { DetailedEventAnalysisChart } from "@/components/finance/reports/DetailedEventAnalysisChart";
+
+// Hooks
+import { useEvents } from "@/hooks/useEvents";
+import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
+import { useEmployees } from "@/hooks/useEmployees";
 
 const Reports = () => {
   const { events, loading: eventsLoading } = useEvents();
@@ -34,7 +38,7 @@ const Reports = () => {
   const calculateEventCosts = React.useCallback((event: Event) => {
     let techCosts = 0;
     if (event.roster?.teamMembers) {
-      const days = differenceInDays(parseISO(event.endDate), parseISO(event.startDate)) + 1;
+      const days = differenceInDays(parseISO(event.endDate || event.startDate), parseISO(event.startDate)) + 1;
       event.roster.teamMembers.forEach((member: any) => {
         const employee = empMap.get(member.id);
         const categoryId = employee?.technicianCategoryId;
@@ -47,7 +51,7 @@ const Reports = () => {
   }, [rateMap, empMap]);
 
   const filteredEvents = React.useMemo(() => {
-    return (events || []).filter(event => { // Safely access events
+    return (events || []).filter(event => {
       const eventDate = parseISO(event.startDate);
       const withinDateRange = !dateRange?.from || !dateRange?.to || isWithinInterval(eventDate, { start: dateRange.from, end: dateRange.to });
       const matchesStatus = statusFilter === "all" || event.status === statusFilter;
@@ -89,8 +93,6 @@ const Reports = () => {
     });
     return Object.entries(categoryTotals).map(([name, value]) => ({ name, value }));
   }, [filteredEvents]);
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
   const exportToCSV = () => {
     const csvContent = [
@@ -299,210 +301,32 @@ const Reports = () => {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-          <CardDescription>Personalize o período e critérios da análise.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex gap-4 flex-wrap items-end">
-          <div className="flex-1 min-w-[200px]">
-            <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-          </div>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as EventStatus | "all")}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrar por status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Status</SelectItem>
-              <SelectItem value="Planejado">Planejado</SelectItem>
-              <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-              <SelectItem value="Concluído">Concluído</SelectItem>
-              <SelectItem value="Cancelado">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={() => { setDateRange(undefined); setStatusFilter("all"); }}>
-            Limpar Filtros
-          </Button>
-        </CardContent>
-      </Card>
+      <ReportFiltersComponent
+        dateRange={dateRange}
+        onDateChange={setDateRange}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
+        onClearFilters={() => { setDateRange(undefined); setStatusFilter("all"); }}
+      />
 
       {/* Consolidated Metrics */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">AOA {consolidatedMetrics.revenue.toLocaleString("pt-AO")}</div>
-            <p className="text-xs text-muted-foreground">{filteredEvents.length} eventos analisados</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custos Totais</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">AOA {consolidatedMetrics.costs.toLocaleString("pt-AO")}</div>
-            <p className="text-xs text-muted-foreground">Equipe + Despesas</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${consolidatedMetrics.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
-              AOA {consolidatedMetrics.profit.toLocaleString("pt-AO")}
-            </div>
-            <p className="text-xs text-muted-foreground">Receita - Custos</p>
-          </CardContent>
-        </Card>
-      </div>
+      <ConsolidatedMetricsCard
+        revenue={consolidatedMetrics.revenue}
+        costs={consolidatedMetrics.costs}
+        profit={consolidatedMetrics.profit}
+        eventsCount={filteredEvents.length}
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Event Profitability Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Rentabilidade por Evento</CardTitle>
-            <CardDescription>Análise detalhada de cada evento no período. Ordenado por lucro.</CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Evento</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Receita</TableHead>
-                  <TableHead>Custos</TableHead>
-                  <TableHead>Lucro</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {eventProfitability.length > 0 ? eventProfitability.slice(0, 10).map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell className="font-medium max-w-[150px] truncate">{event.name}</TableCell>
-                    <TableCell>{event.date}</TableCell>
-                    <TableCell>AOA {event.revenue.toLocaleString("pt-AO")}</TableCell>
-                    <TableCell>AOA {event.costs.toLocaleString("pt-AO")}</TableCell>
-                    <TableCell className={event.profit >= 0 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                      AOA {event.profit.toLocaleString("pt-AO")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={event.status === 'Concluído' ? 'default' : event.status === 'Cancelado' ? 'destructive' : 'secondary'}>
-                        {event.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center">Nenhum evento encontrado.</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            {eventProfitability.length > 10 && (
-              <p className="text-sm text-muted-foreground mt-4 text-center">
-                Mostrando os 10 eventos mais rentáveis. Total: {eventProfitability.length} eventos.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        <EventProfitabilityTable data={eventProfitability} />
 
         {/* Expense Categories Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Despesas por Categoria</CardTitle>
-            <CardDescription>Distribuição das despesas totais no período selecionado.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {expenseCategories.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={expenseCategories}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {expenseCategories.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => [`AOA ${value.toLocaleString("pt-AO")}`, "Valor"]} 
-                    labelFormatter={(label) => `Categoria: ${label}`}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <div className="text-center">
-                  <PieChartIcon className="h-12 w-12 mx-auto mb-4 opacity-40" />
-                  <p>Nenhuma despesa registrada no período selecionado.</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ExpenseCategoriesChart data={expenseCategories} />
       </div>
 
       {/* Detailed Event Analysis */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Análise Detalhada de Eventos</CardTitle>
-          <CardDescription>Comparação visual de receita vs. custos para os eventos filtrados (top 15).</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {eventProfitability.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={eventProfitability.slice(0, 15)}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#888888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis 
-                  stroke="#888888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tickFormatter={(value) => `AOA ${value/1000}k`} 
-                />
-                <Tooltip 
-                  formatter={(value: number) => [`AOA ${value.toLocaleString("pt-AO")}`, ""]} 
-                  labelFormatter={(label) => `Evento: ${label}`}
-                />
-                <Legend />
-                <Bar dataKey="revenue" fill="#8884d8" name="Receita" />
-                <Bar dataKey="costs" fill="#82ca9d" name="Custos" />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-              <div className="text-center">
-                <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-40" />
-                <p>Nenhum evento encontrado para análise detalhada.</p>
-                <p className="text-sm mt-2">Ajuste os filtros para ver dados.</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <DetailedEventAnalysisChart data={eventProfitability} />
     </div>
   );
 };
