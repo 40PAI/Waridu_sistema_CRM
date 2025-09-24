@@ -87,7 +87,9 @@ export interface Event {
   next_action?: string;
   next_action_date?: string;
   updated_at?: string | null;
-  pipeline_stage_id?: string; // New: FK to pipeline_stages
+  pipeline_phase_id?: string | null; // Primary FK to pipeline_phases
+  pipeline_phase_label?: string | null; // Derived field
+  pipeline_rank?: number | null; // BIGINT for ordering
   follow_ups_count?: number;
   follow_ups_completed?: number;
 }

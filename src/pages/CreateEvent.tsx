@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { showSuccess, showError } from "@/utils/toast";
+import usePipelineStages from "@/hooks/usePipelineStages";
+import { computeRank } from "@/utils/rankUtils";
 
 // Simple schema to validate key client-side required fields
 const eventSchema = z.object({
@@ -23,7 +25,7 @@ const eventSchema = z.object({
   endTime: z.string().optional(),
   location: z.string().min(1, "Local é obrigatório"),
   revenue: z.number().optional(),
-  pipeline_status: z.string().optional(),
+  pipeline_phase_id: z.string().optional(),
   estimated_value: z.number().optional(),
   client_id: z.string().optional(),
   service_ids: z.array(z.string()).optional(),
@@ -44,6 +46,7 @@ function toISO(dateStr: string, timeStr: string) {
 
 const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
   const navigate = useNavigate();
+  const { stages } = usePipelineStages();
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -55,7 +58,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
       startTime: "09:00",
       endTime: "18:00",
       revenue: 0,
-      pipeline_status: "",
+      pipeline_phase_id: "",
       estimated_value: 0,
       client_id: "",
       service_ids: [],
@@ -63,11 +66,18 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
     },
   });
 
+  const pipelineOptions = React.useMemo(() => 
+    stages.filter(s => s.is_active).map(s => ({ value: s.id, label: s.name }))
+  , [stages]);
+
   const onSubmit = async (data: EventFormData) => {
     try {
       // Build snake_case payload and ISO datetimes
       const start_date = toISO(data.startDate, data.startTime);
       const end_date = data.endDate && data.endTime ? toISO(data.endDate, data.endTime) : start_date;
+
+      // Calculate initial rank if pipeline_phase_id is provided
+      const initialRank = data.pipeline_phase_id ? Number(computeRank(null, null)) : 0;
 
       const payload: Record<string, any> = {
         name: data.name,
@@ -77,13 +87,13 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
         end_time: data.endTime ? `${data.endTime}:00` : null,
         location: data.location,
         revenue: data.revenue ?? null,
-        pipeline_status: data.pipeline_status || null,
+        pipeline_phase_id: data.pipeline_phase_id || null, // Use phase ID instead of status
+        pipeline_rank: initialRank,
         estimated_value: data.estimated_value ?? null,
         client_id: data.client_id || null,
         service_ids: data.service_ids || null,
         description: data.notes || null,
         status: "Planejado",
-        updated_at: new Date().toISOString(),
       };
 
       // Basic client-side check for required fields (NOT NULL)
@@ -94,7 +104,7 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
 
       await onAddEvent(payload);
       showSuccess("Evento criado!");
-      if (data.pipeline_status) {
+      if (data.pipeline_phase_id) {
         navigate("/crm/pipeline");
       } else {
         navigate("/roster-management");
@@ -179,18 +189,19 @@ const CreateEventPage = ({ onAddEvent }: CreateEventPageProps) => {
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="pipeline_status" render={({ field }) => (
+              <FormField control={form.control} name="pipeline_phase_id" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status Inicial</FormLabel>
+                  <FormLabel>Fase do Pipeline</FormLabel>
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Selecione a fase (opcional)" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">Sem pipeline</SelectItem>
-                        <SelectItem value="1º Contato">1º Contato</SelectItem>
-                        <SelectItem value="Orçamento">Orçamento</SelectItem>
-                        <SelectItem value="Negociação">Negociação</SelectItem>
-                        <SelectItem value="Confirmado">Confirmado</SelectItem>
+                        {pipelineOptions.map(stage => (
+                          <SelectItem key={stage.value} value={stage.value}>
+                            {stage.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormControl>

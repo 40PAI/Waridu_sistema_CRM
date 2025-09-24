@@ -22,6 +22,7 @@ import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 import usePipelineStages from "@/hooks/usePipelineStages";
 import { useUsers } from "@/hooks/useUsers";
+import { computeRank } from "@/utils/rankUtils";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -36,7 +37,7 @@ const projectSchema = z.object({
   location: z.string().min(1),
   estimatedValue: z.number().min(0).optional(),
   notes: z.string().optional(),
-  pipelineStatus: z.string().min(1),
+  pipelinePhaseId: z.string().min(1).refine((v) => UUID_REGEX.test(v), "pipeline_phase_id deve ser um UUID"),
   responsibleId: z.string().optional(),
 });
 
@@ -71,7 +72,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       clientId: preselectedClientId || "",
       name: "",
       serviceIds: [],
-      pipelineStatus: "",
+      pipelinePhaseId: "",
       startDate: new Date().toISOString().split("T")[0],
       startTime: "09:00",
       endDate: "",
@@ -85,13 +86,13 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
   React.useEffect(() => {
     if (open) {
-      const defaultPipelineStatus = stages && stages.length > 0 ? stages[0].id : "";
+      const defaultPhaseId = stages && stages.length > 0 ? stages[0].id : "";
       const defaultResponsibleId = users.find(u => (u.role || "").toLowerCase() === "comercial")?.id || "";
       form.reset({
         clientId: preselectedClientId || "",
         name: "",
         serviceIds: [],
-        pipelineStatus: defaultPipelineStatus,
+        pipelinePhaseId: defaultPhaseId,
         startDate: new Date().toISOString().split("T")[0],
         startTime: "09:00",
         endDate: "",
@@ -115,7 +116,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   , [stages]);
 
   const handleSubmit = async (data: ProjectFormData) => {
-    if (!data.pipelineStatus) {
+    if (!data.pipelinePhaseId) {
       showError("Selecione uma fase do pipeline.");
       return;
     }
@@ -125,6 +126,13 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
     const startISO = toISO(data.startDate, data.startTime);
     const endISO = data.endDate ? toISO(data.endDate, data.endTime || data.startTime) : startISO;
 
+    // Calculate initial rank (place at end of target column)
+    const targetColumnTasks = projectsByColumn[data.pipelinePhaseId] || [];
+    const initialRank = Number(computeRank(
+      targetColumnTasks.length > 0 ? targetColumnTasks[targetColumnTasks.length - 1].pipeline_rank : null,
+      null
+    ));
+
     const payload: Record<string, any> = {
       name: data.name,
       start_date: startISO,
@@ -132,14 +140,15 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       start_time: data.startTime ? `${data.startTime}:00` : null,
       end_time: data.endTime ? `${data.endTime}:00` : null,
       location: data.location,
-      pipeline_stage_id: data.pipelineStatus, // Use stage ID
+      pipeline_phase_id: data.pipelinePhaseId, // Use phase ID as source of truth
+      pipeline_rank: initialRank,
       estimated_value: data.estimatedValue ?? null,
       service_ids: data.serviceIds,
       client_id: data.clientId,
       description: data.notes || null,
       status: "Planejado",
       responsible_id: data.responsibleId || null,
-      // NOTE: do NOT include updated_at/created_at here — DB triggers and central sanitizer manage timestamps.
+      // NOTE: do NOT include updated_at/created_at here — DB triggers manage timestamps.
     };
 
     try {
@@ -295,11 +304,11 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Status do Projeto *</h3>
-                <FormField control={form.control} name="pipelineStatus" render={({ field }) => (
+                <h3 className="text-sm font-medium mb-2">Fase do Pipeline *</h3>
+                <FormField control={form.control} name="pipelinePhaseId" render={({ field }) => (
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Selecione a fase" /></SelectTrigger>
                       <SelectContent>
                         {pipelineOptions.map((stage) => (
                           <SelectItem key={stage.value} value={stage.value}>

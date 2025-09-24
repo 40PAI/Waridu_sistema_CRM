@@ -19,6 +19,15 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { showSuccess, showError } from "@/utils/toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const CANONICAL_STATUS_OPTIONS = [
+  "1º Contato",
+  "Orçamento", 
+  "Negociação",
+  "Confirmado",
+  "Cancelado"
+];
 
 const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEdit: (s: any) => void; onToggleActive: (id: string, active: boolean) => void; }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stage.id });
@@ -49,6 +58,11 @@ const SortableStageItem = ({ stage, onEdit, onToggleActive }: { stage: any; onEd
             <Badge variant={stage.active ? "default" : "secondary"} className="text-xs">
               {stage.active ? "Ativa" : "Inativa"}
             </Badge>
+            {stage.canonical_status && (
+              <Badge variant="outline" className="text-xs">
+                {stage.canonical_status}
+              </Badge>
+            )}
           </div>
         </div>
       </div>
@@ -67,6 +81,7 @@ const PipelineStageManager = () => {
   const { stages, addStage, updateStage, toggleStageActive, reorderPhases, loading } = usePipelineStages();
   const [newStageName, setNewStageName] = React.useState("");
   const [newStageColor, setNewStageColor] = React.useState<string>("#e5e7eb");
+  const [newCanonicalStatus, setNewCanonicalStatus] = React.useState<string>("");
   const [editingStage, setEditingStage] = React.useState<any | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -95,10 +110,13 @@ const PipelineStageManager = () => {
     }
     setSaving(true);
     try {
-      const maxOrder = stages.reduce((m, s) => Math.max(m, s.order || 0), 0);
-      await addStage(name, { color: newStageColor });
+      await addStage(name, { 
+        color: newStageColor,
+        canonical_status: newCanonicalStatus || null
+      });
       setNewStageName("");
       setNewStageColor("#e5e7eb");
+      setNewCanonicalStatus("");
     } catch (err: any) {
       console.error("Add stage error:", err);
       showError(err?.message || "Erro ao adicionar fase.");
@@ -120,7 +138,10 @@ const PipelineStageManager = () => {
     }
     setSaving(true);
     try {
-      await updateStage(editingStage.id, name, { color: editingStage.color });
+      await updateStage(editingStage.id, name, { 
+        color: editingStage.color,
+        canonical_status: editingStage.canonical_status
+      });
       setIsEditDialogOpen(false);
       setEditingStage(null);
     } catch (err: any) {
@@ -181,12 +202,12 @@ const PipelineStageManager = () => {
       <CardHeader>
         <CardTitle>Configuração do Pipeline</CardTitle>
         <CardDescription>
-          Gerencie as fases do pipeline de projetos. Arraste para reordenar.
+          Gerencie as fases do pipeline de projetos. Arraste para reordenar. O status canônico será usado para derivar pipeline_status automaticamente.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex w-full max-w-xl grid-cols-1 md:grid-cols-3 gap-3 items-end">
-          <div className="space-y-1.5 md:col-span-2">
+        <div className="grid gap-4 md:grid-cols-4 items-end">
+          <div className="space-y-1.5">
             <Label>Nome da nova fase</Label>
             <Input
               placeholder="Ex: Orçamento"
@@ -198,13 +219,31 @@ const PipelineStageManager = () => {
           </div>
           <div className="space-y-1.5">
             <Label>Cor</Label>
-            <Input type="color" value={newStageColor} onChange={(e) => setNewStageColor(e.target.value)} disabled={loading || saving || isReordering} />
+            <Input 
+              type="color" 
+              value={newStageColor} 
+              onChange={(e) => setNewStageColor(e.target.value)} 
+              disabled={loading || saving || isReordering} 
+            />
           </div>
-          <div className="md:col-span-3">
-            <Button onClick={handleAddStage} disabled={loading || saving || isReordering || !(newStageName.trim())}>
-              <Plus className="h-4 w-4 mr-2" /> Adicionar
-            </Button>
+          <div className="space-y-1.5">
+            <Label>Status Canônico</Label>
+            <Select value={newCanonicalStatus} onValueChange={setNewCanonicalStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {CANONICAL_STATUS_OPTIONS.map(status => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          <Button onClick={handleAddStage} disabled={loading || saving || isReordering || !(newStageName.trim())}>
+            <Plus className="h-4 w-4 mr-2" /> Adicionar
+          </Button>
         </div>
 
         <div className="rounded-md border">
@@ -243,6 +282,24 @@ const PipelineStageManager = () => {
                   onChange={(e) => setEditingStage(prev => prev ? { ...prev, color: e.target.value } : prev)}
                   disabled={saving}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Status Canônico</Label>
+                <Select 
+                  value={editingStage?.canonical_status ?? ""} 
+                  onValueChange={(v) => setEditingStage(prev => prev ? { ...prev, canonical_status: v } : prev)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status canônico" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CANONICAL_STATUS_OPTIONS.map(status => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>

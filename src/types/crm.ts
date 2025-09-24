@@ -24,8 +24,10 @@ export interface EventProject {
   pipeline_rank?: number;
   // Add updated_at for sorting fallback
   updated_at?: string;
-  // Add pipeline_stage_id for linking to pipeline_stages table
-  pipeline_stage_id?: string;
+  // Primary FK to pipeline_phases table (source of truth)
+  pipeline_phase_id?: string;
+  // Derived field from pipeline_phases.name
+  pipeline_phase_label?: string;
 }
 
 export type CreatePayload = {
@@ -40,6 +42,8 @@ export type CreatePayload = {
   endTime?: string;   // novo
   location?: string;
   notes?: string;
+  pipeline_phase_id?: string; // Primary FK
+  pipeline_rank?: number; // For ordering
 };
 
 export type Client = { id: string; name: string };

@@ -68,17 +68,40 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   const projectsByColumn = React.useMemo(() => {
     const grouped: Record<string, EventProject[]> = {};
     columns.forEach(col => (grouped[col.id] = []));
+    
     localProjects.forEach((p) => {
-      const stageId = (p as any).pipeline_stage_id || null;
-      if (stageId && grouped[stageId]) {
-        grouped[stageId].push(p);
+      // Use pipeline_phase_id as the primary source of truth
+      const phaseId = p.pipeline_phase_id || null;
+      if (phaseId && grouped[phaseId]) {
+        grouped[phaseId].push(p);
       } else {
-        const firstCol = columns[0]?.id;
-        if (firstCol) grouped[firstCol].push(p);
+        // Fallback: try to match by pipeline_status to phase name
+        const matchingStage = stages.find(s => s.name === p.pipeline_status);
+        if (matchingStage && grouped[matchingStage.id]) {
+          grouped[matchingStage.id].push(p);
+        } else {
+          // Last resort: put in first column
+          const firstCol = columns[0]?.id;
+          if (firstCol) grouped[firstCol].push(p);
+        }
       }
     });
+
+    // Sort each column by pipeline_rank, then updated_at
+    Object.keys(grouped).forEach(colId => {
+      grouped[colId].sort((a, b) => {
+        const aRank = a.pipeline_rank ?? 0;
+        const bRank = b.pipeline_rank ?? 0;
+        if (aRank !== bRank) return aRank - bRank;
+        
+        const aTime = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const bTime = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return bTime - aTime; // newer first
+      });
+    });
+
     return grouped;
-  }, [localProjects, columns]);
+  }, [localProjects, columns, stages]);
 
   const handleDragStart = (event: any) => {
     const { active } = event;
@@ -97,7 +120,18 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       return;
     }
     const pr = getProjectById(localProjects, overId);
-    setDragOverColumn(pr ? (pr as any).pipeline_stage_id || null : null);
+    setDragOverColumn(pr ? pr.pipeline_phase_id || null : null);
+  };
+
+  const calculateNewIndex = (overId: string, columnTasks: EventProject[]) => {
+    if (isColumnId(overId)) {
+      // Dropped on column container -> place at end
+      return columnTasks.length;
+    } else {
+      // Dropped on another task -> find index of that task
+      const overIndex = columnTasks.findIndex((t) => String(t.id) === overId);
+      return overIndex === -1 ? columnTasks.length : overIndex;
+    }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -112,64 +146,60 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const activeProject = getProjectById(localProjects, activeId);
     if (!activeProject) return;
 
-    const fromStageId = (activeProject as any).pipeline_stage_id || null;
-    const toStageId = isColumnId(overId) ? overId : (getProjectById(localProjects, overId) as any)?.pipeline_stage_id || columns[0]?.id;
+    const fromPhaseId = activeProject.pipeline_phase_id || null;
+    const toPhaseId = isColumnId(overId) ? overId : (getProjectById(localProjects, overId)?.pipeline_phase_id || columns[0]?.id);
 
-    if (!toStageId) return;
+    if (!toPhaseId) return;
 
-    if (fromStageId !== toStageId) {
+    if (fromPhaseId !== toPhaseId) {
       setUpdating(String(activeProject.id));
       // Keep a snapshot to revert if needed
       const prevLocal = [...localProjects];
 
       try {
+        // Calculate new rank based on position in target column
+        const targetColumnTasks = projectsByColumn[toPhaseId] || [];
+        const newIndex = calculateNewIndex(overId, targetColumnTasks);
+        
+        const leftRank = newIndex > 0 ? targetColumnTasks[newIndex - 1]?.pipeline_rank : null;
+        const rightRank = newIndex < targetColumnTasks.length ? targetColumnTasks[newIndex]?.pipeline_rank : null;
+        const newRank = Number(computeRank(leftRank, rightRank));
+
         // Optimistic UI update
         setLocalProjects(prev => prev.map(p =>
-          p.id === activeProject.id ? ({ ...p, pipeline_stage_id: toStageId } as any) : p
+          p.id === activeProject.id ? ({ 
+            ...p, 
+            pipeline_phase_id: toPhaseId,
+            pipeline_rank: newRank
+          } as any) : p
         ));
 
-        // Update only the business fields (do NOT send created_at/updated_at)
+        // Update using pipeline_phase_id and pipeline_rank
         const { error } = await supabase
           .from('events')
-          .update({ pipeline_phase_id: toStageId, pipeline_rank: computeRank(null, null) }) // Example: set to default rank; adjust as needed
+          .update({ 
+            pipeline_phase_id: toPhaseId, 
+            pipeline_rank: newRank 
+          })
           .eq('id', activeProject.id);
 
         if (error) {
-          // If PostgREST complains about missing column (PGRST204), fall back to pipeline_status update
-          if (error.code === 'PGRST204') {
-            const stage = stages.find(s => String(s.id) === String(toStageId));
-            const statusValue = (stage && (stage.name || (stage as any).canonical_status)) || null;
-            if (!statusValue) {
-              throw error;
-            }
-            const { error: altError } = await supabase
-              .from('events')
-              .update({ pipeline_status: statusValue })
-              .eq('id', activeProject.id);
+          throw error;
+        }
 
-            if (altError) throw altError;
-
-            showSuccess("Projeto movido (fallback para pipeline_status).");
-            if (onUpdateProject) {
-              try {
-                await onUpdateProject({ ...activeProject, pipeline_status: statusValue } as EventProject);
-              } catch {
-                // ignore parent callback errors
-              }
-            }
-          } else {
-            throw error;
-          }
-        } else {
-          showSuccess("Projeto movido com sucesso!");
-          if (onUpdateProject) {
-            try {
-              await onUpdateProject({ ...activeProject, pipeline_phase_id: toStageId } as EventProject);
-            } catch {
-              // ignore parent callback errors
-            }
+        showSuccess("Projeto movido com sucesso!");
+        if (onUpdateProject) {
+          try {
+            await onUpdateProject({ 
+              ...activeProject, 
+              pipeline_phase_id: toPhaseId,
+              pipeline_rank: newRank
+            } as EventProject);
+          } catch {
+            // ignore parent callback errors
           }
         }
+        
         // Invalidate cache
         qc.invalidateQueries({ queryKey: ['events'] });
       } catch (err: any) {
@@ -231,7 +261,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
                 <div className="text-xs text-muted-foreground">
                   Início: {draggingProject.startDate ? format(new Date(draggingProject.startDate), "dd/MM/yyyy", { locale: ptBR }) : "—"}
                 </div>
-                <Badge className="bg-gray-100 text-gray-800">{(draggingProject as any).pipeline_status || "Projeto"}</Badge>
+                <Badge className="bg-gray-100 text-gray-800">{draggingProject.pipeline_status || "Projeto"}</Badge>
               </CardContent>
             </Card>
           ) : null}
