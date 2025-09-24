@@ -3,12 +3,18 @@
 import * as React from "react";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
 import CreateProjectModal from "@/components/crm/CreateProjectModal";
+import { EditProjectDialog } from "@/components/crm/EditProjectDialog";
+import { ViewProjectDialog } from "@/components/crm/ViewProjectDialog";
 import useEvents from "@/hooks/useEvents";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { EventProject } from "@/types/crm";
+
+// Ensure no static caching for real-time data consistency
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default function PipelinePage() {
   const { events, updateEvent, loading } = useEvents();
@@ -37,6 +43,10 @@ export default function PipelinePage() {
         status: e.status ?? "Planejado",
         tags: (e as any).tags ?? [],
         notes: (e as any).notes ?? "",
+        pipeline_phase_id: e.pipeline_phase_id,
+        pipeline_phase_label: e.pipeline_phase_label,
+        pipeline_rank: e.pipeline_rank,
+        updated_at: e.updated_at,
       }));
   }, [events]);
 
@@ -54,7 +64,8 @@ export default function PipelinePage() {
       client_id: updatedProject.client_id,
       notes: updatedProject.notes,
       tags: updatedProject.tags,
-      updated_at: new Date().toISOString(),
+      pipeline_phase_id: updatedProject.pipeline_phase_id,
+      pipeline_rank: updatedProject.pipeline_rank,
     };
     await updateEvent(fullEvent);
   };
@@ -69,6 +80,14 @@ export default function PipelinePage() {
     setOpenViewProject(true);
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Carregando pipeline...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -78,20 +97,41 @@ export default function PipelinePage() {
           Novo Projeto
         </Button>
       </div>
-      {loading ? <p>Carregando...</p> : <PipelineKanban projects={projects} onUpdateProject={handleUpdateProject} onEditProject={handleEditProject} onViewProject={handleViewProject} />}
+
+      <PipelineKanban 
+        projects={projects} 
+        onUpdateProject={handleUpdateProject} 
+        onEditProject={handleEditProject} 
+        onViewProject={handleViewProject} 
+      />
 
       <CreateProjectModal
         open={openCreateProject}
         onOpenChange={setOpenCreateProject}
         onCreated={(id) => {
-          // optional hook for parent: could be used to navigate or refresh
           console.log("Project created with id:", id);
         }}
         preselectedClientId={undefined}
       />
 
-      {/* Edit & View dialogs keep existing behavior (not modified in this change) */}
-      {/* Existing EditProjectDialog / ViewProjectDialog usages remain unchanged elsewhere */}
+      <EditProjectDialog
+        open={openEditProject}
+        onOpenChange={(open) => {
+          setOpenEditProject(open);
+          if (!open) setEditingProject(null);
+        }}
+        project={editingProject}
+        onSave={handleUpdateProject}
+      />
+
+      <ViewProjectDialog
+        open={openViewProject}
+        onOpenChange={(open) => {
+          setOpenViewProject(open);
+          if (!open) setViewingProject(null);
+        }}
+        project={viewingProject}
+      />
     </div>
   );
 }

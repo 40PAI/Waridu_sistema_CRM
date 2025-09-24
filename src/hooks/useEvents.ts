@@ -9,6 +9,7 @@ import { useServerState, useMutationWithInvalidation } from "./useServerState";
  *
  * - events are fetched through useServerState with query key ['events']
  * - updateEvent and updateEventDetails use useMutationWithInvalidation to ensure queries are invalidated/refetched
+ * - Always fetches server-ordered data to maintain consistent Kanban positioning
  */
 
 export const useEvents = () => {
@@ -42,7 +43,9 @@ export const useEvents = () => {
         next_action: row.next_action ?? undefined,
         next_action_date: row.next_action_date ?? undefined,
         updated_at: row.updated_at ?? undefined,
-        pipeline_phase_id: row.pipeline_phase_id ?? undefined, // Added pipeline_phase_id
+        pipeline_phase_id: row.pipeline_phase_id ?? undefined,
+        pipeline_phase_label: row.pipeline_phase_label ?? undefined,
+        pipeline_rank: row.pipeline_rank ?? undefined,
       })) as Event[];
     },
     { enabled: true, keepPreviousData: false }

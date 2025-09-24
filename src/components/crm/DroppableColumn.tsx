@@ -10,7 +10,13 @@ interface DroppableColumnProps {
 }
 
 export function DroppableColumn({ column, children, disabled }: DroppableColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const { setNodeRef, isOver } = useDroppable({ 
+    id: column.id,
+    data: {
+      columnId: column.id,
+      type: 'column'
+    }
+  });
 
   const bgColor = column.color || "#f3f4f6"; // fallback gray-100
   const style: React.CSSProperties = {

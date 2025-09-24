@@ -10,8 +10,12 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+// Ensure no static caching for real-time data consistency
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function ProjectsPage() {
-  const { events } = useEvents();
+  const { events, loading } = useEvents();
   const { services } = useServices();
 
   // service filter (array of service ids)
@@ -32,6 +36,10 @@ export default function ProjectsPage() {
       status: e.status ?? "Planejado",
       tags: e.tags ?? [],
       notes: e.notes ?? "",
+      pipeline_phase_id: e.pipeline_phase_id,
+      pipeline_phase_label: e.pipeline_phase_label,
+      pipeline_rank: e.pipeline_rank,
+      updated_at: e.updated_at,
     }));
 
   // filter projects by selected services (match ANY)
@@ -48,6 +56,14 @@ export default function ProjectsPage() {
     services.forEach(s => (map[s.id] = s.name));
     return map;
   }, [services]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Carregando projetos...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -89,9 +105,11 @@ export default function ProjectsPage() {
       <PipelineKanban
         projects={filteredProjects}
         onUpdateProject={async (p) => {
-          // PipelineKanban persists changes itself to the events table; this handler can be a noop or used for additional side effects.
+          // PipelineKanban persists changes itself via RPC; this handler can be a noop or used for additional side effects.
           return;
         }}
+        onEditProject={onEditProject}
+        onViewProject={onViewProject}
       />
     </div>
   );

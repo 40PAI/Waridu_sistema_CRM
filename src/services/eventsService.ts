@@ -1,9 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Roster, Expense } from "@/types";
+import { fetchOrderedEvents } from "./kanbanService";
 
 /**
  * Minimal events service used by hooks/components.
- * - fetchEvents(): returns rows from events table
+ * - fetchEvents(): returns rows from events table ordered by server
  * - upsertEvent(payload): insert or update an event row (payload should use snake_case keys)
  * - updateEventDetails(eventId, details): update roster/expenses for an event
  *
@@ -25,13 +26,14 @@ const ALLOWED_COLUMNS = new Set([
   "roster",
   "expenses",
   "client_id",
-  "pipeline_status",
   "estimated_value",
   "service_ids",
   "notes",
   "pipeline_phase_id",
   "pipeline_rank",
-  // Remova "pipeline_status", "pipeline_phase_label" se não quiser sobrescrever
+  // Derived fields - allow but will be overridden by triggers
+  "pipeline_status",
+  "pipeline_phase_label",
 ]);
 
 function sanitizePayload(payload: Record<string, any>) {
@@ -42,9 +44,7 @@ function sanitizePayload(payload: Record<string, any>) {
     out[k] = v;
   });
 
-  // Não sobrescrever campos derivados
-  delete out.pipeline_status;
-  delete out.pipeline_phase_label;
+  // Don't override timestamp fields - let DB triggers handle them
   delete out.created_at;
   delete out.updated_at;
 
@@ -87,30 +87,8 @@ function validateUuidFields(sanitized: Record<string, any>) {
 }
 
 export const fetchEvents = async (): Promise<any[]> => {
-  const { data, error } = await supabase
-    .from("events")
-    .select(`
-      id,
-      name,
-      pipeline_phase_id,
-      pipeline_phase_label,
-      pipeline_status,
-      pipeline_rank,
-      updated_at,
-      start_date,
-      end_date,
-      location,
-      service_ids,
-      estimated_value,
-      client_id,
-      notes
-    `)
-    .order('pipeline_phase_id', { ascending: true })
-    .order('pipeline_rank', { ascending: true })
-    .order('updated_at', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
+  // Use the kanbanService for consistent server-ordered fetching
+  return await fetchOrderedEvents();
 };
 
 export const upsertEvent = async (payload: any): Promise<any> => {

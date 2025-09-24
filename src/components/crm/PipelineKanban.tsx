@@ -22,10 +22,9 @@ import { showError, showSuccess } from "@/utils/toast";
 import { DroppableColumn } from "./DroppableColumn";
 import { SortableProjectCard } from "./SortableProjectCard";
 import type { EventProject } from "@/types/crm";
-import { supabase } from "@/integrations/supabase/client";
 import usePipelineStages from "@/hooks/usePipelineStages";
-import { computeRank } from "@/utils/rankUtils";
 import { useQueryClient } from "@tanstack/react-query";
+import { moveEventRPC } from "@/services/kanbanService";
 
 interface PipelineKanbanProps {
   projects: EventProject[];
@@ -34,8 +33,8 @@ interface PipelineKanbanProps {
   onViewProject?: (p: EventProject) => void;
 }
 
-function isColumnId(id: string | null | undefined) {
-  return !!id;
+function isColumnId(id: string | null | undefined, columns: any[]) {
+  return columns.some(col => col.id === id);
 }
 
 function getProjectById(list: EventProject[], id: string | number) {
@@ -46,11 +45,8 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
   const { stages } = usePipelineStages();
   const [draggingProject, setDraggingProject] = React.useState<EventProject | null>(null);
   const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null);
-  const [localProjects, setLocalProjects] = React.useState<EventProject[]>(projects);
   const [updating, setUpdating] = React.useState<string | null>(null);
   const qc = useQueryClient();
-
-  React.useEffect(() => setLocalProjects(projects), [projects]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -69,7 +65,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const grouped: Record<string, EventProject[]> = {};
     columns.forEach(col => (grouped[col.id] = []));
     
-    localProjects.forEach((p) => {
+    projects.forEach((p) => {
       // Use pipeline_phase_id as the primary source of truth
       const phaseId = p.pipeline_phase_id || null;
       if (phaseId && grouped[phaseId]) {
@@ -87,7 +83,7 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       }
     });
 
-    // Sort each column by pipeline_rank, then updated_at
+    // Sort each column by pipeline_rank, then updated_at (server ordering)
     Object.keys(grouped).forEach(colId => {
       grouped[colId].sort((a, b) => {
         const aRank = a.pipeline_rank ?? 0;
@@ -101,11 +97,15 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     });
 
     return grouped;
-  }, [localProjects, columns, stages]);
+  }, [projects, columns, stages]);
+
+  const getColumnItems = React.useCallback((phaseId: string) => {
+    return (projectsByColumn[phaseId] || []).map(p => ({ id: p.id }));
+  }, [projectsByColumn]);
 
   const handleDragStart = (event: any) => {
     const { active } = event;
-    const project = getProjectById(localProjects, active.id);
+    const project = getProjectById(projects, active.id);
     setDraggingProject(project || null);
   };
 
@@ -115,22 +115,41 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
       setDragOverColumn(null);
       return;
     }
-    if (isColumnId(overId)) {
+    if (isColumnId(overId, columns)) {
       setDragOverColumn(overId);
       return;
     }
-    const pr = getProjectById(localProjects, overId);
+    const pr = getProjectById(projects, overId);
     setDragOverColumn(pr ? pr.pipeline_phase_id || null : null);
   };
 
-  const calculateNewIndex = (overId: string, columnTasks: EventProject[]) => {
-    if (isColumnId(overId)) {
+  const calculateNeighbors = (overId: string, targetPhaseId: string, activeId: string) => {
+    const columnItems = projectsByColumn[targetPhaseId] || [];
+    
+    if (isColumnId(overId, columns)) {
       // Dropped on column container -> place at end
-      return columnTasks.length;
+      const lastItem = columnItems[columnItems.length - 1];
+      return {
+        beforeId: lastItem ? lastItem.id : null,
+        afterId: null,
+      };
     } else {
-      // Dropped on another task -> find index of that task
-      const overIndex = columnTasks.findIndex((t) => String(t.id) === overId);
-      return overIndex === -1 ? columnTasks.length : overIndex;
+      // Dropped on another task -> find neighbors
+      const overIndex = columnItems.findIndex(t => String(t.id) === overId);
+      if (overIndex === -1) {
+        // Target not found, place at end
+        const lastItem = columnItems[columnItems.length - 1];
+        return {
+          beforeId: lastItem ? lastItem.id : null,
+          afterId: null,
+        };
+      }
+      
+      // Insert before the target item
+      const beforeId = overIndex > 0 ? columnItems[overIndex - 1].id : null;
+      const afterId = columnItems[overIndex].id;
+      
+      return { beforeId, afterId };
     }
   };
 
@@ -143,70 +162,50 @@ export function PipelineKanban({ projects, onUpdateProject, onEditProject, onVie
     const activeId = String(active.id);
     const overId = String(over.id);
 
-    const activeProject = getProjectById(localProjects, activeId);
+    const activeProject = getProjectById(projects, activeId);
     if (!activeProject) return;
 
     const fromPhaseId = activeProject.pipeline_phase_id || null;
-    const toPhaseId = isColumnId(overId) ? overId : (getProjectById(localProjects, overId)?.pipeline_phase_id || columns[0]?.id);
+    const toPhaseId = isColumnId(overId, columns) 
+      ? overId 
+      : (getProjectById(projects, overId)?.pipeline_phase_id || columns[0]?.id);
 
     if (!toPhaseId) return;
 
+    // Only proceed if moving to a different phase or different position
     if (fromPhaseId !== toPhaseId) {
       setUpdating(String(activeProject.id));
-      // Keep a snapshot to revert if needed
-      const prevLocal = [...localProjects];
 
       try {
-        // Calculate new rank based on position in target column
-        const targetColumnTasks = projectsByColumn[toPhaseId] || [];
-        const newIndex = calculateNewIndex(overId, targetColumnTasks);
-        
-        const leftRank = newIndex > 0 ? targetColumnTasks[newIndex - 1]?.pipeline_rank : null;
-        const rightRank = newIndex < targetColumnTasks.length ? targetColumnTasks[newIndex]?.pipeline_rank : null;
-        const newRank = Number(computeRank(leftRank, rightRank));
+        // Calculate neighbors in target column
+        const { beforeId, afterId } = calculateNeighbors(overId, toPhaseId, activeId);
 
-        // Optimistic UI update
-        setLocalProjects(prev => prev.map(p =>
-          p.id === activeProject.id ? ({ 
-            ...p, 
-            pipeline_phase_id: toPhaseId,
-            pipeline_rank: newRank
-          } as any) : p
-        ));
-
-        // Update using pipeline_phase_id and pipeline_rank
-        const { error } = await supabase
-          .from('events')
-          .update({ 
-            pipeline_phase_id: toPhaseId, 
-            pipeline_rank: newRank 
-          })
-          .eq('id', activeProject.id);
-
-        if (error) {
-          throw error;
-        }
+        // Call RPC to move event with server-side rank calculation
+        await moveEventRPC({
+          eventId: activeProject.id,
+          targetPhaseId: toPhaseId,
+          beforeId,
+          afterId,
+        });
 
         showSuccess("Projeto movido com sucesso!");
+        
+        // Invalidate cache to refetch ordered data from server
+        await qc.invalidateQueries({ queryKey: ['events'] });
+
         if (onUpdateProject) {
           try {
             await onUpdateProject({ 
               ...activeProject, 
-              pipeline_phase_id: toPhaseId,
-              pipeline_rank: newRank
+              pipeline_phase_id: toPhaseId
             } as EventProject);
           } catch {
             // ignore parent callback errors
           }
         }
-        
-        // Invalidate cache
-        qc.invalidateQueries({ queryKey: ['events'] });
       } catch (err: any) {
-        console.error("Error updating project stage:", err);
-        showError("Erro ao mover projeto. Revertendo.");
-        // revert optimistic update
-        setLocalProjects(prevLocal);
+        console.error("Error moving project:", err);
+        showError("Erro ao mover projeto. Tente novamente.");
       } finally {
         setUpdating(null);
       }
