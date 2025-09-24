@@ -117,7 +117,7 @@ export const useRoles = () => {
     roles: rolesQuery.data ?? [],
     rolesByName: useMemo(() => {
       const map: Record<string, RoleType> = {};
-      (rolesQuery.data || []).forEach((role) => {
+      (rolesQuery.data || []).forEach((role) => { // Safely access data
         map[role.name] = role;
       });
       return map;

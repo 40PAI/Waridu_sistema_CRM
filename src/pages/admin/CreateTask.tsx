@@ -118,7 +118,7 @@ const CreateTask = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Sem evento específico</SelectItem>
-                  {events.map((event) => (
+                  {(events || []).map((event) => ( // Safely access events
                     <SelectItem key={event.id} value={String(event.id)}>
                       {event.name}
                     </SelectItem>

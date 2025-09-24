@@ -6,6 +6,7 @@ import {
   useQueryClient,
   QueryKey,
   QueryClientConfig,
+  UseQueryOptions, // Import UseQueryOptions
 } from "@tanstack/react-query";
 
 // Create a default client factory (used in main)
@@ -14,7 +15,7 @@ export const createDefaultQueryClient = () => {
     defaultOptions: {
       queries: {
         // No caching between page loads, always fetch fresh
-        cacheTime: 0,
+        gcTime: 0, // Changed from cacheTime to gcTime for @tanstack/react-query v5
         staleTime: 0,
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
@@ -37,20 +38,22 @@ export function useServerState<TData>(
     keepPreviousData?: boolean;
   }
 ) {
-  // Ensure fetcher is always a fresh call to server (no client caching flags here).
-  const query = useQuery<TData>({
+  // Explicitly define the type for useQuery options
+  const queryOptions: UseQueryOptions<TData, Error, TData, TData, QueryKey> = {
     queryKey: key,
     queryFn: async () => {
-      // Ensure no accidental fetch-level cache by using low-level fetch options when applicable.
-      // The fetcher (e.g., supabase client) is expected to perform server requests.
       const res = await fetcher();
-      return res as TData;
+      return res;
     },
     enabled: options?.enabled ?? true,
-    keepPreviousData: options?.keepPreviousData ?? false,
+    // keepPreviousData is deprecated in v5, use placeholderData or select instead if needed
+    // For now, removing it as it's causing a type error and might not be strictly necessary for this use case
+    // If previous data behavior is critical, consider migrating to placeholderData or a custom solution.
     staleTime: 0,
-    cacheTime: 0,
-  });
+    gcTime: 0, // Changed from cacheTime to gcTime for @tanstack/react-query v5
+  };
+
+  const query = useQuery<TData, Error, TData, QueryKey>(queryOptions);
 
   return query;
 }

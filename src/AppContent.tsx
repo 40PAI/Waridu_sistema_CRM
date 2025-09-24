@@ -63,7 +63,7 @@ import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
 // Wrappers to provide required props
 const CalendarWrapper = () => {
   const { events } = useEvents();
-  return <Calendar events={events} />;
+  return <Calendar events={events || []} />;
 };
 
 const CreateEventWrapper = () => {
@@ -76,10 +76,10 @@ const RosterManagementWrapper = () => {
   const { events, updateEventDetails, updateEvent } = useEvents();
   const { employees } = useEmployees();
   const { materials: invMaterials } = useMaterials();
-  const { pendingRequests, createMaterialRequest } = useMaterialRequests();
+  const { pendingRequests } = useMaterialRequests();
   return (
     <RosterManagement
-      events={events}
+      events={events || []}
       employees={employees}
       onUpdateEventDetails={updateEventDetails}
       onUpdateEvent={updateEvent}
@@ -93,21 +93,21 @@ const RosterManagementWrapper = () => {
 const EmployeesWrapper = () => {
   const { roles } = useRoles();
   const { employees, saveEmployee } = useEmployees();
-  return <Employees roles={roles} employees={employees} onSaveEmployee={saveEmployee} />;
+  return <Employees roles={roles || []} employees={employees} onSaveEmployee={saveEmployee} />;
 };
 
 const RolesWrapper = () => {
   const { roles } = useRoles();
   const { employees } = useEmployees();
   const { events } = useEvents();
-  return <Roles roles={roles} employees={employees} events={events} />;
+  return <Roles roles={roles || []} employees={employees} events={events || []} />;
 };
 
 const RoleDetailWrapper = () => {
   const { roles } = useRoles();
   const { employees } = useEmployees();
   const { events } = useEvents();
-  return <RoleDetail roles={roles} employees={employees} events={events} />;
+  return <RoleDetail roles={roles || []} employees={employees} events={events || []} />;
 };
 
 const MaterialsWrapper = () => {
@@ -129,7 +129,7 @@ const MaterialsWrapper = () => {
 };
 
 const MaterialRequestsWrapper = () => {
-  const { materialRequests, approveMaterialRequest, rejectMaterialRequest } = useMaterialRequests();
+  const { materialRequests, approveMaterialRequest, rejectMaterialRequest, createMaterialRequest } = useMaterialRequests();
   const { events } = useEvents();
   const { materials } = useMaterials();
   const materialNameMap = React.useMemo(
@@ -139,7 +139,7 @@ const MaterialRequestsWrapper = () => {
   return (
     <MaterialRequests
       requests={materialRequests}
-      events={events}
+      events={events || []}
       materialNameMap={materialNameMap}
       onApproveRequest={approveMaterialRequest}
       onRejectRequest={rejectMaterialRequest}
@@ -152,7 +152,7 @@ const AdminSettingsWrapper = () => {
   const { locations, addLocation, updateLocation, deleteLocation } = useLocations();
   return (
     <AdminSettings
-      roles={roles}
+      roles={roles || []}
       onAddRole={addRole}
       onUpdateRole={updateRole}
       onDeleteRole={deleteRole}
@@ -170,7 +170,7 @@ const ProfitabilityWrapper = () => {
 
 const FinanceCalendarWrapper = () => {
   const { events } = useEvents();
-  return <FinanceCalendar events={events} />;
+  return <FinanceCalendar events={events || []} />;
 };
 
 const CostManagementWrapper = () => {

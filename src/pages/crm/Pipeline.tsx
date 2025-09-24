@@ -30,7 +30,7 @@ export default function PipelinePage() {
 
   const projects: EventProject[] = React.useMemo(() => {
     return (events || [])
-      .filter((e) => !!(e as any).pipeline_status)
+      .filter((e) => !!e.pipeline_status)
       .map((e) => ({
         id: e.id,
         name: e.name || `Evento ${e.id}`,

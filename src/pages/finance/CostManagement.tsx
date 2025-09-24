@@ -42,7 +42,7 @@ export default function CostManagement() {
             </CardHeader>
             <CardContent>
               <ExpenseManager 
-                events={events} 
+                events={events || []} // Safely access events
                 onUpdateEventDetails={updateEventDetails} 
                 loading={loading} 
               />

@@ -24,7 +24,7 @@ const CRMDashboard = () => {
   const { services } = useServices();
 
   // Projects are events with pipeline_status
-  const projects = React.useMemo(() => events.filter(event => !!event.pipeline_status), [events]);
+  const projects = React.useMemo(() => (events || []).filter(event => !!event.pipeline_status), [events]); // Safely access events
 
   const pipelineStats = React.useMemo(() => {
     const stats: Record<string, number> = {
@@ -102,9 +102,9 @@ const CRMDashboard = () => {
   }, [projects]);
 
   const clientStats = React.useMemo(() => {
-    const totalClients = clients.length;
-    const activeClients = clients.filter(c => c.updated_at && new Date(c.updated_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length;
-    const highValueClients = clients.filter(c => c.notes?.toLowerCase().includes('alto valor')).length;
+    const totalClients = (clients || []).length; // Safely access clients
+    const activeClients = (clients || []).filter(c => c.updated_at && new Date(c.updated_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length;
+    const highValueClients = (clients || []).filter(c => c.notes?.toLowerCase().includes('alto valor')).length;
     return { totalClients, activeClients, highValueClients };
   }, [clients]);
 
@@ -285,7 +285,7 @@ const CRMDashboard = () => {
           </CardHeader>
           <CardContent>
             <ul className="list-disc list-inside text-sm">
-              {services.length > 0 ? services.map(s => (
+              {(services || []).length > 0 ? (services || []).map(s => ( // Safely access services
                 <li key={s.id}>{s.name}</li>
               )) : (
                 <li>Nenhum serviço cadastrado.</li>

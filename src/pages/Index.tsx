@@ -8,7 +8,6 @@ import { useEvents } from "@/hooks/useEvents";
 import { useMaterials } from "@/hooks/useMaterials";
 import type { Event } from "@/types";
 import { parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
 
 const getMaterialStatusVariant = (status: string) => {
@@ -59,7 +58,7 @@ const Dashboard = () => {
   const now = new Date();
   const startOfThisMonth = startOfMonth(now);
   const endOfThisMonth = endOfMonth(now);
-  const totalEventsThisMonth = useMemo(() => events.filter(event => {
+  const totalEventsThisMonth = useMemo(() => (events || []).filter(event => { // Safely access events
     const eventDate = parseISO(event.startDate);
     return isWithinInterval(eventDate, { start: startOfThisMonth, end: endOfThisMonth });
   }).length, [events, startOfThisMonth, endOfThisMonth]);
@@ -70,11 +69,11 @@ const Dashboard = () => {
     const start = startOfMonth(monthDate);
     const end = endOfMonth(monthDate);
 
-    const revenueForMonth = events
+    const revenueForMonth = (events || []) // Safely access events
       .filter(e => (e.status === 'Concluído') && isWithinInterval(parseISO(e.startDate), { start, end }))
       .reduce((sum, e) => sum + (e.revenue || 0), 0);
     
-    const expensesForMonth = events
+    const expensesForMonth = (events || []) // Safely access events
       .filter(e => (e.status === 'Concluído') && isWithinInterval(parseISO(e.startDate), { start, end }))
       .reduce((sum, e) => sum + (e.expenses?.reduce((expSum, exp) => expSum + exp.amount, 0) || 0), 0);
 
@@ -93,7 +92,7 @@ const Dashboard = () => {
     return acc;
   }, [] as { name: string; quantidade: number }[]), [pageMaterials]);
 
-  const recentEvents = useMemo(() => events
+  const recentEvents = useMemo(() => (events || []) // Safely access events
     .sort((a, b) => parseISO(b.startDate).getTime() - parseISO(a.startDate).getTime())
     .slice(0, 4)
     .map(e => ({

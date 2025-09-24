@@ -41,8 +41,8 @@ const ClientsPage = () => {
   };
 
   const selectedClient = clients.find((c) => c.id === selectedClientId) ?? null;
-  const selectedClientEvents = selectedClientId ? events.filter((e) => e.client_id === selectedClientId) : [];
-  const selectedClientCommunications = selectedClientId ? communications.filter((c) => c.client_id === selectedClientId) : [];
+  const selectedClientEvents = selectedClientId ? (events || []).filter((e) => e.client_id === selectedClientId) : []; // Safely access events
+  const selectedClientCommunications = selectedClientId ? (communications || []).filter((c) => c.client_id === selectedClientId) : [];
 
   const handleEditClient = (client: any) => {
     setEditingClient(client);
@@ -68,7 +68,7 @@ const ClientsPage = () => {
   // Helper maps
   const clientEventsMap = React.useMemo(() => {
     const map: Record<string, any[]> = {};
-    events.forEach(e => {
+    (events || []).forEach(e => { // Safely access events
       if (e.client_id) {
         if (!map[e.client_id]) map[e.client_id] = [];
         map[e.client_id].push(e);
@@ -79,7 +79,7 @@ const ClientsPage = () => {
 
   const clientCommunicationsMap = React.useMemo(() => {
     const map: Record<string, any[]> = {};
-    communications.forEach(c => {
+    (communications || []).forEach(c => {
       if (c.client_id) {
         if (!map[c.client_id]) map[c.client_id] = [];
         map[c.client_id].push(c);

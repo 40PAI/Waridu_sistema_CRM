@@ -9,19 +9,25 @@ import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EditProjectDialog } from "@/components/crm/EditProjectDialog";
+import { ViewProjectDialog } from "@/components/crm/ViewProjectDialog";
 
 // Ensure no static caching for real-time data consistency
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default function ProjectsPage() {
-  const { events, loading } = useEvents();
+  const { events, loading, updateEvent } = useEvents();
   const { services } = useServices();
 
   // service filter (array of service ids)
   const [serviceFilter, setServiceFilter] = useState<string[]>([]);
+  const [openEditProject, setOpenEditProject] = useState(false);
+  const [openViewProject, setOpenViewProject] = useState(false);
+  const [editingProject, setEditingProject] = useState<EventProject | null>(null);
+  const [viewingProject, setViewingProject] = useState<EventProject | null>(null);
 
-  const allProjects: EventProject[] = events
+  const allProjects: EventProject[] = (events || [])
     .filter((e) => !!e.pipeline_status)
     .map((e) => ({
       id: e.id,
@@ -56,6 +62,36 @@ export default function ProjectsPage() {
     services.forEach(s => (map[s.id] = s.name));
     return map;
   }, [services]);
+
+  const handleUpdateProject = async (updatedProject: EventProject) => {
+    const fullEvent: any = {
+      id: updatedProject.id,
+      name: updatedProject.name,
+      startDate: updatedProject.startDate,
+      endDate: updatedProject.endDate,
+      location: updatedProject.location,
+      status: updatedProject.status,
+      pipeline_status: updatedProject.pipeline_status,
+      estimated_value: updatedProject.estimated_value,
+      service_ids: updatedProject.service_ids,
+      client_id: updatedProject.client_id,
+      notes: updatedProject.notes,
+      tags: updatedProject.tags,
+      pipeline_phase_id: updatedProject.pipeline_phase_id,
+      pipeline_rank: updatedProject.pipeline_rank,
+    };
+    await updateEvent(fullEvent);
+  };
+
+  const onEditProject = (project: EventProject) => {
+    setEditingProject(project);
+    setOpenEditProject(true);
+  };
+
+  const onViewProject = (project: EventProject) => {
+    setViewingProject(project);
+    setOpenViewProject(true);
+  };
 
   if (loading) {
     return (
@@ -104,12 +140,28 @@ export default function ProjectsPage() {
 
       <PipelineKanban
         projects={filteredProjects}
-        onUpdateProject={async (p) => {
-          // PipelineKanban persists changes itself via RPC; this handler can be a noop or used for additional side effects.
-          return;
-        }}
+        onUpdateProject={handleUpdateProject}
         onEditProject={onEditProject}
         onViewProject={onViewProject}
+      />
+
+      <EditProjectDialog
+        open={openEditProject}
+        onOpenChange={(open) => {
+          setOpenEditProject(open);
+          if (!open) setEditingProject(null);
+        }}
+        project={editingProject}
+        onSave={handleUpdateProject}
+      />
+
+      <ViewProjectDialog
+        open={openViewProject}
+        onOpenChange={(open) => {
+          setOpenViewProject(open);
+          if (!open) setViewingProject(null);
+        }}
+        project={viewingProject}
       />
     </div>
   );

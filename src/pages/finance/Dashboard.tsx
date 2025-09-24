@@ -29,7 +29,7 @@ const FinanceDashboard = () => {
     const now = new Date();
     const start = startOfMonth(now);
     const end = endOfMonth(now);
-    const monthEvents = events.filter(e => 
+    const monthEvents = (events || []).filter(e => // Safely access events
       e.status === "Concluído" && isWithinInterval(parseISO(e.startDate), { start, end })
     );
     const revenue = monthEvents.reduce((sum, e) => sum + (e.revenue || 0), 0);
@@ -39,7 +39,7 @@ const FinanceDashboard = () => {
   }, [events, calculateEventCosts]);
 
   const projectedCashFlow = React.useMemo(() => {
-    const futureEvents = events.filter(e => e.status === "Planejado" || e.status === "Em Andamento");
+    const futureEvents = (events || []).filter(e => e.status === "Planejado" || e.status === "Em Andamento"); // Safely access events
     const projectedRevenue = futureEvents.reduce((sum, e) => sum + (e.revenue || 0), 0);
     const projectedCosts = futureEvents.reduce((sum, e) => sum + calculateEventCosts(e), 0);
     return projectedRevenue - projectedCosts;
@@ -51,7 +51,7 @@ const FinanceDashboard = () => {
       const monthDate = subMonths(new Date(), i);
       const start = startOfMonth(monthDate);
       const end = endOfMonth(monthDate);
-      const monthEvents = events.filter(e => 
+      const monthEvents = (events || []).filter(e => // Safely access events
         e.status === "Concluído" && isWithinInterval(parseISO(e.startDate), { start, end })
       );
       const revenue = monthEvents.reduce((sum, e) => sum + (e.revenue || 0), 0);

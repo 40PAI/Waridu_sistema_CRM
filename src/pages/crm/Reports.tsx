@@ -21,7 +21,7 @@ export default function CRMReports() {
   const [personaFilter, setPersonaFilter] = React.useState<string>("all");
   const [lifecycleFilter, setLifecycleFilter] = React.useState<string>("all");
 
-  const projects = React.useMemo(() => events.filter(e => !!(e as any).pipeline_status), [events]);
+  const projects = React.useMemo(() => (events || []).filter(e => !!(e as any).pipeline_status), [events]);
 
   const clientsMap = React.useMemo(() => {
     const map: Record<string, any> = {};

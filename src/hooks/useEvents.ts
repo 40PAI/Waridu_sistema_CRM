@@ -92,11 +92,11 @@ export const useEvents = () => {
 
   const eventsById = useMemo(() => {
     const m: Record<number, Event> = {};
-    events.forEach((e) => {
+    (eventsQuery.data || []).forEach((e) => { // Safely access data
       m[e.id] = e;
     });
     return m;
-  }, [events]);
+  }, [eventsQuery.data]);
 
   return {
     events,

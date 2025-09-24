@@ -47,7 +47,7 @@ const Reports = () => {
   }, [rateMap, empMap]);
 
   const filteredEvents = React.useMemo(() => {
-    return events.filter(event => {
+    return (events || []).filter(event => { // Safely access events
       const eventDate = parseISO(event.startDate);
       const withinDateRange = !dateRange?.from || !dateRange?.to || isWithinInterval(eventDate, { start: dateRange.from, end: dateRange.to });
       const matchesStatus = statusFilter === "all" || event.status === statusFilter;

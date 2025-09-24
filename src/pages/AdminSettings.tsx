@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
-import CategoryManagerCard from "@/components/settings/CategoryManager"; // keep original import name fallback if needed
+import { Badge } from "@/components/ui/badge"; // Import Badge
 
 // Note: keep small, focused file that composes existing components into tabs.
 export default function AdminSettings() {
@@ -172,6 +172,7 @@ export default function AdminSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Modo de Manutenção</Label>
+
                   <div className="text-sm text-muted-foreground">Ativa/Desativa acesso público (ilustrativo).</div>
                 </div>
                 <Switch checked={maintenanceMode} onCheckedChange={(v) => setMaintenanceMode(!!v)} />

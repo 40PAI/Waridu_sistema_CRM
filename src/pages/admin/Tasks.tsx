@@ -44,7 +44,7 @@ const AdminTasks = () => {
   const { events } = useEvents();
 
   const eventMap = React.useMemo(() => {
-    return events.reduce<Record<number, string>>((acc, event) => {
+    return (events || []).reduce<Record<number, string>>((acc, event) => { // Safely access events
       acc[event.id] = event.name;
       return acc;
     }, {});
@@ -269,7 +269,7 @@ const AdminTasks = () => {
         onOpenChange={setShowCreateDialog}
         onCreate={createTask}
         technicians={technicians}
-        events={events}
+        events={events || []} // Safely access events
       />
 
       <EditTaskDialog
@@ -281,7 +281,7 @@ const AdminTasks = () => {
         task={editingTask}
         onUpdate={updateTask}
         technicians={technicians}
-        events={events}
+        events={events || []} // Safely access events
       />
     </div>
   );

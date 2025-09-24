@@ -27,7 +27,7 @@ export default function Profitability() {
 
   // filter only concluded events
   const profitData = React.useMemo(() => {
-    return events
+    return (events || []) // Safely access events
       .filter(e => e.status === "Concluído" && e.revenue)
       .map(e => {
         const days = differenceInDays(parseISO(e.endDate), parseISO(e.startDate)) + 1;
