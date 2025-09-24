@@ -14,6 +14,7 @@ import { ViewProjectDialog } from "@/components/crm/ViewProjectDialog";
 import CreateProjectModal from "@/components/crm/CreateProjectModal"; // Import CreateProjectModal
 import { useQueryClient } from "@tanstack/react-query"; // Import useQueryClient
 import { showSuccess } from "@/utils/toast"; // Import showSuccess
+import { Plus } from "lucide-react"; // Import Plus icon
 
 // Ensure no static caching for real-time data consistency
 export const dynamic = 'force-dynamic';
@@ -105,6 +106,11 @@ export default function ProjectsPage() {
     setOpenCreateProjectModal(true);
   };
 
+  const handleGlobalNewProjectClick = () => {
+    setDefaultPhaseForNewProject(undefined); // No pre-selected phase
+    setOpenCreateProjectModal(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -117,7 +123,10 @@ export default function ProjectsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Projetos</h1>
-        <div />
+        <Button onClick={handleGlobalNewProjectClick}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Projeto
+        </Button>
       </div>
 
       <Card>
