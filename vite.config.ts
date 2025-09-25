@@ -11,11 +11,13 @@ export default defineConfig(() => ({
     hmr: {
       port: 5000,
     },
+    allowedHosts: "all",
   },
   preview: {
     host: "0.0.0.0",
     port: 5000,
     strictPort: true,
+    allowedHosts: "all",
   },
   plugins: [dyadComponentTagger(), react()],
   resolve: {
