@@ -8,12 +8,9 @@ export default defineConfig(() => ({
     host: "0.0.0.0",
     port: 5000,
     strictPort: true,
-    allowedHosts: [
-      "localhost",
-      "65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev",
-    ],
+    allowedHosts: ["localhost", "*"],
     hmr: {
-      port: 5000,
+      overlay: false,
     },
   },
   preview: {
