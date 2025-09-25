@@ -50,12 +50,40 @@ export default function usePipelineStages() {
         .select("*")
         .order("sort_order", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        // Only provide demo data if table doesn't exist (PGRST116)
+        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+          console.log("Pipeline phases table not found, providing demo data for development");
+          showSuccess("🚧 Pipeline em Modo Demonstração - Configuração não persistida");
+          const demoStages = getDemoStages();
+          setStages(demoStages);
+          return;
+        }
+        
+        // For other errors, set error state to show user there's a problem
+        console.error("Error fetching pipeline phases from Supabase:", error.message);
+        const msg = error.message || "Erro ao carregar fases do pipeline.";
+        setError(msg);
+        showError(msg);
+        return;
+      }
       
+      // Return actual data (even if empty array)
       const normalizedStages = (data || []).map(normalizeRow);
       setStages(normalizedStages);
     } catch (err: any) {
       console.error("Error fetching pipeline phases:", err);
+      
+      // Only provide demo data if table doesn't exist
+      if (err?.code === 'PGRST116' || err?.message?.includes('does not exist')) {
+        console.log("Pipeline phases table not found, providing demo data for development");
+        showSuccess("🚧 Pipeline em Modo Demonstração - Configuração não persistida");
+        const demoStages = getDemoStages();
+        setStages(demoStages);
+        return;
+      }
+      
+      // For other errors, set error state
       const msg = err instanceof Error ? err.message : "Erro ao carregar fases do pipeline.";
       setError(msg);
       showError(msg);
@@ -63,6 +91,57 @@ export default function usePipelineStages() {
       setLoading(false);
     }
   }, []);
+
+  // Get demo pipeline stages
+  const getDemoStages = (): PipelineStage[] => {
+    return [
+      {
+        id: "1",
+        name: "1º Contato",
+        order: 1,
+        is_active: true,
+        active: true,
+        color: "#f3f4f6",
+        canonical_status: "1º Contato",
+      },
+      {
+        id: "2",
+        name: "Orçamento",
+        order: 2,
+        is_active: true,
+        active: true,
+        color: "#dbeafe",
+        canonical_status: "Orçamento",
+      },
+      {
+        id: "3",
+        name: "Negociação",
+        order: 3,
+        is_active: true,
+        active: true,
+        color: "#fef3c7",
+        canonical_status: "Negociação",
+      },
+      {
+        id: "4",
+        name: "Confirmado",
+        order: 4,
+        is_active: true,
+        active: true,
+        color: "#dcfce7",
+        canonical_status: "Confirmado",
+      },
+      {
+        id: "5",
+        name: "Cancelado",
+        order: 5,
+        is_active: true,
+        active: true,
+        color: "#fee2e2",
+        canonical_status: "Cancelado",
+      },
+    ];
+  };
 
   useEffect(() => {
     fetchStages();
