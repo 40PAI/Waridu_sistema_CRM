@@ -1,0 +1,47 @@
+**Prompt: Criar Pop-up de Novo Projeto (React + Supabase)**
+
+Crie um componente em React (TypeScript) para o pop-up/modal **"Criar Projeto"**, integrado com Supabase, de acordo com o PRD Waridu. O objetivo é permitir que usuários registrem rapidamente um novo projeto e que ele apareça automaticamente no **Pipeline**.
+
+---
+
+### Estrutura do Formulário (Campos)
+
+1. **Nome do Projeto** → campo de texto (obrigatório).
+2. **Cliente** → dropdown de clientes já cadastrados (Supabase `clients`).
+3. **Serviço/Tipo de Projeto** → dropdown dos serviços ativos (Supabase `services`).
+4. **Responsável** → dropdown com lista de funcionários já cadastrados (Supabase `employees`).
+5. **Receita Estimada** → campo numérico (moeda AOA).
+6. **Data de Início** → date picker.
+7. **Data de Fim / Prazo** → date picker.
+8. **Próxima Ação / Follow-up** → campo date + time.
+9. **Status/Fase do Projeto** → dropdown com fases já configuradas no pipeline
+10. **Notas/Observações** → textarea opcional.
+
+---
+
+### Funcionalidades
+
+* **Validação:** Nome, cliente, serviço, responsável, status e datas são obrigatórios.
+* **Feedback imediato:** Mostrar toast ou alerta de sucesso ("Projeto criado com sucesso") ou erro.
+* **Integração Pipeline:** Após salvar, o projeto deve ser inserido no Supabase (`projects`) e refletido automaticamente no pipeline, na fase escolhida.
+* **UX:** Modal centralizado ou side-panel, responsivo, sem reload de página.
+
+---
+
+### Regras Técnicas
+
+* Erros devem ser tratados com try/catch.
+* Código limpo, reutilizável, com componentes desacoplados.
+
+---
+
+### Testes Esperados
+
+1. Criar projeto com todos os campos → aparece no pipeline na fase correta.
+2. Erro de validação → impedir submit e mostrar mensagem.
+3. Reload da página → projeto continua visível na pipeline.
+4. Alterar fases no Admin → dropdown de Status reflete mudanças.
+
+---
+
+📌 Objetivo: Um pop-up eficiente, de fácil uso, que centraliza as informações principais de um projeto e garante consistência entre BD e UI.
