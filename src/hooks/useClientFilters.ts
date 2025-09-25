@@ -2,11 +2,14 @@ import { useState, useMemo } from "react";
 import { parseISO, isWithinInterval } from "date-fns";
 
 export interface ClientFilters {
+  nome: string; // Pesquisa por nome
   empresa: string;
-  cargo: string;
+  setor: string; // Novo filtro por setor
+  funcao: string; // Função na empresa (antes cargo)
   localizacao: string;
   nif: string;
   cicloVida: string;
+  servicosInteresse: string[]; // Novo filtro por serviços de interesse
   dataCriacao: any;
   ultimaAtividade: any;
   responsavel: string;
@@ -19,11 +22,14 @@ export interface ClientFilters {
 }
 
 export interface ActiveFilters {
+  nome: boolean; // Pesquisa por nome
   empresa: boolean;
-  cargo: boolean;
+  setor: boolean; // Novo filtro por setor
+  funcao: boolean; // Função na empresa (antes cargo)
   localizacao: boolean;
   nif: boolean;
   cicloVida: boolean;
+  servicosInteresse: boolean; // Novo filtro por serviços de interesse
   dataCriacao: boolean;
   ultimaAtividade: boolean;
   responsavel: boolean;
@@ -36,11 +42,14 @@ export interface ActiveFilters {
 
 export const useClientFilters = (clients: any[], clientEventsMap: Record<string, any[]>, clientCommunicationsMap: Record<string, any[]>) => {
   const [filters, setFilters] = useState<ClientFilters>({
+    nome: "",
     empresa: "",
-    cargo: "",
+    setor: "",
+    funcao: "",
     localizacao: "",
     nif: "",
     cicloVida: "",
+    servicosInteresse: [],
     dataCriacao: undefined,
     ultimaAtividade: undefined,
     responsavel: "",
@@ -53,11 +62,14 @@ export const useClientFilters = (clients: any[], clientEventsMap: Record<string,
   });
 
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
+    nome: false,
     empresa: false,
-    cargo: false,
+    setor: false,
+    funcao: false,
     localizacao: false,
     nif: false,
     cicloVida: false,
+    servicosInteresse: false,
     dataCriacao: false,
     ultimaAtividade: false,
     responsavel: false,
@@ -78,11 +90,14 @@ export const useClientFilters = (clients: any[], clientEventsMap: Record<string,
 
   const clearFilters = () => {
     setFilters({
+      nome: "",
       empresa: "",
-      cargo: "",
+      setor: "",
+      funcao: "",
       localizacao: "",
       nif: "",
       cicloVida: "",
+      servicosInteresse: [],
       dataCriacao: undefined,
       ultimaAtividade: undefined,
       responsavel: "",
@@ -94,11 +109,14 @@ export const useClientFilters = (clients: any[], clientEventsMap: Record<string,
       frequenciaRecorrencia: "",
     });
     setActiveFilters({
+      nome: false,
       empresa: false,
-      cargo: false,
+      setor: false,
+      funcao: false,
       localizacao: false,
       nif: false,
       cicloVida: false,
+      servicosInteresse: false,
       dataCriacao: false,
       ultimaAtividade: false,
       responsavel: false,
@@ -112,11 +130,22 @@ export const useClientFilters = (clients: any[], clientEventsMap: Record<string,
 
   const filteredClients = useMemo(() => {
     return clients.filter((c) => {
+      // Pesquisa por nome
+      if (activeFilters.nome && filters.nome && !(c.name || "").toLowerCase().includes(filters.nome.toLowerCase())) return false;
+      
       // Relacionados ao Cliente
       if (activeFilters.empresa && filters.empresa && !(c.company || "").toLowerCase().includes(filters.empresa.toLowerCase())) return false;
-      if (activeFilters.cargo && filters.cargo && c.persona !== filters.cargo) return false;
+      if (activeFilters.setor && filters.setor && !(c.sector || "").toLowerCase().includes(filters.setor.toLowerCase())) return false;
+      if (activeFilters.funcao && filters.funcao && !(c.position || "").toLowerCase().includes(filters.funcao.toLowerCase())) return false;
       if (activeFilters.localizacao && filters.localizacao && !(c.address || "").toLowerCase().includes(filters.localizacao.toLowerCase())) return false;
       if (activeFilters.nif && filters.nif && !(c.nif || "").includes(filters.nif)) return false;
+
+      // Serviços de Interesse
+      if (activeFilters.servicosInteresse && filters.servicosInteresse.length > 0) {
+        const clientServiceIds = c.service_ids || [];
+        const hasMatchingService = filters.servicosInteresse.some(serviceId => clientServiceIds.includes(serviceId));
+        if (!hasMatchingService) return false;
+      }
 
       // Relacionamento Comercial
       if (activeFilters.cicloVida && filters.cicloVida && c.lifecycle_stage !== filters.cicloVida) return false;

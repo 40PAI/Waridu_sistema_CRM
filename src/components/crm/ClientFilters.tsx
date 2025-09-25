@@ -49,6 +49,13 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
             <AccordionContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
+                  <Checkbox checked={activeFilters.nome} onCheckedChange={() => onToggleActiveFilter("nome")} />
+                  <label className="text-sm font-medium">Nome</label>
+                </div>
+                {activeFilters.nome && (
+                  <Input placeholder="Buscar por nome..." value={filters.nome} onChange={(e) => onUpdateFilter("nome", e.target.value)} />
+                )}
+                <div className="flex items-center space-x-2">
                   <Checkbox checked={activeFilters.empresa} onCheckedChange={() => onToggleActiveFilter("empresa")} />
                   <label className="text-sm font-medium">Empresa</label>
                 </div>
@@ -56,20 +63,18 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                   <Input placeholder="Buscar empresa..." value={filters.empresa} onChange={(e) => onUpdateFilter("empresa", e.target.value)} />
                 )}
                 <div className="flex items-center space-x-2">
-                  <Checkbox checked={activeFilters.cargo} onCheckedChange={() => onToggleActiveFilter("cargo")} />
-                  <label className="text-sm font-medium">Cargo/Departamento</label>
+                  <Checkbox checked={activeFilters.setor} onCheckedChange={() => onToggleActiveFilter("setor")} />
+                  <label className="text-sm font-medium">Setor</label>
                 </div>
-                {activeFilters.cargo && (
-                  <Select value={filters.cargo} onValueChange={(v) => onUpdateFilter("cargo", v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CEO">CEO</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Produção">Produção</SelectItem>
-                    </SelectContent>
-                  </Select>
+                {activeFilters.setor && (
+                  <Input placeholder="Buscar por setor..." value={filters.setor} onChange={(e) => onUpdateFilter("setor", e.target.value)} />
+                )}
+                <div className="flex items-center space-x-2">
+                  <Checkbox checked={activeFilters.funcao} onCheckedChange={() => onToggleActiveFilter("funcao")} />
+                  <label className="text-sm font-medium">Função na Empresa</label>
+                </div>
+                {activeFilters.funcao && (
+                  <Input placeholder="Buscar por função..." value={filters.funcao} onChange={(e) => onUpdateFilter("funcao", e.target.value)} />
                 )}
                 <div className="flex items-center space-x-2">
                   <Checkbox checked={activeFilters.localizacao} onCheckedChange={() => onToggleActiveFilter("localizacao")} />
@@ -104,10 +109,9 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Lead">Lead</SelectItem>
-                      <SelectItem value="MQL">MQL</SelectItem>
-                      <SelectItem value="SQL">SQL</SelectItem>
-                      <SelectItem value="Ativo">Ativo</SelectItem>
-                      <SelectItem value="Perdido">Perdido</SelectItem>
+                      <SelectItem value="Oportunidade">Oportunidade</SelectItem>
+                      <SelectItem value="Cliente Ativo">Cliente Ativo</SelectItem>
+                      <SelectItem value="Cliente Perdido">Cliente Perdido</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -124,6 +128,17 @@ const ClientFilters: React.FC<ClientFiltersProps> = ({
                 </div>
                 {activeFilters.ultimaAtividade && (
                   <DateRangePicker date={filters.ultimaAtividade} onDateChange={(date) => onUpdateFilter("ultimaAtividade", date)} />
+                )}
+                <div className="flex items-center space-x-2">
+                  <Checkbox checked={activeFilters.servicosInteresse} onCheckedChange={() => onToggleActiveFilter("servicosInteresse")} />
+                  <label className="text-sm font-medium">Serviços de Interesse</label>
+                </div>
+                {activeFilters.servicosInteresse && (
+                  <MultiSelectServices 
+                    selected={filters.servicosInteresse} 
+                    onChange={(selected) => onUpdateFilter("servicosInteresse", selected)} 
+                    placeholder="Selecione serviços..." 
+                  />
                 )}
                 <div className="flex items-center space-x-2">
                   <Checkbox checked={activeFilters.responsavel} onCheckedChange={() => onToggleActiveFilter("responsavel")} />
