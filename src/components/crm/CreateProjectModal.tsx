@@ -40,6 +40,8 @@ const projectSchema = z.object({
   notes: z.string().optional(),
   pipelinePhaseId: z.string().min(1).refine((v) => UUID_REGEX.test(v), "pipeline_phase_id deve ser um UUID"),
   responsibleId: z.string().optional(),
+  nextActionDate: z.string().optional(),
+  nextActionTime: z.string().optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -77,6 +79,7 @@ export async function createProject(payload: {
   notes?: string | null;
   service_ids?: string[] | null;
   responsible_id?: string | null;
+  next_action_date?: string | null;
 }) {
   const pipeline_rank = await getInsertRank(payload.pipeline_phase_id);
   const { data, error } = await supabase
@@ -120,6 +123,8 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       estimatedValue: undefined,
       notes: "",
       responsibleId: "",
+      nextActionDate: "",
+      nextActionTime: "",
     },
   });
 
@@ -140,6 +145,8 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         estimatedValue: undefined,
         notes: "",
         responsibleId: defaultResponsible,
+        nextActionDate: "",
+        nextActionTime: "",
       });
     }
   }, [open, preselectedClientId, defaultPhaseId, form, stages, employees]);
@@ -173,6 +180,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
     const startISO = toISO(data.startDate, data.startTime);
     const endISO = data.endDate ? toISO(data.endDate, data.endTime || data.startTime) : startISO;
+    const nextActionISO = data.nextActionDate ? toISO(data.nextActionDate, data.nextActionTime || "09:00") : null;
 
     const payload = {
       name: data.name,
@@ -187,6 +195,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       client_id: data.clientId,
       notes: data.notes || null,
       responsible_id: data.responsibleId || null,
+      next_action_date: nextActionISO,
     };
 
     try {
@@ -303,6 +312,23 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                     <FormField control={form.control} name="endTime" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Hora de Fim</FormLabel>
+                        <FormControl><Input type="time" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="nextActionDate" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Próxima Ação - Data</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="nextActionTime" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Próxima Ação - Hora</FormLabel>
                         <FormControl><Input type="time" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
