@@ -126,7 +126,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   React.useEffect(() => {
     if (open) {
       const defaultPhase = defaultPhaseId || (stages && stages.length > 0 ? stages[0].id : "");
-      const defaultResponsible = allUsers.find(u => u.role)?.id || ""; // Find any user with a role
+      const defaultResponsible = allUsers.find(u => u.status === 'active')?.id || ""; // Find any active user
       form.reset({
         clientId: preselectedClientId || "",
         name: "",
@@ -147,7 +147,18 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
   const responsibleUserOptions = React.useMemo(() =>
-    allUsers.filter(u => u.role).map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email || "sem email"})` }))
+    allUsers
+      .filter(u => u.status === 'active') // Only show active users (not banned)
+      .map(u => {
+        // Prefer employee name if available, otherwise use profile names
+        const displayName = u.employee?.name || `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email;
+        const roleText = u.role ? ` - ${u.role}` : '';
+        return {
+          value: u.id, 
+          label: `${displayName}${roleText}`
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label))
   , [allUsers]);
 
   const pipelineOptions = React.useMemo(() => 

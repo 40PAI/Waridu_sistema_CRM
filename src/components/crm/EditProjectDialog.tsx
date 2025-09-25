@@ -112,9 +112,20 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
     }
   }, [open, project, editForm, stages]);
 
-  // Filter to only users with a role (all registered employees) for the responsible dropdown
+  // Show all active users (registered employees) for the responsible dropdown
   const responsibleUserOptions = React.useMemo(() =>
-    allUsers.filter(u => u.role).map(u => ({ value: u.id, label: `${u.first_name || ""} ${u.last_name || ""} (${u.email})` }))
+    allUsers
+      .filter(u => u.status === 'active') // Only show active users (not banned)
+      .map(u => {
+        // Prefer employee name if available, otherwise use profile names
+        const displayName = u.employee?.name || `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email;
+        const roleText = u.role ? ` - ${u.role}` : '';
+        return {
+          value: u.id, 
+          label: `${displayName}${roleText}`
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label))
   , [allUsers]);
 
   const pipelineStageOptions = React.useMemo(() =>
