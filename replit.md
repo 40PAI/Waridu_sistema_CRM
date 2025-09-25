@@ -10,9 +10,11 @@ This is a comprehensive React application built with Vite, TypeScript, and Shadc
 - ✅ Configured deployment settings for production (autoscale)
 - ✅ Fixed all LSP diagnostics and compilation issues
 - ✅ **Comprehensive Client Management Implementation**:
-  - Updated client fields: "Setor" as free text, "Persona" renamed to "Função na Empresa"
-  - Implemented all 10 required fields (Nome, Empresa, Email, Telefone, NIF, Setor, Função na Empresa, Ciclo de Vida, Serviços de Interesse, Observações)
-  - Enhanced filtering system with advanced filters for sector, position, lifecycle, services
+  - "Setor" field configured as dropdown with predefined options
+  - "NIF" field made optional (not required)
+  - "Serviços de Interesse" field removed as requested
+  - Implemented 8 core fields (Nome, Empresa, Email, Telefone, NIF, Setor, Função na Empresa, Ciclo de Vida, Observações)
+  - Enhanced filtering system with advanced filters for sector, position, lifecycle
   - Improved search functionality for name and company
   - Full CRUD operations with validation and error handling
   - Seamless project integration from client pages and detail modal

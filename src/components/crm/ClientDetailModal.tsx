@@ -19,7 +19,6 @@ import ClientMetrics from "@/components/crm/ClientMetrics";
 import ClientInfoCard from "@/components/crm/ClientInfoCard";
 import ClientProjectsList from "@/components/crm/ClientProjectsList";
 import ClientCommunications from "@/components/crm/ClientCommunications";
-import { useServices } from "@/hooks/useServices";
 
 interface ClientDetailModalProps {
   open: boolean;
@@ -30,16 +29,6 @@ interface ClientDetailModalProps {
 }
 
 const ClientDetailModal = ({ open, onOpenChange, client, communications, onCreateProject }: ClientDetailModalProps) => {
-  // Note: keeping component behavior, but adjust rendering for service_ids
-  const { services } = useServices();
-
-  const serviceNameById = React.useMemo(() => {
-    const map: Record<string, string> = {};
-    services.forEach((s) => {
-      map[s.id] = s.name;
-    });
-    return map;
-  }, [services]);
 
   if (!client) return null;
 
@@ -106,20 +95,6 @@ const ClientDetailModal = ({ open, onOpenChange, client, communications, onCreat
                 <p className="text-sm">{client.lifecycle_stage || "Lead"}</p>
               </div>
 
-              <div>
-                <label className="text-sm font-medium">Tags / Serviços de Interesse</label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {client.service_ids && client.service_ids.length > 0 ? (
-                    client.service_ids.map((sid) => (
-                      <Badge key={sid} variant="secondary" className="text-xs">
-                        {serviceNameById[sid] || sid}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
-                </div>
-              </div>
 
               <div>
                 <label className="text-sm font-medium">Observações</label>

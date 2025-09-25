@@ -9,7 +9,6 @@ export interface ClientFilters {
   localizacao: string;
   nif: string;
   cicloVida: string;
-  servicosInteresse: string[]; // Novo filtro por serviços de interesse
   dataCriacao: any;
   ultimaAtividade: any;
   responsavel: string;
@@ -29,7 +28,6 @@ export interface ActiveFilters {
   localizacao: boolean;
   nif: boolean;
   cicloVida: boolean;
-  servicosInteresse: boolean; // Novo filtro por serviços de interesse
   dataCriacao: boolean;
   ultimaAtividade: boolean;
   responsavel: boolean;
@@ -49,7 +47,6 @@ export const useClientFilters = (clients: any[], clientEventsMap: Record<string,
     localizacao: "",
     nif: "",
     cicloVida: "",
-    servicosInteresse: [],
     dataCriacao: undefined,
     ultimaAtividade: undefined,
     responsavel: "",
@@ -69,7 +66,6 @@ export const useClientFilters = (clients: any[], clientEventsMap: Record<string,
     localizacao: false,
     nif: false,
     cicloVida: false,
-    servicosInteresse: false,
     dataCriacao: false,
     ultimaAtividade: false,
     responsavel: false,
@@ -97,7 +93,6 @@ export const useClientFilters = (clients: any[], clientEventsMap: Record<string,
       localizacao: "",
       nif: "",
       cicloVida: "",
-      servicosInteresse: [],
       dataCriacao: undefined,
       ultimaAtividade: undefined,
       responsavel: "",
@@ -116,7 +111,6 @@ export const useClientFilters = (clients: any[], clientEventsMap: Record<string,
       localizacao: false,
       nif: false,
       cicloVida: false,
-      servicosInteresse: false,
       dataCriacao: false,
       ultimaAtividade: false,
       responsavel: false,
@@ -140,12 +134,6 @@ export const useClientFilters = (clients: any[], clientEventsMap: Record<string,
       if (activeFilters.localizacao && filters.localizacao && !(c.address || "").toLowerCase().includes(filters.localizacao.toLowerCase())) return false;
       if (activeFilters.nif && filters.nif && !(c.nif || "").includes(filters.nif)) return false;
 
-      // Serviços de Interesse
-      if (activeFilters.servicosInteresse && filters.servicosInteresse.length > 0) {
-        const clientServiceIds = c.service_ids || [];
-        const hasMatchingService = filters.servicosInteresse.some(serviceId => clientServiceIds.includes(serviceId));
-        if (!hasMatchingService) return false;
-      }
 
       // Relacionamento Comercial
       if (activeFilters.cicloVida && filters.cicloVida && c.lifecycle_stage !== filters.cicloVida) return false;
