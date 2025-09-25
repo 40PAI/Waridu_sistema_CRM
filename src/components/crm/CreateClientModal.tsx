@@ -81,9 +81,8 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
   React.useEffect(() => {
     const newErrors: Record<string, string> = {};
     if (email && !isEmailValid(email)) newErrors.email = "Formato de email inválido";
-    if (nif && nif.trim().length === 0) newErrors.nif = "NIF inválido";
     setErrors((prev) => ({ ...prev, ...newErrors }));
-  }, [email, nif]);
+  }, [email]);
 
   const validateBeforeSave = () => {
     const e: Record<string, string> = {};
@@ -91,7 +90,6 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
     if (!company.trim()) e.company = "Empresa é obrigatória";
     if (!email.trim() || !isEmailValid(email)) e.email = "Email válido é obrigatório";
     if (!phone.trim()) e.phone = "Contacto é obrigatório";
-    if (!nif.trim()) e.nif = "NIF é obrigatório";
 
     // Verificar duplicatas
     const existingByEmail = clients.find(c => c.email?.toLowerCase() === email.toLowerCase() && c.id !== client?.id);
@@ -180,7 +178,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
             {/* Linha 3: NIF + Setor */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="client-nif">NIF *</Label>
+                <Label htmlFor="client-nif">NIF</Label>
                 <Input id="client-nif" value={nif} onChange={(e) => setNif(e.target.value)} />
                 {errors.nif && <p className="text-xs text-destructive">{errors.nif}</p>}
               </div>
@@ -196,12 +194,18 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <Input 
-                  id="client-sector"
-                  value={sector} 
-                  onChange={(e) => setSector(e.target.value)} 
-                  placeholder="Ex: Tecnologia, Financeiro, Saúde, Construção..."
-                />
+                <Select value={sector} onValueChange={setSector}>
+                  <SelectTrigger id="client-sector">
+                    <SelectValue placeholder="Selecione um setor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SECTOR_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
