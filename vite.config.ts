@@ -11,13 +11,13 @@ export default defineConfig(() => ({
     hmr: {
       port: 5000,
     },
-    allowedHosts: "all",
+    allowedHosts: [".replit.dev", ".repl.co", ".repl.run"],
   },
   preview: {
     host: "0.0.0.0",
     port: 5000,
     strictPort: true,
-    allowedHosts: "all",
+    allowedHosts: [".replit.dev", ".repl.co", ".repl.run"],
   },
   plugins: [dyadComponentTagger(), react()],
   resolve: {
