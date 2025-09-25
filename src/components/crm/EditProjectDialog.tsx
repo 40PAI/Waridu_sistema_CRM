@@ -15,7 +15,7 @@ import type { EventProject } from "@/types/crm";
 import { useClients } from "@/hooks/useClients";
 import { useServices } from "@/hooks/useServices";
 import { useEvents } from "@/hooks/useEvents";
-import { useUsers } from "@/hooks/useUsers";
+import { useEmployees } from "@/hooks/useEmployees";
 import usePipelineStages from "@/hooks/usePipelineStages";
 import { showError, showSuccess } from "@/utils/toast";
 import { MultiSelectServices } from "@/components/MultiSelectServices";
@@ -60,7 +60,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
   const { clients } = useClients();
   const { services } = useServices();
   const { updateEvent } = useEvents();
-  const { users: allUsers } = useUsers(); // Fetch all users
+  const { employees } = useEmployees(); // Fetch all employees
   const { stages } = usePipelineStages();
 
   const [loading, setLoading] = React.useState(false);
@@ -112,21 +112,19 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
     }
   }, [open, project, editForm, stages]);
 
-  // Show all active users (registered employees) for the responsible dropdown
+  // Show all active employees for the responsible dropdown
   const responsibleUserOptions = React.useMemo(() =>
-    allUsers
-      .filter(u => u.status === 'active') // Only show active users (not banned)
-      .map(u => {
-        // Prefer employee name if available, otherwise use profile names
-        const displayName = u.employee?.name || `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email;
-        const roleText = u.role ? ` - ${u.role}` : '';
+    employees
+      .filter(emp => emp.status === 'Ativo') // Only show active employees
+      .map(emp => {
+        const roleText = emp.role ? ` - ${emp.role}` : '';
         return {
-          value: u.id, 
-          label: `${displayName}${roleText}`
+          value: emp.id, // Use employee id
+          label: `${emp.name}${roleText}`
         };
       })
       .sort((a, b) => a.label.localeCompare(b.label))
-  , [allUsers]);
+  , [employees]);
 
   const pipelineStageOptions = React.useMemo(() =>
     stages.filter(s => s.is_active).map(s => ({ value: s.id, label: s.name }))

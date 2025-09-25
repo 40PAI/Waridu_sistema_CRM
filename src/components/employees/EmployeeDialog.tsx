@@ -24,6 +24,9 @@ export interface Employee {
   avatar: string;
   status: EmployeeStatus;
   technicianCategoryId?: string | null;
+  userId?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
 }
 
 type TechnicianCategory = {

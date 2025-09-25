@@ -21,7 +21,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Plus } from "lucide-react";
 import CreateClientModal from "@/components/crm/CreateClientModal";
 import usePipelineStages from "@/hooks/usePipelineStages";
-import { useUsers } from "@/hooks/useUsers";
+import { useEmployees } from "@/hooks/useEmployees";
 import { supabase } from "@/integrations/supabase/client"; // Import supabase for createProject
 import { useQueryClient } from "@tanstack/react-query"; // Import useQueryClient
 
@@ -98,7 +98,7 @@ interface CreateProjectModalProps {
 export default function CreateProjectModal({ open, onOpenChange, onCreated, preselectedClientId, defaultPhaseId }: CreateProjectModalProps) {
   const { clients, fetchClients } = useClients();
   const { services } = useServices();
-  const { users: allUsers, refreshUsers } = useUsers(); // Fetch all users
+  const { employees, refreshEmployees } = useEmployees(); // Fetch all employees
   const { stages } = usePipelineStages();
   const qc = useQueryClient(); // Get query client for invalidation
 
@@ -126,7 +126,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   React.useEffect(() => {
     if (open) {
       const defaultPhase = defaultPhaseId || (stages && stages.length > 0 ? stages[0].id : "");
-      const defaultResponsible = allUsers.find(u => u.status === 'active')?.id || ""; // Find any active user
+      const defaultResponsible = employees.find(emp => emp.status === 'Ativo')?.id || ""; // Find any active employee
       form.reset({
         clientId: preselectedClientId || "",
         name: "",
@@ -142,24 +142,22 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         responsibleId: defaultResponsible,
       });
     }
-  }, [open, preselectedClientId, defaultPhaseId, form, stages, allUsers]);
+  }, [open, preselectedClientId, defaultPhaseId, form, stages, employees]);
 
   const clientOptions = React.useMemo(() => clients.map(c => ({ value: c.id, label: `${c.name} (${c.email || "sem email"})` })), [clients]);
 
   const responsibleUserOptions = React.useMemo(() =>
-    allUsers
-      .filter(u => u.status === 'active') // Only show active users (not banned)
-      .map(u => {
-        // Prefer employee name if available, otherwise use profile names
-        const displayName = u.employee?.name || `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email;
-        const roleText = u.role ? ` - ${u.role}` : '';
+    employees
+      .filter(emp => emp.status === 'Ativo') // Only show active employees
+      .map(emp => {
+        const roleText = emp.role ? ` - ${emp.role}` : '';
         return {
-          value: u.id, 
-          label: `${displayName}${roleText}`
+          value: emp.id, // Use employee id
+          label: `${emp.name}${roleText}`
         };
       })
       .sort((a, b) => a.label.localeCompare(b.label))
-  , [allUsers]);
+  , [employees]);
 
   const pipelineOptions = React.useMemo(() => 
     stages.filter(s => s.is_active).map(s => ({ value: s.id, label: s.name }))
@@ -196,7 +194,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
       if (!result) throw new Error("Falha ao salvar evento");
       showSuccess("Projeto criado com sucesso");
       await fetchClients();
-      await refreshUsers();
+      await refreshEmployees();
       qc.invalidateQueries({ queryKey: ['events'] }); // Invalidate events query
       onCreated?.(result.id);
       onOpenChange(false);
