@@ -196,14 +196,12 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <Select value={sector} onValueChange={setSector}>
-                  <SelectTrigger id="client-sector">
-                    <SelectValue placeholder="Selecione o setor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SECTOR_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Input 
+                  id="client-sector"
+                  value={sector} 
+                  onChange={(e) => setSector(e.target.value)} 
+                  placeholder="Ex: Tecnologia, Financeiro, Saúde, Construção..."
+                />
               </div>
             </div>
 
