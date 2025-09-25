@@ -6,17 +6,15 @@ import path from "path";
 export default defineConfig(() => ({
   server: {
     host: "0.0.0.0",
-    port: 5000,
-    strictPort: true,
+    port: Number(process.env.PORT) || 5000,
     hmr: {
-      port: 5000,
+      clientPort: 443,
     },
     allowedHosts: [".replit.dev", ".repl.co", ".repl.run"],
   },
   preview: {
     host: "0.0.0.0",
-    port: 5000,
-    strictPort: true,
+    port: Number(process.env.PORT) || 5000,
     allowedHosts: [".replit.dev", ".repl.co", ".repl.run"],
   },
   plugins: [dyadComponentTagger(), react()],
