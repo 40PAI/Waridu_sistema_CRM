@@ -21,9 +21,8 @@ interface Props {
   client?: any;
 }
 
-const SECTOR_OPTIONS = ["Tecnologia", "Financeiro", "Saúde"];
-const PERSONA_OPTIONS = ["CEO", "CTO", "Marketing"];
-const LIFECYCLE_OPTIONS = ["Lead", "MQL", "SQL", "Ativo", "Perdido"];
+const SECTOR_OPTIONS = ["Tecnologia", "Financeiro", "Saúde", "Construção", "Educação", "Retail", "Outro"];
+const LIFECYCLE_OPTIONS = ["Lead", "Oportunidade", "Cliente Ativo", "Cliente Perdido"];
 
 function isEmailValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -39,7 +38,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
   const [phone, setPhone] = React.useState("");
   const [nif, setNif] = React.useState("");
   const [sector, setSector] = React.useState("");
-  const [persona, setPersona] = React.useState("");
+  const [position, setPosition] = React.useState(""); // Cargo/Departamento
   const [lifecycleStage, setLifecycleStage] = React.useState("Lead");
   const [notes, setNotes] = React.useState("");
   const [selectedServices, setSelectedServices] = React.useState<string[]>([]); // For MultiSelectServices
@@ -57,7 +56,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         setPhone(client.phone || "");
         setNif(client.nif || "");
         setSector(client.sector || "");
-        setPersona(client.persona || "");
+        setPosition(client.position || "");
         setLifecycleStage(client.lifecycle_stage || "Lead");
         setNotes(client.notes || "");
         setSelectedServices(client.service_ids || []); // Use service_ids
@@ -68,7 +67,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         setPhone("");
         setNif("");
         setSector("");
-        setPersona("");
+        setPosition("");
         setLifecycleStage("Lead");
         setNotes("");
         setSelectedServices([]);
@@ -110,12 +109,12 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
     try {
       const payload: any = {
         name: name.trim(),
-        company: company.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        nif: nif.trim(),
+        company: company.trim() || null,
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        nif: nif.trim() || null,
         sector: sector || null,
-        persona: persona || null,
+        position: position.trim() || null, // Cargo/Departamento
         lifecycle_stage: lifecycleStage,
         notes: notes.trim() || null,
         service_ids: selectedServices, // Save selected services
@@ -208,28 +207,26 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
               </div>
             </div>
 
-            {/* Linha 4: Persona + Ciclo de Vida */}
+            {/* Linha 4: Cargo/Departamento + Ciclo de Vida */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="client-persona">Persona</Label>
+                  <Label htmlFor="client-position">Cargo/Departamento</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="bg-gray-800 text-white rounded-md shadow-lg max-w-xs">
-                      <p>Perfil da pessoa de contacto principal (ex.: CEO, Diretor de Marketing, Gestor de Eventos).</p>
+                      <p>Cargo ou departamento do contacto no cliente (ex.: Diretor de TI, Gestor de Compras).</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <Select value={persona} onValueChange={setPersona}>
-                  <SelectTrigger id="client-persona">
-                    <SelectValue placeholder="Selecione a persona" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PERSONA_OPTIONS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Input 
+                  id="client-position"
+                  value={position} 
+                  onChange={(e) => setPosition(e.target.value)} 
+                  placeholder="Ex: Diretor de TI, Gestor de Compras..."
+                />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">

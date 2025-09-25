@@ -2,21 +2,20 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 
-export type LifecycleStage = "Lead" | "MQL" | "SQL" | "Ativo" | "Perdido";
+export type LifecycleStage = "Lead" | "Oportunidade" | "Cliente Ativo" | "Cliente Perdido";
 
 export type Client = {
   id: string;
-  name: string;
-  company?: string | null; // Added
-  nif?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-  notes?: string | null;
-  sector?: string | null;
-  persona?: string | null;
-  service_ids?: string[]; // Changed from tags to service_ids
-  lifecycle_stage?: LifecycleStage;
+  name: string; // Nome completo (obrigatório)
+  company?: string | null; // Empresa
+  email?: string | null; // E-mail
+  phone?: string | null; // Telefone
+  nif?: string | null; // NIF (opcional)
+  sector?: string | null; // Setor
+  position?: string | null; // Cargo/Departamento
+  lifecycle_stage?: LifecycleStage; // Ciclo de Vida
+  service_ids?: string[]; // Serviços de Interesse
+  notes?: string | null; // Observações
   created_at?: string | null;
   updated_at?: string | null;
 };
