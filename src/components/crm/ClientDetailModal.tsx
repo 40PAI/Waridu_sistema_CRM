@@ -81,13 +81,18 @@ const ClientDetailModal = ({ open, onOpenChange, client, communications }: Clien
               </div>
 
               <div>
+                <label className="text-sm font-medium">Empresa</label>
+                <p className="text-sm">{client.company || "—"}</p>
+              </div>
+
+              <div>
                 <label className="text-sm font-medium">Setor</label>
                 <p className="text-sm">{client.sector || "—"}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium">Persona</label>
-                <p className="text-sm">{client.persona || "—"}</p>
+                <label className="text-sm font-medium">Função na Empresa</label>
+                <p className="text-sm">{client.position || "—"}</p>
               </div>
 
               <div>
