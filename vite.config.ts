@@ -16,9 +16,7 @@ export default defineConfig(() => ({
     host: "0.0.0.0",
     port: 5000,
     strictPort: true,
-    allowedHosts: [
-      "83b8f7eb-24e3-4198-891e-d4d3b8fc54c0.riker.prod.repl.run"
-    ],
+    allowedHosts: ["localhost", "*"],
   },
   plugins: [dyadComponentTagger(), react()],
   resolve: {
