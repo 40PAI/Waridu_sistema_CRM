@@ -9,7 +9,6 @@ export const clientSchema = z.object({
   sector: z.string().max(100, "Setor muito longo").optional(),
   position: z.string().max(100, "Função muito longa").optional(), // Função na Empresa
   lifecycle_stage: z.enum(["Lead", "Oportunidade", "Cliente Ativo", "Cliente Perdido"]).optional(),
-  service_ids: z.array(z.string()).optional(), // Serviços de Interesse
   notes: z.string().optional(),
 });
 

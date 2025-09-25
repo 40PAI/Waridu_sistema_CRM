@@ -14,7 +14,6 @@ export type Client = {
   sector?: string | null; // Setor
   position?: string | null; // Cargo/Departamento
   lifecycle_stage?: LifecycleStage; // Ciclo de Vida
-  service_ids?: string[]; // Serviços de Interesse
   notes?: string | null; // Observações
   created_at?: string | null;
   updated_at?: string | null;
@@ -56,7 +55,6 @@ export const useClients = () => {
         .from("clients")
         .upsert({
           ...payload,
-          service_ids: payload.service_ids || [], // Ensure service_ids is saved as array
         })
         .select()
         .single();
