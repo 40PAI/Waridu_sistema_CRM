@@ -1,0 +1,55 @@
+The above error occurred in the <FormControl> component:
+
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/components/ui/form.tsx:127:72
+    at Controller (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-22GPZGXO.js?v=f8c902d1:351:35)
+    at FormField (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/components/ui/form.tsx:29:25)
+    at div
+    at div
+    at div
+    at div
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-ODCQMKPW.js?v=f8c902d1:43:13
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-OLOW5ETN.js?v=f8c902d1:63:7
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=f8c902d1:79:13
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=f8c902d1:56:13
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-ODCQMKPW.js?v=f8c902d1:43:13
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-FRSQY7WT.js?v=f8c902d1:34:5
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-XRYR2EZ4.js?v=f8c902d1:236:13
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-XRYR2EZ4.js?v=f8c902d1:159:58
+    at Presence (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-57TCVHD5.js?v=f8c902d1:24:11)
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-XRYR2EZ4.js?v=f8c902d1:150:64
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=f8c902d1:79:13
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=f8c902d1:56:13
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-ODCQMKPW.js?v=f8c902d1:43:13
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-OLOW5ETN.js?v=f8c902d1:262:22
+    at Presence (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-57TCVHD5.js?v=f8c902d1:24:11)
+    at Provider (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-3RXG37ZK.js?v=f8c902d1:38:15)
+    at DialogPortal (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-XRYR2EZ4.js?v=f8c902d1:112:11)
+    at _c1 (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/components/ui/dialog.tsx:40:63)
+    at Provider (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-3RXG37ZK.js?v=f8c902d1:38:15)
+    at Dialog (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-XRYR2EZ4.js?v=f8c902d1:52:5)
+    at CreateProjectModal (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/components/crm/CreateProjectModal.tsx:87:46)
+    at div
+    at PipelinePage (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/pages/crm/Pipeline.tsx:40:46)
+    at RenderedRoute (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f8c902d1:4088:5)
+    at Outlet (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f8c902d1:4494:26)
+    at main
+    at div
+    at div
+    at div
+    at Provider (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/chunk-3RXG37ZK.js?v=f8c902d1:38:15)
+    at TooltipProvider (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f8c902d1:65:5)
+    at https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/components/ui/sidebar.tsx:50:72
+    at DashboardLayout (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/components/layout/DashboardLayout.tsx:24:28)
+    at ProtectedRoute (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/components/auth/ProtectedRoute.tsx:29:40)
+    at RenderedRoute (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f8c902d1:4088:5)
+    at Routes (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f8c902d1:4558:5)
+    at div
+    at Router (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f8c902d1:4501:15)
+    at BrowserRouter (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f8c902d1:5247:5)
+    at AppContent (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/AppContent.tsx:325:31)
+    at App
+    at AuthProvider (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/src/contexts/AuthContext.tsx:26:32)
+    at QueryClientProvider (https://65761e0f-c13e-4f4e-bb42-fff2f742bfa3-00-34j83fopcnsia.riker.replit.dev/node_modules/.vite/deps/@tanstack_react-query.js?v=f8c902d1:3081:3)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.

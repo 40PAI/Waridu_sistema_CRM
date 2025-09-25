@@ -223,10 +223,10 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
             <DialogTitle>Novo Projeto</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 pb-4">
-            <div className="space-y-4">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 pb-4">
+                <div className="space-y-4">
                   <FormField
                     control={form.control}
                     name="clientId"
@@ -352,13 +352,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                     )} />
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                    <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar Projeto"}</Button>
-                  </div>
-                </form>
-              </Form>
-            </div>
+                </div>
 
             <div className="space-y-4">
               <div>
@@ -394,6 +388,13 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
               </div>
             </div>
           </div>
+
+          <div className="flex justify-end gap-2 pt-4 px-4 pb-4">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar Projeto"}</Button>
+          </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
