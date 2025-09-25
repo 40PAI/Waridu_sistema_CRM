@@ -26,9 +26,10 @@ interface ClientDetailModalProps {
   onOpenChange: (open: boolean) => void;
   client: Client | null;
   communications: any[];
+  onCreateProject?: (clientId: string) => void;
 }
 
-const ClientDetailModal = ({ open, onOpenChange, client, communications }: ClientDetailModalProps) => {
+const ClientDetailModal = ({ open, onOpenChange, client, communications, onCreateProject }: ClientDetailModalProps) => {
   // Note: keeping component behavior, but adjust rendering for service_ids
   const { services } = useServices();
 
@@ -49,6 +50,11 @@ const ClientDetailModal = ({ open, onOpenChange, client, communications }: Clien
           <DialogTitle className="flex items-center justify-between">
             <span>Ficha de Cliente: {client.name}</span>
             <div className="flex gap-2">
+              {onCreateProject && (
+                <Button size="sm" onClick={() => onCreateProject(client.id)}>
+                  + Novo Projeto
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
                 Fechar
               </Button>

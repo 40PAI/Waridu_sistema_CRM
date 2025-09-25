@@ -13,6 +13,7 @@ import CreateClientModal from "@/components/crm/CreateClientModal";
 import ClientDetailModal from "@/components/crm/ClientDetailModal";
 import ClientFilters from "@/components/crm/ClientFilters";
 import ClientTable from "@/components/crm/ClientTable";
+import CreateProjectModal from "@/components/crm/CreateProjectModal";
 import { useState } from "react";
 
 const ClientsPage = () => {
@@ -63,6 +64,12 @@ const ClientsPage = () => {
     if (createdClientId) {
       setIsProjectModalOpen(true);
     }
+  };
+
+  const handleCreateProjectFromModal = (clientId: string) => {
+    setCreatedClientId(clientId);
+    setIsProjectModalOpen(true);
+    setIsViewOpen(false); // Fechar o modal de detalhes
   };
 
   // Helper maps
@@ -172,6 +179,16 @@ const ClientsPage = () => {
         onOpenChange={setIsViewOpen}
         client={selectedClient}
         communications={selectedClientCommunications}
+        onCreateProject={handleCreateProjectFromModal}
+      />
+
+      <CreateProjectModal
+        open={isProjectModalOpen}
+        onOpenChange={(v) => {
+          setIsProjectModalOpen(v);
+          if (!v) setCreatedClientId(null);
+        }}
+        preselectedClientId={createdClientId}
       />
     </>
   );
