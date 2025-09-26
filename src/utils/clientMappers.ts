@@ -13,61 +13,49 @@ import { z } from "zod";
 
 /**
  * Database schema types for the clients table
- * Based on current Supabase PostgreSQL schema
+ * Based on exact DDL provided - ONLY these fields exist in database
  */
 export namespace Database {
   export interface ClientsRow {
     id: string;
     name: string;
+    nif: string | null;
     email: string | null;
     phone: string | null;
-    address: string | null;
-    company: string | null;
-    contact_person: string | null;
     notes: string | null;
     created_at: string | null;
     updated_at: string | null;
-    nif: string | null;
     lifecycle_stage: string | null;
     sector: string | null;
-    persona: string | null;
-    position: string | null;
+    company: string | null;
   }
 
   export interface ClientsInsert {
     id?: string;
     name: string;
+    nif?: string | null;
     email?: string | null;
     phone?: string | null;
-    address?: string | null;
-    company?: string | null;
-    contact_person?: string | null;
     notes?: string | null;
     created_at?: string | null;
     updated_at?: string | null;
-    nif?: string | null;
     lifecycle_stage?: string | null;
     sector?: string | null;
-    persona?: string | null;
-    position?: string | null;
+    company?: string | null;
   }
 
   export interface ClientsUpdate {
     id?: string;
     name?: string;
+    nif?: string | null;
     email?: string | null;
     phone?: string | null;
-    address?: string | null;
-    company?: string | null;
-    contact_person?: string | null;
     notes?: string | null;
     created_at?: string | null;
     updated_at?: string | null;
-    nif?: string | null;
     lifecycle_stage?: string | null;
     sector?: string | null;
-    persona?: string | null;
-    position?: string | null;
+    company?: string | null;
   }
 }
 
@@ -86,7 +74,7 @@ export interface NewClientForm {
   phone?: string;
   nif?: string;
   sector?: string;
-  lifecycleStage?: 'Lead' | 'Oportunidade' | 'Cliente Ativo' | 'Cliente Perdido';
+  lifecycleStage?: 'Lead' | 'MQL' | 'SQL' | 'Ativo' | 'Perdido';
   roleOrDepartment?: string; // UI-only field, not stored in database
   notes?: string;
 }
@@ -97,28 +85,24 @@ export interface NewClientForm {
 
 /**
  * Zod schema for validating client inserts
- * Aligns with database constraints and check constraints
+ * Aligns with database constraints and check constraints from DDL
  */
 export const ClientsInsertSchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1, "Nome é obrigatório").max(255, "Nome muito longo"),
-  email: z.string().email("Email inválido").max(255, "Email muito longo").optional().nullable(),
-  phone: z.string().max(50, "Telefone muito longo").optional().nullable(),
-  address: z.string().max(500, "Endereço muito longo").optional().nullable(),
-  company: z.string().max(255, "Nome da empresa muito longo").optional().nullable(),
-  contact_person: z.string().max(255, "Nome do contacto muito longo").optional().nullable(),
+  name: z.string().min(1, "Nome é obrigatório"),
+  nif: z.string().optional().nullable(),
+  email: z.string().email("Email inválido").optional().nullable(),
+  phone: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   created_at: z.string().datetime().optional().nullable(),
   updated_at: z.string().datetime().optional().nullable(),
-  nif: z.string().max(50, "NIF muito longo").optional().nullable(),
-  // Database constraint: lifecycle_stage check constraint
-  lifecycle_stage: z.enum(['Lead', 'Oportunidade', 'Cliente Ativo', 'Cliente Perdido'])
+  // Database constraint: lifecycle_stage check constraint from DDL
+  lifecycle_stage: z.enum(['Lead', 'MQL', 'SQL', 'Ativo', 'Perdido'])
     .optional()
     .nullable()
     .default('Lead'),
-  sector: z.string().max(255, "Setor muito longo").optional().nullable(),
-  persona: z.string().max(255, "Persona muito longa").optional().nullable(),
-  position: z.string().max(255, "Cargo muito longo").optional().nullable(),
+  sector: z.string().optional().nullable(),
+  company: z.string().optional().nullable(),
 });
 
 /**
@@ -131,7 +115,7 @@ export const NewClientFormSchema = z.object({
   phone: z.string().optional(),
   nif: z.string().optional(),
   sector: z.string().optional(),
-  lifecycleStage: z.enum(['Lead', 'Oportunidade', 'Cliente Ativo', 'Cliente Perdido']).optional(),
+  lifecycleStage: z.enum(['Lead', 'MQL', 'SQL', 'Ativo', 'Perdido']).optional(),
   roleOrDepartment: z.string().optional(), // UI-only field
   notes: z.string().optional(),
 });
