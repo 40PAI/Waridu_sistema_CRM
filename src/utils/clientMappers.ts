@@ -411,8 +411,8 @@ export function formToEventsInsert(input: NewProjectForm): Database.EventsInsert
   if (input.startTime) dbPayload.start_time = `${input.startTime}:00`; // Map startTime → start_time
   if (input.endTime) dbPayload.end_time = `${input.endTime}:00`; // Map endTime → end_time
   if (input.estimatedValue !== undefined) dbPayload.estimated_value = input.estimatedValue; // Map estimatedValue → estimated_value
-  if (input.notes) dbPayload.notes = input.notes; // Map notes → notes
-  if (next_action_date) dbPayload.next_action_date = next_action_date; // Map nextActionDate → next_action_date
+  if (input.notes !== undefined) dbPayload.notes = input.notes; // Map notes → notes (include empty strings)
+  dbPayload.next_action_date = next_action_date; // Always include next_action_date (null or timestamp)
   
   // NOTE: nextActionTime field does NOT exist in database - it's ignored
   // NOTE: created_at is handled by database defaults

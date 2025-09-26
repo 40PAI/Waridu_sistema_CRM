@@ -12,13 +12,18 @@
 import { describe, it, expect, test } from 'vitest';
 import {
   NewClientForm,
+  NewProjectForm,
   Database,
   ClientsInsertSchema,
+  EventsInsertSchema,
   NewClientFormSchema,
+  NewProjectFormSchema,
   stripUndefined,
   normalizePhone,
+  combineDateTime,
   formToClientsInsert,
   formToClientsUpdate,
+  formToEventsInsert,
   clientRowToForm,
 } from './clientMappers';
 
@@ -486,5 +491,257 @@ describe('Error Handling', () => {
 
     const result = ClientsInsertSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
+  });
+});
+
+// =============================================================================
+// EVENTS MAPPING TESTS
+// =============================================================================
+
+describe('Events Mapping Functions', () => {
+  describe('combineDateTime', () => {
+    it('should combine date and time into ISO string', () => {
+      const result = combineDateTime('2025-01-15', '14:30');
+      expect(result).toBe('2025-01-15T14:30:00.000Z');
+    });
+
+    it('should default time to 00:00:00 when time is not provided', () => {
+      const result = combineDateTime('2025-01-15');
+      expect(result).toBe('2025-01-15T00:00:00.000Z');
+    });
+
+    it('should throw error when date is empty', () => {
+      expect(() => combineDateTime('')).toThrow('Data é obrigatória');
+    });
+  });
+
+  describe('formToEventsInsert', () => {
+    const validProjectForm: NewProjectForm = {
+      fullName: 'Projeto Teste',
+      startDate: '2025-01-15',
+      startTime: '09:00',
+      endDate: '2025-01-16',
+      endTime: '18:00',
+      location: 'Luanda, Angola',
+      estimatedValue: 15000,
+      clientId: '12345678-1234-5678-9012-123456789012',
+      services: ['1', '2', '3'],
+      notes: 'Projeto importante',
+      pipelineStatus: '1º Contato',
+      nextActionDate: '2025-01-20',
+      nextActionTime: '10:00', // This field should be ignored
+    };
+
+    it('should map UI form to database insert format correctly', () => {
+      const result = formToEventsInsert(validProjectForm);
+
+      expect(result.name).toBe('Projeto Teste');
+      expect(result.start_date).toBe('2025-01-15T09:00:00.000Z');
+      expect(result.end_date).toBe('2025-01-16T18:00:00.000Z');
+      expect(result.location).toBe('Luanda, Angola');
+      expect(result.estimated_value).toBe(15000);
+      expect(result.client_id).toBe('12345678-1234-5678-9012-123456789012');
+      expect(result.service_ids).toEqual([1, 2, 3]); // Converted to numbers
+      expect(result.notes).toBe('Projeto importante');
+      expect(result.pipeline_status).toBe('1º Contato');
+      expect(result.start_time).toBe('09:00:00');
+      expect(result.end_time).toBe('18:00:00');
+      expect(result.status).toBe('Planejado'); // Default status
+      expect(result.next_action_date).toBe('2025-01-20T00:00:00.000Z');
+      expect(result.updated_at).toBeDefined();
+    });
+
+    it('should enforce required fields', () => {
+      const incompleteForm = {
+        fullName: '',
+        startDate: '2025-01-15',
+        location: 'Luanda',
+        clientId: '12345678-1234-5678-9012-123456789012',
+        services: ['1'],
+        pipelineStatus: '1º Contato',
+      } as NewProjectForm;
+
+      expect(() => formToEventsInsert(incompleteForm)).toThrow('Nome do projeto é obrigatório');
+    });
+
+    it('should validate required startDate', () => {
+      const formWithoutDate = {
+        ...validProjectForm,
+        startDate: '',
+      };
+
+      expect(() => formToEventsInsert(formWithoutDate)).toThrow('Data de início é obrigatória');
+    });
+
+    it('should validate required clientId', () => {
+      const formWithoutClient = {
+        ...validProjectForm,
+        clientId: '',
+      };
+
+      expect(() => formToEventsInsert(formWithoutClient)).toThrow('Cliente é obrigatório');
+    });
+
+    it('should validate required location', () => {
+      const formWithoutLocation = {
+        ...validProjectForm,
+        location: '',
+      };
+
+      expect(() => formToEventsInsert(formWithoutLocation)).toThrow('Localização é obrigatória');
+    });
+
+    it('should convert service IDs from strings to numbers', () => {
+      const form = {
+        ...validProjectForm,
+        services: ['10', '20', '30'],
+      };
+
+      const result = formToEventsInsert(form);
+      expect(result.service_ids).toEqual([10, 20, 30]);
+    });
+
+    it('should throw error for invalid service IDs', () => {
+      const formWithInvalidService = {
+        ...validProjectForm,
+        services: ['invalid-id'],
+      };
+
+      expect(() => formToEventsInsert(formWithInvalidService)).toThrow('Service ID inválido: invalid-id');
+    });
+
+    it('should use start_date as end_date when endDate is not provided', () => {
+      const formWithoutEndDate = {
+        ...validProjectForm,
+        endDate: undefined,
+        endTime: undefined,
+      };
+
+      const result = formToEventsInsert(formWithoutEndDate);
+      expect(result.end_date).toBe(result.start_date);
+    });
+
+    it('should handle optional fields correctly', () => {
+      const minimalForm: NewProjectForm = {
+        fullName: 'Projeto Mínimo',
+        startDate: '2025-01-15',
+        location: 'Luanda',
+        clientId: '12345678-1234-5678-9012-123456789012',
+        services: ['1'],
+        pipelineStatus: '1º Contato',
+      };
+
+      const result = formToEventsInsert(minimalForm);
+      
+      expect(result.name).toBe('Projeto Mínimo');
+      expect(result.estimated_value).toBeUndefined();
+      expect(result.notes).toBeUndefined();
+      expect(result.start_time).toBeUndefined();
+      expect(result.end_time).toBeUndefined();
+      expect(result.next_action_date).toBeNull();
+    });
+
+    it('should ignore nextActionTime field (does not exist in database)', () => {
+      const result = formToEventsInsert(validProjectForm);
+      
+      // nextActionTime should not appear in the result
+      expect('next_action_time' in result).toBe(false);
+    });
+
+    it('should only include fields with meaningful values', () => {
+      const formWithEmptyOptionals = {
+        ...validProjectForm,
+        estimatedValue: undefined,
+        notes: '',
+        startTime: '',
+        endTime: '',
+        nextActionDate: '',
+      };
+
+      const result = formToEventsInsert(formWithEmptyOptionals);
+      
+      expect(result.estimated_value).toBeUndefined();
+      expect(result.notes).toBe(''); // Empty string is kept
+      expect(result.start_time).toBe(':00'); // Empty string becomes ":00"
+      expect(result.end_time).toBe(':00');
+      expect(result.next_action_date).toBeNull(); // Empty date becomes null
+    });
+  });
+
+  describe('EventsInsertSchema validation', () => {
+    it('should validate valid event data', () => {
+      const validData = {
+        name: 'Projeto Teste',
+        client_id: '12345678-1234-5678-9012-123456789012',
+        estimated_value: 15000,
+        service_ids: [1, 2, 3],
+      };
+
+      const result = EventsInsertSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid UUID for client_id', () => {
+      const invalidData = {
+        name: 'Projeto Teste',
+        client_id: 'invalid-uuid',
+      };
+
+      const result = EventsInsertSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject negative estimated_value', () => {
+      const invalidData = {
+        name: 'Projeto Teste',
+        estimated_value: -1000,
+      };
+
+      const result = EventsInsertSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('NewProjectFormSchema validation', () => {
+    it('should validate valid project form data', () => {
+      const validData: NewProjectForm = {
+        fullName: 'Projeto Teste',
+        startDate: '2025-01-15',
+        location: 'Luanda',
+        clientId: '12345678-1234-5678-9012-123456789012',
+        services: ['1', '2'],
+        pipelineStatus: '1º Contato',
+      };
+
+      const result = NewProjectFormSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+    });
+
+    it('should require fullName field', () => {
+      const invalidData = {
+        startDate: '2025-01-15',
+        location: 'Luanda',
+        clientId: '12345678-1234-5678-9012-123456789012',
+        services: ['1'],
+        pipelineStatus: '1º Contato',
+      };
+
+      const result = NewProjectFormSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
+
+    it('should require at least one service', () => {
+      const invalidData = {
+        fullName: 'Projeto Teste',
+        startDate: '2025-01-15',
+        location: 'Luanda',
+        clientId: '12345678-1234-5678-9012-123456789012',
+        services: [],
+        pipelineStatus: '1º Contato',
+      };
+
+      const result = NewProjectFormSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+    });
   });
 });
