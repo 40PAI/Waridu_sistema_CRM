@@ -3,7 +3,7 @@
 ## Overview
 This is a comprehensive React application built with Vite, TypeScript, and Shadcn UI components. It features a CRM system, project management tools, employee management, materials management, and integration with Supabase for backend services.
 
-## Recent Changes (September 25, 2025)
+## Recent Changes (September 26, 2025)
 - ✅ Configured Vite for Replit environment (port 5000, host 0.0.0.0)
 - ✅ Set up frontend development workflow
 - ✅ Installed all project dependencies
@@ -19,6 +19,13 @@ This is a comprehensive React application built with Vite, TypeScript, and Shadc
   - Full CRUD operations with validation and error handling
   - Seamless project integration from client pages and detail modal
   - Fixed schema alignment between frontend and database
+- ✅ **Enhanced Project Form Mapping & Employee Integration**:
+  - Updated NewProjectForm interface with projectName field (was fullName)
+  - Added responsável field to UI schema (ignored in database mapping)
+  - Implemented getComercialEmployeeOptions() utility for filtering employees by role="Comercial"
+  - Enhanced formToEventsInsert() with proper field mapping and warnings about non-existent database fields
+  - Added comprehensive validation for nextActionTime and responsável fields (UI-only, not in DDL)
+  - Achieved 51/51 test coverage with all mapping scenarios including employee filtering
 
 ## Project Architecture
 
