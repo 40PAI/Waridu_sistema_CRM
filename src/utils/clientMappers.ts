@@ -226,6 +226,56 @@ export const NewClientFormSchema = z.object({
   notes: z.string().optional(),
 });
 
+/**
+ * Zod schema for validating events inserts
+ * Aligns with database constraints and check constraints from DDL
+ */
+export const EventsInsertSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().optional().nullable(),
+  start_date: z.string().datetime().optional().nullable(),
+  end_date: z.string().datetime().optional().nullable(),
+  location: z.string().optional().nullable(),
+  start_time: z.string().optional().nullable(),
+  end_time: z.string().optional().nullable(),
+  revenue: z.number().optional().nullable(),
+  status: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  roster: z.any().optional(),
+  expenses: z.any().optional(),
+  pipeline_status: z.string().optional().nullable(),
+  estimated_value: z.number().min(0, "Valor estimado deve ser positivo").optional().nullable(),
+  service_ids: z.array(z.number()).optional().nullable(),
+  client_id: z.string().uuid("Client ID deve ser um UUID válido").optional().nullable(),
+  notes: z.string().optional().nullable(),
+  pipeline_phase_id: z.string().uuid().optional().nullable(),
+  pipeline_phase_label: z.string().optional().nullable(),
+  pipeline_rank: z.number().optional().nullable(),
+  tags: z.array(z.string()).optional().nullable(),
+  created_at: z.string().datetime().optional().nullable(),
+  updated_at: z.string().datetime().optional().nullable(),
+  next_action_date: z.string().datetime().optional().nullable(),
+});
+
+/**
+ * Zod schema for validating the UI project form data
+ */
+export const NewProjectFormSchema = z.object({
+  fullName: z.string().min(1, "Nome do projeto é obrigatório"),
+  startDate: z.string().min(1, "Data de início é obrigatória"),
+  endDate: z.string().optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  nextActionDate: z.string().optional(),
+  nextActionTime: z.string().optional(), // UI-only field - does NOT exist in database
+  location: z.string().min(1, "Localização é obrigatória"),
+  estimatedValue: z.number().min(0, "Valor estimado deve ser positivo").optional(),
+  clientId: z.string().uuid("Client ID deve ser um UUID válido"),
+  services: z.array(z.string()).min(1, "Selecione pelo menos um serviço"),
+  notes: z.string().optional(),
+  pipelineStatus: z.string().min(1, "Status do pipeline é obrigatório"),
+});
+
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
