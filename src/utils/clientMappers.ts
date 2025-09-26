@@ -262,7 +262,7 @@ export const EventsInsertSchema = z.object({
  * Zod schema for validating the UI project form data
  */
 export const NewProjectFormSchema = z.object({
-  fullName: z.string().min(1, "Nome do projeto é obrigatório"),
+  projectName: z.string().min(1, "Nome do projeto é obrigatório"),
   startDate: z.string().min(1, "Data de início é obrigatória"),
   endDate: z.string().optional(),
   startTime: z.string().optional(),
@@ -275,6 +275,7 @@ export const NewProjectFormSchema = z.object({
   services: z.array(z.string()).min(1, "Selecione pelo menos um serviço"),
   notes: z.string().optional(),
   pipelineStatus: z.string().min(1, "Status do pipeline é obrigatório"),
+  responsável: z.string().uuid("Responsável deve ser um UUID válido").optional(), // UI-only field - does NOT exist in database
 });
 
 // =============================================================================
@@ -366,7 +367,7 @@ export function formToClientsInsert(input: NewClientForm): Database.ClientsInser
  */
 export function formToEventsInsert(input: NewProjectForm): Database.EventsInsert {
   // Validate required fields
-  if (!input.fullName) {
+  if (!input.projectName) {
     throw new Error("Nome do projeto é obrigatório");
   }
   if (!input.startDate) {
@@ -397,7 +398,7 @@ export function formToEventsInsert(input: NewProjectForm): Database.EventsInsert
 
   // Map UI fields to database fields (whitelist approach - only DDL-approved fields)
   const dbPayload: Partial<Database.EventsInsert> = {
-    name: input.fullName, // Map fullName → name
+    name: input.projectName, // Map projectName → name
     start_date: start_date,
     end_date: end_date,
     location: input.location,
@@ -415,7 +416,10 @@ export function formToEventsInsert(input: NewProjectForm): Database.EventsInsert
   if (input.notes !== undefined) dbPayload.notes = input.notes; // Map notes → notes (include empty strings)
   dbPayload.next_action_date = next_action_date; // Always include next_action_date (null or timestamp)
   
-  // NOTE: nextActionTime field does NOT exist in database - it's ignored
+  // ⚠️ CAMPOS IGNORADOS: Os seguintes campos UI não existem na base de dados DDL:
+  // - input.nextActionTime → next_action_time (campo não existe)
+  // - input.responsável → responsible_id (campo não existe)
+  
   // NOTE: created_at is handled by database defaults
   // NOTE: Only fields from DDL are included
 
