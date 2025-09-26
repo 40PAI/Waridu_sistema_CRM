@@ -26,6 +26,14 @@ This is a comprehensive React application built with Vite, TypeScript, and Shadc
   - Enhanced formToEventsInsert() with proper field mapping and warnings about non-existent database fields
   - Added comprehensive validation for nextActionTime and responsável fields (UI-only, not in DDL)
   - Achieved 51/51 test coverage with all mapping scenarios including employee filtering
+- ✅ **Database Schema Extension & Field Mapping Implementation**:
+  - **Database Migration**: Added `next_action_time` (TIME) and `responsible_id` (UUID) columns to events table
+  - **Complete Field Mapping**: UI "Próxima Ação - Hora" → BD `next_action_time`, UI "Responsável Comercial" → BD `responsible_id`
+  - **TypeScript Types Updated**: Enhanced Database.EventsRow, EventsInsert, EventsUpdate interfaces with new fields
+  - **Zod Schema Extended**: Added validation for next_action_time and responsible_id fields
+  - **Enhanced Mapping Function**: Updated formToEventsInsert() to correctly map nextActionTime and responsável to database
+  - **Comprehensive Testing**: Achieved 53/53 test coverage including new field mapping scenarios
+  - **Zero LSP Errors**: All TypeScript diagnostics resolved successfully
 
 ## Project Architecture
 
