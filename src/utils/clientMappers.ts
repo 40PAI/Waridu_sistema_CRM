@@ -169,19 +169,20 @@ export interface NewClientForm {
  * Maps to user interface fields, may contain fields not in database
  */
 export interface NewProjectForm {
-  fullName: string; // Maps to 'name' in database
+  projectName: string; // Maps to 'name' in database  
   startDate: string;
   endDate?: string;
   startTime?: string;
   endTime?: string;
   nextActionDate?: string; // Maps to 'next_action_date' in database
-  nextActionTime?: string; // ⚠️ WARNING: This field does NOT exist in database
+  nextActionTime?: string; // ⚠️ WARNING: This field does NOT exist in database - will be ignored
   location: string;
   estimatedValue?: number;
   clientId: string; // Maps to 'client_id' in database
   services: string[]; // Maps to 'service_ids' in database (note: array of strings, but DB expects integer[])
   notes?: string;
   pipelineStatus: string; // Maps to 'pipeline_status' in database
+  responsável?: string; // Maps to 'responsible_id' - ⚠️ WARNING: This field does NOT exist in database - will be ignored
 }
 
 // =============================================================================
