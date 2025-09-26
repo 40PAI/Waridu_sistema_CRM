@@ -199,7 +199,7 @@ describe('UI to Database Mappers', () => {
         nif: '123456789',
         sector: 'Tecnologia',
         lifecycleStage: 'Lead',
-        roleOrDepartment: 'Diretor de TI', // This should NOT appear in output
+        roleOrDepartment: 'Diretor de TI', // This should map to job_title
         notes: 'Cliente potencial',
       };
 
@@ -214,11 +214,15 @@ describe('UI to Database Mappers', () => {
         sector: 'Tecnologia',
         lifecycle_stage: 'Lead',
         notes: 'Cliente potencial',
+        job_title: 'Diretor de TI', // mapped from roleOrDepartment
       });
 
-      // Ensure UI-only fields are NOT included
+      // Ensure UI-only fields are NOT included (roleOrDepartment now maps to job_title)
       expect(result).not.toHaveProperty('roleOrDepartment');
       expect(result).not.toHaveProperty('fullName');
+      
+      // Ensure job_title IS included (mapped from roleOrDepartment)
+      expect(result).toHaveProperty('job_title');
       
       // Ensure timestamp fields are NOT included (handled by database)
       expect(result).not.toHaveProperty('created_at');
@@ -325,6 +329,7 @@ describe('Database to UI Mappers', () => {
         sector: 'Tecnologia',
         lifecycle_stage: 'Lead',
         notes: 'Cliente potencial',
+        job_title: 'Diretor de TI',
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
       };
@@ -340,7 +345,7 @@ describe('Database to UI Mappers', () => {
         sector: 'Tecnologia',
         lifecycleStage: 'Lead',
         notes: 'Cliente potencial',
-        // roleOrDepartment is not mapped (UI-only field)
+        roleOrDepartment: 'Diretor de TI', // mapped from job_title
       });
 
       // Ensure database-only fields are not mapped to form
@@ -360,6 +365,7 @@ describe('Database to UI Mappers', () => {
         sector: null,
         lifecycle_stage: null,
         notes: null,
+        job_title: null,
         created_at: null,
         updated_at: null,
       };
@@ -391,7 +397,7 @@ describe('Integration Tests', () => {
       sector: 'Tecnologia',
       lifecycleStage: 'Lead',
       notes: 'Cliente potencial',
-      roleOrDepartment: 'Diretor de TI', // This will be lost (UI-only)
+      roleOrDepartment: 'Diretor de TI', // This will be mapped to job_title
     };
 
     // Convert to database format
@@ -399,15 +405,19 @@ describe('Integration Tests', () => {
     
     // Simulate what database would return (add fields that DB adds)
     const dbRow: Database.ClientsRow = {
-      ...dbInsert,
       id: '123e4567-e89b-12d3-a456-426614174000',
+      name: dbInsert.name,
+      nif: dbInsert.nif || null,
+      email: dbInsert.email || null,
+      phone: dbInsert.phone || null,
+      notes: dbInsert.notes || null,
+      lifecycle_stage: dbInsert.lifecycle_stage || null,
+      sector: dbInsert.sector || null,
+      company: dbInsert.company || null,
+      job_title: dbInsert.job_title || null,
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
-      position: null,
-      address: null,
-      contact_person: null,
-      persona: null,
-    } as Database.ClientsRow;
+    };
 
     // Convert back to form format
     const resultForm = clientRowToForm(dbRow);
@@ -422,8 +432,8 @@ describe('Integration Tests', () => {
     expect(resultForm.lifecycleStage).toBe(originalForm.lifecycleStage);
     expect(resultForm.notes).toBe(originalForm.notes);
 
-    // UI-only field should not be preserved (expected behavior)
-    expect(resultForm.roleOrDepartment).toBeUndefined();
+    // roleOrDepartment should be preserved (mapped through job_title)
+    expect(resultForm.roleOrDepartment).toBe(originalForm.roleOrDepartment);
   });
 
   it('should ensure non-existent database fields never appear in payloads', () => {
@@ -436,20 +446,23 @@ describe('Integration Tests', () => {
 
     const result = formToClientsInsert(formWithExtraFields);
 
-    // Ensure only valid database fields are present
+    // Ensure only valid database fields are present (DDL-compliant fields)
     const validDbFields = [
       'name', 'company', 'email', 'phone', 'nif', 'sector', 
-      'lifecycle_stage', 'notes', 'address', 'contact_person', 'persona', 'position'
+      'lifecycle_stage', 'notes', 'job_title'
     ];
 
     for (const key of Object.keys(result)) {
       expect(validDbFields).toContain(key);
     }
 
-    // Ensure UI-only and random fields don't appear
+    // Ensure UI-only and random fields don't appear (but job_title should appear)
     expect(result).not.toHaveProperty('roleOrDepartment');
     expect(result).not.toHaveProperty('someRandomField');
     expect(result).not.toHaveProperty('fullName');
+    
+    // job_title should be present (mapped from roleOrDepartment)
+    expect(result).toHaveProperty('job_title', 'Manager');
   });
 });
 

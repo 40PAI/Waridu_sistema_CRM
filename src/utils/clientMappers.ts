@@ -28,6 +28,7 @@ export namespace Database {
     lifecycle_stage: string | null;
     sector: string | null;
     company: string | null;
+    job_title: string | null;
   }
 
   export interface ClientsInsert {
@@ -42,6 +43,7 @@ export namespace Database {
     lifecycle_stage?: string | null;
     sector?: string | null;
     company?: string | null;
+    job_title?: string | null;
   }
 
   export interface ClientsUpdate {
@@ -56,6 +58,7 @@ export namespace Database {
     lifecycle_stage?: string | null;
     sector?: string | null;
     company?: string | null;
+    job_title?: string | null;
   }
 }
 
@@ -103,6 +106,7 @@ export const ClientsInsertSchema = z.object({
     .default('Lead'),
   sector: z.string().optional().nullable(),
   company: z.string().optional().nullable(),
+  job_title: z.string().optional().nullable(),
 });
 
 /**
@@ -179,8 +183,7 @@ export function formToClientsInsert(input: NewClientForm): Database.ClientsInser
   if (input.nif) dbPayload.nif = input.nif;
   if (input.sector) dbPayload.sector = input.sector;
   if (input.notes) dbPayload.notes = input.notes;
-
-  // NOTE: roleOrDepartment is intentionally NOT included (UI-only field)
+  if (input.roleOrDepartment) dbPayload.job_title = input.roleOrDepartment;
   // NOTE: created_at/updated_at are NOT included (handled by database defaults)
   // NOTE: Only fields from DDL are included
 
@@ -205,6 +208,7 @@ export function formToClientsUpdate(input: Partial<NewClientForm>): Database.Cli
   if (input.sector !== undefined) dbPayload.sector = input.sector || null;
   if (input.lifecycleStage !== undefined) dbPayload.lifecycle_stage = input.lifecycleStage || null;
   if (input.notes !== undefined) dbPayload.notes = input.notes || null;
+  if (input.roleOrDepartment !== undefined) dbPayload.job_title = input.roleOrDepartment || null;
 
   // NOTE: Only DDL-approved fields are included
   return stripUndefined(dbPayload);
@@ -231,7 +235,7 @@ export function clientRowToForm(row: Database.ClientsRow): NewClientForm {
     sector: row.sector || undefined,
     lifecycleStage: (row.lifecycle_stage as NewClientForm['lifecycleStage']) || undefined,
     notes: row.notes || undefined,
-    // roleOrDepartment is not mapped from database (UI-only field)
+    roleOrDepartment: row.job_title || undefined, // Map job_title → roleOrDepartment
   };
 }
 
