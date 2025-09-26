@@ -166,13 +166,13 @@ export function formToClientsInsert(input: NewClientForm): Database.ClientsInser
   // Apply data transformations
   const normalizedPhone = normalizePhone(input.phone);
   
-  // Map UI fields to database fields (whitelist approach)
+  // Map UI fields to database fields (whitelist approach - only DDL-approved fields)
   const dbPayload: Partial<Database.ClientsInsert> = {
     name: input.fullName, // Map fullName → name
     lifecycle_stage: input.lifecycleStage || 'Lead', // Default to 'Lead' if empty
   };
 
-  // Only add optional fields if they have meaningful values
+  // Only add optional fields if they have meaningful values (DDL fields only)
   if (input.company) dbPayload.company = input.company;
   if (input.email) dbPayload.email = input.email;
   if (normalizedPhone) dbPayload.phone = normalizedPhone;
@@ -181,7 +181,8 @@ export function formToClientsInsert(input: NewClientForm): Database.ClientsInser
   if (input.notes) dbPayload.notes = input.notes;
 
   // NOTE: roleOrDepartment is intentionally NOT included (UI-only field)
-  // NOTE: created_at/updated_at are NOT included (handled by database)
+  // NOTE: created_at/updated_at are NOT included (handled by database defaults)
+  // NOTE: Only fields from DDL are included
 
   return dbPayload as Database.ClientsInsert;
 }
@@ -195,7 +196,7 @@ export function formToClientsUpdate(input: Partial<NewClientForm>): Database.Cli
   
   const dbPayload: Database.ClientsUpdate = {};
   
-  // Only include fields that are present in the input
+  // Only include fields that are present in the input (DDL fields only)
   if (input.fullName !== undefined) dbPayload.name = input.fullName;
   if (input.company !== undefined) dbPayload.company = input.company || null;
   if (input.email !== undefined) dbPayload.email = input.email || null;
@@ -205,6 +206,7 @@ export function formToClientsUpdate(input: Partial<NewClientForm>): Database.Cli
   if (input.lifecycleStage !== undefined) dbPayload.lifecycle_stage = input.lifecycleStage || null;
   if (input.notes !== undefined) dbPayload.notes = input.notes || null;
 
+  // NOTE: Only DDL-approved fields are included
   return stripUndefined(dbPayload);
 }
 
