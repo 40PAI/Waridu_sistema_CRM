@@ -746,4 +746,96 @@ describe('Events Mapping Functions', () => {
       expect(result.success).toBe(false);
     });
   });
+
+  describe('Employee Filtering Functions', () => {
+    describe('getComercialEmployeeOptions', () => {
+      const mockEmployees = [
+        {
+          id: '12345678-1234-5678-9012-123456789012',
+          name: 'João Silva',
+          role: 'Comercial',
+          email: 'joao@example.com'
+        },
+        {
+          id: '87654321-4321-8765-2109-210987654321',
+          name: 'Maria Santos',
+          role: 'Técnico',
+          email: 'maria@example.com'
+        },
+        {
+          id: '11111111-1111-1111-1111-111111111111',
+          name: 'Pedro Costa',
+          role: 'Comercial',
+          email: 'pedro@example.com'
+        },
+        {
+          id: '22222222-2222-2222-2222-222222222222',
+          name: 'Ana Lima',
+          role: 'Administrativo',
+          email: 'ana@example.com'
+        }
+      ];
+
+      it('should filter only commercial employees and map to options format', () => {
+        const result = getComercialEmployeeOptions(mockEmployees);
+
+        expect(result).toHaveLength(2);
+        expect(result).toEqual([
+          {
+            label: 'João Silva',
+            value: '12345678-1234-5678-9012-123456789012'
+          },
+          {
+            label: 'Pedro Costa', 
+            value: '11111111-1111-1111-1111-111111111111'
+          }
+        ]);
+      });
+
+      it('should return empty array when no commercial employees exist', () => {
+        const nonCommercialEmployees = [
+          {
+            id: '87654321-4321-8765-2109-210987654321',
+            name: 'Maria Santos',
+            role: 'Técnico',
+            email: 'maria@example.com'
+          },
+          {
+            id: '22222222-2222-2222-2222-222222222222',
+            name: 'Ana Lima',
+            role: 'Administrativo',
+            email: 'ana@example.com'
+          }
+        ];
+
+        const result = getComercialEmployeeOptions(nonCommercialEmployees);
+        expect(result).toHaveLength(0);
+        expect(result).toEqual([]);
+      });
+
+      it('should handle empty employee array', () => {
+        const result = getComercialEmployeeOptions([]);
+        expect(result).toHaveLength(0);
+        expect(result).toEqual([]);
+      });
+
+      it('should handle employees with commercial role only', () => {
+        const commercialOnly = [
+          {
+            id: '12345678-1234-5678-9012-123456789012',
+            name: 'João Silva',
+            role: 'Comercial',
+            email: 'joao@example.com'
+          }
+        ];
+
+        const result = getComercialEmployeeOptions(commercialOnly);
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual({
+          label: 'João Silva',
+          value: '12345678-1234-5678-9012-123456789012'
+        });
+      });
+    });
+  });
 });
