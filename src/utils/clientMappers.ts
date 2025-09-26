@@ -181,14 +181,14 @@ export interface NewProjectForm {
   startTime?: string;
   endTime?: string;
   nextActionDate?: string; // Maps to 'next_action_date' in database
-  nextActionTime?: string; // ⚠️ WARNING: This field does NOT exist in database - will be ignored
+  nextActionTime?: string; // Maps to 'next_action_time' (TIME) in database
   location: string;
   estimatedValue?: number;
   clientId: string; // Maps to 'client_id' in database
   services: string[]; // Maps to 'service_ids' in database (note: array of strings, but DB expects integer[])
   notes?: string;
   pipelineStatus: string; // Maps to 'pipeline_status' in database
-  responsável?: string; // Maps to 'responsible_id' - ⚠️ WARNING: This field does NOT exist in database - will be ignored
+  responsável?: string; // Maps to 'responsible_id' (UUID) in database
 }
 
 // =============================================================================
@@ -276,14 +276,14 @@ export const NewProjectFormSchema = z.object({
   startTime: z.string().optional(),
   endTime: z.string().optional(),
   nextActionDate: z.string().optional(),
-  nextActionTime: z.string().optional(), // UI-only field - does NOT exist in database
+  nextActionTime: z.string().optional(), // Maps to next_action_time in database
   location: z.string().min(1, "Localização é obrigatória"),
   estimatedValue: z.number().min(0, "Valor estimado deve ser positivo").optional(),
   clientId: z.string().uuid("Client ID deve ser um UUID válido"),
   services: z.array(z.string()).min(1, "Selecione pelo menos um serviço"),
   notes: z.string().optional(),
   pipelineStatus: z.string().min(1, "Status do pipeline é obrigatório"),
-  responsável: z.string().uuid("Responsável deve ser um UUID válido").optional(), // UI-only field - does NOT exist in database
+  responsável: z.string().uuid("Responsável deve ser um UUID válido").optional(), // Maps to responsible_id in database
 });
 
 // =============================================================================
