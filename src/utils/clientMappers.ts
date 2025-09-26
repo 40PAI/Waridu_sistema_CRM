@@ -426,6 +426,26 @@ export function formToEventsInsert(input: NewProjectForm): Database.EventsInsert
   return dbPayload as Database.EventsInsert;
 }
 
+// =============================================================================
+// EMPLOYEE UTILITIES FOR PROJECT FORMS
+// =============================================================================
+
+/**
+ * Filters employees to only those with role="Comercial" and maps to option format
+ * Used in project forms to select responsible commercial person
+ * 
+ * @param employees Array of employees from useEmployees hook
+ * @returns Array of options with { label: name, value: id } for commercial employees
+ */
+export function getComercialEmployeeOptions(employees: any[]): Array<{ label: string; value: string }> {
+  return employees
+    .filter(emp => emp.role === 'Comercial')
+    .map(emp => ({
+      label: emp.name,
+      value: emp.id // UUID
+    }));
+}
+
 /**
  * Maps UI form data to database update format
  * Similar to insert but allows partial updates

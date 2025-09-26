@@ -25,6 +25,7 @@ import {
   formToClientsUpdate,
   formToEventsInsert,
   clientRowToForm,
+  getComercialEmployeeOptions,
 } from './clientMappers';
 
 // =============================================================================
@@ -517,7 +518,7 @@ describe('Events Mapping Functions', () => {
 
   describe('formToEventsInsert', () => {
     const validProjectForm: NewProjectForm = {
-      fullName: 'Projeto Teste',
+      projectName: 'Projeto Teste',
       startDate: '2025-01-15',
       startTime: '09:00',
       endDate: '2025-01-16',
@@ -530,6 +531,7 @@ describe('Events Mapping Functions', () => {
       pipelineStatus: '1º Contato',
       nextActionDate: '2025-01-20',
       nextActionTime: '10:00', // This field should be ignored
+      responsável: '87654321-4321-8765-2109-210987654321', // This field should be ignored
     };
 
     it('should map UI form to database insert format correctly', () => {
@@ -553,7 +555,7 @@ describe('Events Mapping Functions', () => {
 
     it('should enforce required fields', () => {
       const incompleteForm = {
-        fullName: '',
+        projectName: '',
         startDate: '2025-01-15',
         location: 'Luanda',
         clientId: '12345678-1234-5678-9012-123456789012',
@@ -623,7 +625,7 @@ describe('Events Mapping Functions', () => {
 
     it('should handle optional fields correctly', () => {
       const minimalForm: NewProjectForm = {
-        fullName: 'Projeto Mínimo',
+        projectName: 'Projeto Mínimo',
         startDate: '2025-01-15',
         location: 'Luanda',
         clientId: '12345678-1234-5678-9012-123456789012',
@@ -705,7 +707,7 @@ describe('Events Mapping Functions', () => {
   describe('NewProjectFormSchema validation', () => {
     it('should validate valid project form data', () => {
       const validData: NewProjectForm = {
-        fullName: 'Projeto Teste',
+        projectName: 'Projeto Teste',
         startDate: '2025-01-15',
         location: 'Luanda',
         clientId: '12345678-1234-5678-9012-123456789012',
@@ -717,7 +719,7 @@ describe('Events Mapping Functions', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should require fullName field', () => {
+    it('should require projectName field', () => {
       const invalidData = {
         startDate: '2025-01-15',
         location: 'Luanda',
@@ -732,7 +734,7 @@ describe('Events Mapping Functions', () => {
 
     it('should require at least one service', () => {
       const invalidData = {
-        fullName: 'Projeto Teste',
+        projectName: 'Projeto Teste',
         startDate: '2025-01-15',
         location: 'Luanda',
         clientId: '12345678-1234-5678-9012-123456789012',
