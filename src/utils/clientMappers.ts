@@ -87,6 +87,8 @@ export namespace Database {
     created_at: string | null; // timestamp with time zone
     updated_at: string | null; // timestamp with time zone
     next_action_date: string | null; // timestamp with time zone
+    next_action_time: string | null; // time without time zone
+    responsible_id: string | null; // uuid
   }
 
   export interface EventsInsert {
@@ -114,6 +116,8 @@ export namespace Database {
     created_at?: string | null;
     updated_at?: string | null;
     next_action_date?: string | null;
+    next_action_time?: string | null;
+    responsible_id?: string | null;
   }
 
   export interface EventsUpdate {
@@ -141,6 +145,8 @@ export namespace Database {
     created_at?: string | null;
     updated_at?: string | null;
     next_action_date?: string | null;
+    next_action_time?: string | null;
+    responsible_id?: string | null;
   }
 }
 
@@ -256,6 +262,8 @@ export const EventsInsertSchema = z.object({
   created_at: z.string().datetime().optional().nullable(),
   updated_at: z.string().datetime().optional().nullable(),
   next_action_date: z.string().datetime().optional().nullable(),
+  next_action_time: z.string().optional().nullable(), // TIME field - format: HH:mm:ss
+  responsible_id: z.string().uuid("Responsável deve ser um UUID válido").optional().nullable(),
 });
 
 /**
