@@ -113,9 +113,9 @@ export const ClientsInsertSchema = z.object({
   nif: z.string().max(50, "NIF muito longo").optional().nullable(),
   // Database constraint: lifecycle_stage check constraint
   lifecycle_stage: z.enum(['Lead', 'Oportunidade', 'Cliente Ativo', 'Cliente Perdido'])
-    .default('Lead')
     .optional()
-    .nullable(),
+    .nullable()
+    .default('Lead'),
   sector: z.string().max(255, "Setor muito longo").optional().nullable(),
   persona: z.string().max(255, "Persona muito longa").optional().nullable(),
   position: z.string().max(255, "Cargo muito longo").optional().nullable(),
@@ -145,6 +145,9 @@ export const NewClientFormSchema = z.object({
  * Useful for cleaning form data before database operations
  */
 export function stripUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  if (!obj || typeof obj !== 'object') {
+    return {};
+  }
   const cleaned: Partial<T> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined) {
@@ -180,21 +183,23 @@ export function formToClientsInsert(input: NewClientForm): Database.ClientsInser
   const normalizedPhone = normalizePhone(input.phone);
   
   // Map UI fields to database fields (whitelist approach)
-  const dbPayload: Database.ClientsInsert = {
+  const dbPayload: Partial<Database.ClientsInsert> = {
     name: input.fullName, // Map fullName → name
-    company: input.company || null,
-    email: input.email || null,
-    phone: normalizedPhone,
-    nif: input.nif || null,
-    sector: input.sector || null,
     lifecycle_stage: input.lifecycleStage || 'Lead', // Default to 'Lead' if empty
-    notes: input.notes || null,
-    // NOTE: roleOrDepartment is intentionally NOT included (UI-only field)
-    // NOTE: created_at/updated_at are NOT included (handled by database)
   };
 
-  // Remove undefined values while keeping null values
-  return stripUndefined(dbPayload);
+  // Only add optional fields if they have meaningful values
+  if (input.company) dbPayload.company = input.company;
+  if (input.email) dbPayload.email = input.email;
+  if (normalizedPhone) dbPayload.phone = normalizedPhone;
+  if (input.nif) dbPayload.nif = input.nif;
+  if (input.sector) dbPayload.sector = input.sector;
+  if (input.notes) dbPayload.notes = input.notes;
+
+  // NOTE: roleOrDepartment is intentionally NOT included (UI-only field)
+  // NOTE: created_at/updated_at are NOT included (handled by database)
+
+  return dbPayload as Database.ClientsInsert;
 }
 
 /**

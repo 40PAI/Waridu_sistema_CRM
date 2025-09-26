@@ -11,6 +11,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { HelpCircle } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
+import { 
+  NewClientForm, 
+  NewClientFormSchema, 
+  formToClientsInsert, 
+  clientRowToForm 
+} from "@/utils/clientMappers";
 
 interface Props {
   open: boolean;

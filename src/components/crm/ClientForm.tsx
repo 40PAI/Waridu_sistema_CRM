@@ -8,34 +8,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { clientSchema, type ClientFormData } from "@/schemas/clientSchema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NewClientFormSchema, type NewClientForm, formToClientsInsert } from "@/utils/clientMappers";
 import { showSuccess, showError } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
-import { MultiSelectServices } from "@/components/MultiSelectServices";
 
 interface ClientFormProps {
-  onSubmit: (data: ClientFormData) => Promise<void>;
-  initialData?: Partial<ClientFormData>;
+  onSubmit: (data: NewClientForm) => Promise<void>;
+  initialData?: Partial<NewClientForm>;
   loading?: boolean;
 }
 
+const SECTOR_OPTIONS = ["Tecnologia", "Financeiro", "Saúde", "Construção", "Educação", "Retail", "Outro"];
+const LIFECYCLE_OPTIONS = ["Lead", "Oportunidade", "Cliente Ativo", "Cliente Perdido"];
+
 const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading }) => {
-  const form = useForm<ClientFormData>({
-    resolver: zodResolver(clientSchema),
+  const form = useForm<NewClientForm>({
+    resolver: zodResolver(NewClientFormSchema),
     defaultValues: {
-      name: initialData?.name || "",
-      nif: initialData?.nif || "",
+      fullName: initialData?.fullName || "",
+      company: initialData?.company || "",
       email: initialData?.email || "",
       phone: initialData?.phone || "",
-      address: initialData?.address || "",
+      nif: initialData?.nif || "",
+      sector: initialData?.sector || "",
+      lifecycleStage: initialData?.lifecycleStage || "Lead",
+      roleOrDepartment: initialData?.roleOrDepartment || "",
       notes: initialData?.notes || "",
-      sector: initialData?.sector,
-      persona: initialData?.persona,
-      service_ids: initialData?.service_ids || [], // <-- use service_ids (array of service ids)
     },
   });
 
-  const handleSubmit = async (data: ClientFormData) => {
+  const handleSubmit = async (data: NewClientForm) => {
     try {
       await onSubmit(data);
       form.reset();
@@ -49,12 +52,26 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="name"
+          name="fullName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome *</FormLabel>
+              <FormLabel>Nome Completo *</FormLabel>
               <FormControl>
-                <Input placeholder="Nome do cliente" {...field} />
+                <Input placeholder="Nome completo do cliente" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="company"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Empresa</FormLabel>
+              <FormControl>
+                <Input placeholder="Nome da empresa" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -105,27 +122,24 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
 
         <FormField
           control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Endereço</FormLabel>
-              <FormControl>
-                <Input placeholder="Endereço completo" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="sector"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Setor</FormLabel>
-              <FormControl>
-                <Input placeholder="Setor (ex: Tecnologia)" {...field} />
-              </FormControl>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o setor" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {SECTOR_OPTIONS.map((sector) => (
+                    <SelectItem key={sector} value={sector}>
+                      {sector}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -133,12 +147,37 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
 
         <FormField
           control={form.control}
-          name="persona"
+          name="lifecycleStage"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Persona</FormLabel>
+              <FormLabel>Ciclo de Vida</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o ciclo de vida" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {LIFECYCLE_OPTIONS.map((stage) => (
+                    <SelectItem key={stage} value={stage}>
+                      {stage}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="roleOrDepartment"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Função na Empresa</FormLabel>
               <FormControl>
-                <Input placeholder="Persona (ex: CEO)" {...field} />
+                <Input placeholder="Ex: Diretor de TI, Gerente de Marketing" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -159,19 +198,6 @@ const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading 
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="service_ids"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Serviços de Interesse</FormLabel>
-              <FormControl>
-                <MultiSelectServices selected={field.value} onChange={field.onChange} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <Button type="submit" disabled={loading}>
           {loading ? "Salvando..." : "Salvar Cliente"}
