@@ -1,0 +1,83 @@
+# Prompt
+
+Tarefa: Crie mapeadores, esquema Zod e testes para alinhar UI↔BD (Supabase).
+
+## Contexto do Projeto
+
+* BD: Supabase (Postgres). O esquema abaixo é a fonte de verdade.
+* Gere tipos TypeScript a partir do esquema (tipos `Row/Insert/Update`).
+* UI tem um formulário “Novo Cliente” com campos abaixo.
+
+## Esquema da Tabela (DDL)
+
+```sql
+create table public.clients (
+  id uuid not null default gen_random_uuid(),
+  name text not null,
+  nif text null,
+  email text null,
+  phone text null,
+  address text null,
+  notes text null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  lifecycle_stage text default 'Lead',
+  sector text null,
+  persona text null,
+  company text null,
+  tags text[] null,
+  constraint clients_pkey primary key (id),
+  constraint clients_lifecycle_stage_check check (
+    lifecycle_stage = any (array['Lead','MQL','SQL','Ativo','Perdido'])
+  )
+);
+```
+
+## Campos do Formulário (UI → DTO)
+
+```ts
+{
+  fullName: string,
+  company: string,
+  email?: string,
+  phone?: string,
+  nif?: string,
+  sector?: string,
+  lifecycleStage?: 'Lead' | 'Oportunidade' | 'Cliente Ativo' | 'Cliente Perdido',
+  roleOrDepartment?: string,   // não existe no BD; NÃO enviar
+  notes?: string
+}
+```
+
+## Requisitos de Saída
+
+1. Defina tipos importáveis: `Database` (gerados do Supabase) e um tipo DTO `NewClientForm`.
+2. Crie um esquema Zod `ClientsInsertSchema` coerente com o BD (inclua o check enum).
+3. Implemente funções utilitárias:
+
+   * `stripUndefined(obj)`
+   * `normalizePhone(s)` (mantém apenas dígitos)
+4. Mapeador UI→BD (whitelist):
+
+   * `formToClientsInsert(input: NewClientForm): Database['public']['Tables']['clients']['Insert']`
+   * NÃO inclua `roleOrDepartment` no payload.
+   * NÃO envie `created_at/updated_at`.
+   * Default de `lifecycle_stage` = `'Lead'` se vazio.
+5. Mapeador BD→UI (opcional):
+
+   * `clientRowToForm(row: Database['public']['Tables']['clients']['Row']): NewClientForm`
+6. Exemplo de uso com Supabase:
+
+   * `await supabase.from('clients').insert(formToClientsInsert(form)).select().single()`
+   * Variante `upsert` com `{ onConflict: 'id' }`
+7. Testes (Vitest ou Jest):
+
+   * Garante que campos inexistentes (ex.: `position`, `roleOrDepartment`) NÃO entram no payload.
+   * Garante enum válido para `lifecycle_stage`.
+   * Garante normalização de `phone`.
+
+## Observações
+
+* Comente o código explicando cada decisão de mapeamento.
+* Não invente colunas fora do DDL.
+* Escreva tudo no mesmo arquivo para fácil copy/paste.
