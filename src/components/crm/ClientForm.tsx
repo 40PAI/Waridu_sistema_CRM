@@ -20,7 +20,7 @@ interface ClientFormProps {
 }
 
 const SECTOR_OPTIONS = ["Tecnologia", "Financeiro", "Saúde", "Construção", "Educação", "Retail", "Outro"];
-const LIFECYCLE_OPTIONS = ["Lead", "Oportunidade", "Cliente Ativo", "Cliente Perdido"];
+const LIFECYCLE_OPTIONS = ["Lead", "MQL", "SQL", "Ativo", "Perdido"];
 
 const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, initialData, loading }) => {
   const form = useForm<NewClientForm>({
