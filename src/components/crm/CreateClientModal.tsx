@@ -41,7 +41,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
   const [phone, setPhone] = React.useState("");
   const [nif, setNif] = React.useState("");
   const [sector, setSector] = React.useState("");
-  const [position, setPosition] = React.useState(""); // Cargo/Departamento
+  const [jobTitle, setJobTitle] = React.useState(""); // Cargo/Departamento
   const [lifecycleStage, setLifecycleStage] = React.useState("Lead");
   const [notes, setNotes] = React.useState("");
 
@@ -58,7 +58,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         setPhone(client.phone || "");
         setNif(client.nif || "");
         setSector(client.sector || "");
-        setPosition(client.position || "");
+        setJobTitle(client.job_title || "");
         setLifecycleStage(client.lifecycle_stage || "Lead");
         setNotes(client.notes || "");
       } else {
@@ -68,7 +68,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         setPhone("");
         setNif("");
         setSector("");
-        setPosition("");
+        setJobTitle("");
         setLifecycleStage("Lead");
         setNotes("");
       }
@@ -112,7 +112,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
         phone: phone.trim() || null,
         nif: nif.trim() || null,
         sector: sector || null,
-        position: position.trim() || null, // Cargo/Departamento
+        job_title: jobTitle.trim() || null, // Cargo/Departamento
         lifecycle_stage: lifecycleStage,
         notes: notes.trim() || null,
       };
@@ -212,7 +212,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="client-position">Cargo/Departamento</Label>
+                  <Label htmlFor="client-job-title">Cargo/Departamento</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -223,9 +223,9 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
                   </Tooltip>
                 </div>
                 <Input 
-                  id="client-position"
-                  value={position} 
-                  onChange={(e) => setPosition(e.target.value)} 
+                  id="client-job-title"
+                  value={jobTitle} 
+                  onChange={(e) => setJobTitle(e.target.value)} 
                   placeholder="Ex: Diretor de TI, Gestor de Compras..."
                 />
               </div>

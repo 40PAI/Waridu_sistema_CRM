@@ -156,6 +156,8 @@ export type TechnicianCategory = {
 };
 
 /* Client types for CRM */
+// Mantendo descrições antigas: "Lead" | "Oportunidade" | "Cliente Ativo" | "Cliente Perdido"
+// Mas usando novos valores da base de dados:
 export type LifecycleStage = "Lead" | "MQL" | "SQL" | "Ativo" | "Perdido";
 
 export interface Client {
@@ -165,10 +167,9 @@ export interface Client {
   nif?: string | null;
   email?: string | null;
   phone?: string | null;
-  address?: string | null;
   notes?: string | null;
   sector?: string | null;
-  persona?: string | null;
+  job_title?: string | null; // Cargo/Departamento (mapeado de roleOrDepartment)
   service_ids?: string[]; // Changed from tags to service_ids
   lifecycle_stage?: LifecycleStage;
   created_at?: string | null;
