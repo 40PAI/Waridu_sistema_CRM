@@ -424,12 +424,15 @@ export function formToEventsInsert(input: NewProjectForm): Database.EventsInsert
   if (input.notes !== undefined) dbPayload.notes = input.notes; // Map notes → notes (include empty strings)
   dbPayload.next_action_date = next_action_date; // Always include next_action_date (null or timestamp)
   
-  // ⚠️ CAMPOS IGNORADOS: Os seguintes campos UI não existem na base de dados DDL:
-  // - input.nextActionTime → next_action_time (campo não existe)
-  // - input.responsável → responsible_id (campo não existe)
+  // Map UI-only fields to database fields (NOW SUPPORTED in DDL)
+  if (input.nextActionTime !== undefined && input.nextActionTime !== '') {
+    dbPayload.next_action_time = `${input.nextActionTime}:00`; // Map nextActionTime → next_action_time (TIME format)
+  }
+  if (input.responsável !== undefined && input.responsável !== '') {
+    dbPayload.responsible_id = input.responsável; // Map responsável → responsible_id (UUID)
+  }
   
   // NOTE: created_at is handled by database defaults
-  // NOTE: Only fields from DDL are included
 
   return dbPayload as Database.EventsInsert;
 }

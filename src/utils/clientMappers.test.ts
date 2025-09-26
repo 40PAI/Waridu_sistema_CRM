@@ -530,8 +530,8 @@ describe('Events Mapping Functions', () => {
       notes: 'Projeto importante',
       pipelineStatus: '1º Contato',
       nextActionDate: '2025-01-20',
-      nextActionTime: '10:00', // This field should be ignored
-      responsável: '87654321-4321-8765-2109-210987654321', // This field should be ignored
+      nextActionTime: '10:00', // UI Próxima Ação - Hora => BD next_action_time
+      responsável: '87654321-4321-8765-2109-210987654321', // UI Responsável Comercial => BD responsible_id
     };
 
     it('should map UI form to database insert format correctly', () => {
@@ -550,6 +550,8 @@ describe('Events Mapping Functions', () => {
       expect(result.end_time).toBe('18:00:00');
       expect(result.status).toBe('Planejado'); // Default status
       expect(result.next_action_date).toBe('2025-01-20T00:00:00.000Z');
+      expect(result.next_action_time).toBe('10:00:00'); // NEW: nextActionTime mapped to next_action_time
+      expect(result.responsible_id).toBe('87654321-4321-8765-2109-210987654321'); // NEW: responsável mapped to responsible_id
       expect(result.updated_at).toBeDefined();
     });
 
@@ -643,12 +645,6 @@ describe('Events Mapping Functions', () => {
       expect(result.next_action_date).toBeNull();
     });
 
-    it('should ignore nextActionTime field (does not exist in database)', () => {
-      const result = formToEventsInsert(validProjectForm);
-      
-      // nextActionTime should not appear in the result
-      expect('next_action_time' in result).toBe(false);
-    });
 
     it('should only include fields with meaningful values', () => {
       const formWithEmptyOptionals = {
@@ -667,6 +663,48 @@ describe('Events Mapping Functions', () => {
       expect(result.start_time).toBe(':00'); // Empty string becomes ":00"
       expect(result.end_time).toBe(':00');
       expect(result.next_action_date).toBeNull(); // Empty date becomes null
+    });
+
+    it('should map nextActionTime and responsável fields to database correctly', () => {
+      const result = formToEventsInsert(validProjectForm);
+      
+      // These fields should now be mapped to database fields
+      expect(result.next_action_time).toBe('10:00:00'); // UI nextActionTime → BD next_action_time
+      expect(result.responsible_id).toBe('87654321-4321-8765-2109-210987654321'); // UI responsável → BD responsible_id
+      expect(result).not.toHaveProperty('nextActionTime'); // Original UI field should not exist
+      expect(result).not.toHaveProperty('responsável'); // Original UI field should not exist
+    });
+
+    it('should handle empty nextActionTime and responsável fields', () => {
+      const formWithEmptyFields: NewProjectForm = {
+        ...validProjectForm,
+        nextActionTime: '', // Empty string
+        responsável: '', // Empty string
+      };
+      
+      const result = formToEventsInsert(formWithEmptyFields);
+      
+      // Empty strings should not be mapped to database
+      expect(result.next_action_time).toBeUndefined();
+      expect(result.responsible_id).toBeUndefined();
+    });
+
+    it('should handle missing nextActionTime and responsável fields', () => {
+      const formWithoutOptionalFields: NewProjectForm = {
+        projectName: 'Projeto Sem Opcionais',
+        startDate: '2025-01-15',
+        location: 'Luanda',
+        clientId: '12345678-1234-5678-9012-123456789012',
+        services: ['1'],
+        pipelineStatus: '1º Contato',
+        // nextActionTime and responsável are undefined
+      };
+      
+      const result = formToEventsInsert(formWithoutOptionalFields);
+      
+      // Undefined fields should not be included in database payload
+      expect(result.next_action_time).toBeUndefined();
+      expect(result.responsible_id).toBeUndefined();
     });
   });
 
