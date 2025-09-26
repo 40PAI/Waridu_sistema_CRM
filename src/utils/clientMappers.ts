@@ -1,8 +1,8 @@
 /**
- * Client Database Mappers, Zod Schema, and Utilities
+ * Database Mappers, Zod Schema, and Utilities
  * 
  * This file provides type-safe mapping between UI forms and Supabase database
- * for the clients table, along with validation schemas and utility functions.
+ * for clients and events tables, along with validation schemas and utility functions.
  */
 
 import { z } from "zod";
@@ -60,6 +60,88 @@ export namespace Database {
     company?: string | null;
     job_title?: string | null;
   }
+
+  // Events table types based on actual database schema
+  export interface EventsRow {
+    id: number;
+    name: string | null;
+    start_date: string | null; // timestamp with time zone
+    end_date: string | null; // timestamp with time zone
+    location: string | null;
+    start_time: string | null;
+    end_time: string | null;
+    revenue: number | null; // numeric
+    status: string | null;
+    description: string | null; // text
+    roster: any; // jsonb
+    expenses: any; // jsonb
+    pipeline_status: string | null;
+    estimated_value: number | null; // numeric
+    service_ids: number[] | null; // integer array
+    client_id: string | null; // uuid
+    notes: string | null; // text
+    pipeline_phase_id: string | null; // uuid
+    pipeline_phase_label: string | null;
+    pipeline_rank: number | null; // integer
+    tags: string[] | null; // varchar array
+    created_at: string | null; // timestamp with time zone
+    updated_at: string | null; // timestamp with time zone
+    next_action_date: string | null; // timestamp with time zone
+  }
+
+  export interface EventsInsert {
+    id?: number;
+    name?: string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    location?: string | null;
+    start_time?: string | null;
+    end_time?: string | null;
+    revenue?: number | null;
+    status?: string | null;
+    description?: string | null;
+    roster?: any;
+    expenses?: any;
+    pipeline_status?: string | null;
+    estimated_value?: number | null;
+    service_ids?: number[] | null;
+    client_id?: string | null;
+    notes?: string | null;
+    pipeline_phase_id?: string | null;
+    pipeline_phase_label?: string | null;
+    pipeline_rank?: number | null;
+    tags?: string[] | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    next_action_date?: string | null;
+  }
+
+  export interface EventsUpdate {
+    id?: number;
+    name?: string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    location?: string | null;
+    start_time?: string | null;
+    end_time?: string | null;
+    revenue?: number | null;
+    status?: string | null;
+    description?: string | null;
+    roster?: any;
+    expenses?: any;
+    pipeline_status?: string | null;
+    estimated_value?: number | null;
+    service_ids?: number[] | null;
+    client_id?: string | null;
+    notes?: string | null;
+    pipeline_phase_id?: string | null;
+    pipeline_phase_label?: string | null;
+    pipeline_rank?: number | null;
+    tags?: string[] | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    next_action_date?: string | null;
+  }
 }
 
 // =============================================================================
@@ -77,9 +159,29 @@ export interface NewClientForm {
   phone?: string;
   nif?: string;
   sector?: string;
-  lifecycleStage?: 'Lead' | 'MQL' | 'SQL' | 'Ativo' | 'Perdido';
+  lifecycleStage?: 'Lead' | 'Oportunidade' | 'Cliente Ativo' | 'Cliente Perdido';
   roleOrDepartment?: string; // UI-only field, not stored in database
   notes?: string;
+}
+
+/**
+ * Form data type for the "Novo Projeto" UI form
+ * Maps to user interface fields, may contain fields not in database
+ */
+export interface NewProjectForm {
+  fullName: string; // Maps to 'name' in database
+  startDate: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
+  nextActionDate?: string; // Maps to 'next_action_date' in database
+  nextActionTime?: string; // ⚠️ WARNING: This field does NOT exist in database
+  location: string;
+  estimatedValue?: number;
+  clientId: string; // Maps to 'client_id' in database
+  services: string[]; // Maps to 'service_ids' in database (note: array of strings, but DB expects integer[])
+  notes?: string;
+  pipelineStatus: string; // Maps to 'pipeline_status' in database
 }
 
 // =============================================================================
