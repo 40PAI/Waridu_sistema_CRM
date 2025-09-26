@@ -112,7 +112,7 @@ describe('Zod Schema Validation', () => {
     });
 
     it('should validate lifecycle_stage enum', () => {
-      const validStages = ['Lead', 'MQL', 'SQL', 'Ativo', 'Perdido'];
+      const validStages = ['Lead', 'Oportunidade', 'Cliente Ativo', 'Cliente Perdido'];
       
       for (const stage of validStages) {
         const data = { name: 'Test', lifecycle_stage: stage };

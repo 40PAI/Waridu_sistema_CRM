@@ -99,8 +99,8 @@ export const ClientsInsertSchema = z.object({
   notes: z.string().optional().nullable(),
   created_at: z.string().datetime().optional().nullable(),
   updated_at: z.string().datetime().optional().nullable(),
-  // Database constraint: lifecycle_stage check constraint from DDL
-  lifecycle_stage: z.enum(['Lead', 'MQL', 'SQL', 'Ativo', 'Perdido'])
+  // Database constraint: lifecycle_stage check constraint
+  lifecycle_stage: z.enum(['Lead', 'Oportunidade', 'Cliente Ativo', 'Cliente Perdido'])
     .optional()
     .nullable()
     .default('Lead'),
@@ -119,7 +119,7 @@ export const NewClientFormSchema = z.object({
   phone: z.string().optional(),
   nif: z.string().optional(),
   sector: z.string().optional(),
-  lifecycleStage: z.enum(['Lead', 'MQL', 'SQL', 'Ativo', 'Perdido']).optional(),
+  lifecycleStage: z.enum(['Lead', 'Oportunidade', 'Cliente Ativo', 'Cliente Perdido']).optional(),
   roleOrDepartment: z.string().optional(), // UI-only field
   notes: z.string().optional(),
 });

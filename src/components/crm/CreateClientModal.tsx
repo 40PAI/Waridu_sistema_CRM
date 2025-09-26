@@ -26,7 +26,7 @@ interface Props {
 }
 
 const SECTOR_OPTIONS = ["Tecnologia", "Financeiro", "Saúde", "Construção", "Educação", "Retail", "Outro"];
-const LIFECYCLE_OPTIONS = ["Lead", "MQL", "SQL", "Ativo", "Perdido"];
+const LIFECYCLE_OPTIONS = ["Lead", "Oportunidade", "Cliente Ativo", "Cliente Perdido"];
 
 function isEmailValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

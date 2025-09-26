@@ -156,9 +156,7 @@ export type TechnicianCategory = {
 };
 
 /* Client types for CRM */
-// Mantendo descrições antigas: "Lead" | "Oportunidade" | "Cliente Ativo" | "Cliente Perdido"
-// Mas usando novos valores da base de dados:
-export type LifecycleStage = "Lead" | "MQL" | "SQL" | "Ativo" | "Perdido";
+export type LifecycleStage = "Lead" | "Oportunidade" | "Cliente Ativo" | "Cliente Perdido";
 
 export interface Client {
   id: string;
