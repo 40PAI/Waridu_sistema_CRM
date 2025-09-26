@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 
-export type LifecycleStage = "Lead" | "Oportunidade" | "Cliente Ativo" | "Cliente Perdido";
+// Mantendo descrições antigas: "Lead" | "Oportunidade" | "Cliente Ativo" | "Cliente Perdido"
+// Mas usando novos valores da base de dados:
+export type LifecycleStage = "Lead" | "MQL" | "SQL" | "Ativo" | "Perdido";
 
 export type Client = {
   id: string;
@@ -12,7 +14,7 @@ export type Client = {
   phone?: string | null; // Telefone
   nif?: string | null; // NIF (opcional)
   sector?: string | null; // Setor
-  position?: string | null; // Cargo/Departamento
+  job_title?: string | null; // Cargo/Departamento (mapeado de roleOrDepartment)
   lifecycle_stage?: LifecycleStage; // Ciclo de Vida
   notes?: string | null; // Observações
   created_at?: string | null;
