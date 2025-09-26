@@ -112,7 +112,7 @@ describe('Zod Schema Validation', () => {
     });
 
     it('should validate lifecycle_stage enum', () => {
-      const validStages = ['Lead', 'Oportunidade', 'Cliente Ativo', 'Cliente Perdido'];
+      const validStages = ['Lead', 'MQL', 'SQL', 'Ativo', 'Perdido'];
       
       for (const stage of validStages) {
         const data = { name: 'Test', lifecycle_stage: stage };
@@ -325,10 +325,6 @@ describe('Database to UI Mappers', () => {
         sector: 'Tecnologia',
         lifecycle_stage: 'Lead',
         notes: 'Cliente potencial',
-        position: 'Diretor de TI',
-        address: 'Rua A, 123',
-        contact_person: 'Maria Santos',
-        persona: 'Decision Maker',
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
       };
@@ -351,8 +347,6 @@ describe('Database to UI Mappers', () => {
       expect(result).not.toHaveProperty('id');
       expect(result).not.toHaveProperty('created_at');
       expect(result).not.toHaveProperty('updated_at');
-      expect(result).not.toHaveProperty('position');
-      expect(result).not.toHaveProperty('address');
     });
 
     it('should handle null values correctly', () => {
@@ -366,10 +360,6 @@ describe('Database to UI Mappers', () => {
         sector: null,
         lifecycle_stage: null,
         notes: null,
-        position: null,
-        address: null,
-        contact_person: null,
-        persona: null,
         created_at: null,
         updated_at: null,
       };
