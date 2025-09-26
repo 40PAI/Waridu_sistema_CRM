@@ -307,6 +307,20 @@ export function normalizePhone(phone: string | undefined | null): string | null 
   return normalized.length > 0 ? normalized : null;
 }
 
+/**
+ * Converts date string and time string to ISO datetime
+ * Used for combining separate date/time inputs into database timestamp
+ */
+export function combineDateTime(dateStr: string, timeStr?: string): string {
+  if (!dateStr) {
+    throw new Error("Data é obrigatória");
+  }
+  
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const [hh, mm, ss] = (timeStr || "00:00:00").split(":").map((v) => Number(v));
+  return new Date(Date.UTC(y, m - 1, d, hh || 0, mm || 0, ss || 0)).toISOString();
+}
+
 // =============================================================================
 // UI → DATABASE MAPPERS
 // =============================================================================
@@ -340,6 +354,71 @@ export function formToClientsInsert(input: NewClientForm): Database.ClientsInser
   // NOTE: Only fields from DDL are included
 
   return dbPayload as Database.ClientsInsert;
+}
+
+/**
+ * Maps UI project form data to database events insert format
+ * Applies whitelist pattern - only known database fields are included
+ * 
+ * @param input Form data from the "Novo Projeto" UI
+ * @returns Database insert object ready for Supabase events table
+ */
+export function formToEventsInsert(input: NewProjectForm): Database.EventsInsert {
+  // Validate required fields
+  if (!input.fullName) {
+    throw new Error("Nome do projeto é obrigatório");
+  }
+  if (!input.startDate) {
+    throw new Error("Data de início é obrigatória");
+  }
+  if (!input.clientId) {
+    throw new Error("Cliente é obrigatório");
+  }
+  if (!input.location) {
+    throw new Error("Localização é obrigatória");
+  }
+
+  // Convert date/time combinations to ISO timestamps
+  const start_date = combineDateTime(input.startDate, input.startTime);
+  const end_date = input.endDate ? combineDateTime(input.endDate, input.endTime) : start_date;
+  
+  // Convert next action date if provided
+  const next_action_date = input.nextActionDate ? combineDateTime(input.nextActionDate) : null;
+  
+  // Convert services array from strings to numbers (database expects integer[])
+  const service_ids = input.services.map(serviceId => {
+    const numericId = parseInt(serviceId, 10);
+    if (isNaN(numericId)) {
+      throw new Error(`Service ID inválido: ${serviceId}. Deve ser um número.`);
+    }
+    return numericId;
+  });
+
+  // Map UI fields to database fields (whitelist approach - only DDL-approved fields)
+  const dbPayload: Partial<Database.EventsInsert> = {
+    name: input.fullName, // Map fullName → name
+    start_date: start_date,
+    end_date: end_date,
+    location: input.location,
+    client_id: input.clientId, // Map clientId → client_id
+    service_ids: service_ids, // Map services → service_ids (converted to integers)
+    pipeline_status: input.pipelineStatus, // Map pipelineStatus → pipeline_status
+    status: 'Planejado', // Default status for new projects
+    updated_at: new Date().toISOString(),
+  };
+
+  // Only add optional fields if they have meaningful values (DDL fields only)
+  if (input.startTime) dbPayload.start_time = `${input.startTime}:00`; // Map startTime → start_time
+  if (input.endTime) dbPayload.end_time = `${input.endTime}:00`; // Map endTime → end_time
+  if (input.estimatedValue !== undefined) dbPayload.estimated_value = input.estimatedValue; // Map estimatedValue → estimated_value
+  if (input.notes) dbPayload.notes = input.notes; // Map notes → notes
+  if (next_action_date) dbPayload.next_action_date = next_action_date; // Map nextActionDate → next_action_date
+  
+  // NOTE: nextActionTime field does NOT exist in database - it's ignored
+  // NOTE: created_at is handled by database defaults
+  // NOTE: Only fields from DDL are included
+
+  return dbPayload as Database.EventsInsert;
 }
 
 /**
