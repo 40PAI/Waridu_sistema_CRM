@@ -172,23 +172,23 @@ export interface NewClientForm {
 
 /**
  * Form data type for the "Novo Projeto" UI form
- * Maps to user interface fields, may contain fields not in database
+ * All 14 fields required for complete UI ↔ BD alignment
  */
 export interface NewProjectForm {
-  projectName: string; // Maps to 'name' in database  
-  startDate: string;
-  endDate?: string;
-  startTime?: string;
-  endTime?: string;
-  nextActionDate?: string; // Maps to 'next_action_date' in database
-  nextActionTime?: string; // Maps to 'next_action_time' (TIME) in database
-  location: string;
-  estimatedValue?: number;
-  clientId: string; // Maps to 'client_id' in database
-  services: string[]; // Maps to 'service_ids' in database (note: array of strings, but DB expects integer[])
-  notes?: string;
-  pipelineStatus: string; // Maps to 'pipeline_status' in database
-  responsável?: string; // Maps to 'responsible_id' (UUID) in database
+  projectName: string;        // → name
+  clientId: string;           // → client_id (UUID)
+  location: string;           // → location
+  startDate: string;          // → start_date (YYYY-MM-DD)
+  endDate?: string;           // → end_date (YYYY-MM-DD | null)
+  startTime?: string;         // → start_time (HH:mm | null)
+  endTime?: string;           // → end_time (HH:mm | null)
+  nextActionDate?: string;    // → next_action_date (YYYY-MM-DD | null)
+  nextActionTime?: string;    // → next_action_time (HH:mm | null)
+  services: string[];         // → service_ids (integer[])
+  estimatedValue?: number;    // → estimated_value (number | null)
+  pipelineStatus: string;     // → pipeline_status
+  notes?: string;             // → notes
+  responsável?: string;       // → responsible_id (UUID | null)
 }
 
 // =============================================================================
