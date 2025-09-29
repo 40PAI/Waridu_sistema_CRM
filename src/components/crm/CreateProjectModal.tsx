@@ -24,6 +24,7 @@ import usePipelineStages from "@/hooks/usePipelineStages";
 import { useEmployees } from "@/hooks/useEmployees";
 import { supabase } from "@/integrations/supabase/client"; // Import supabase for createProject
 import { useQueryClient } from "@tanstack/react-query"; // Import useQueryClient
+import { useIdPrefix } from "@/hooks/useIdPrefix";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -107,6 +108,12 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
   const [isCreateClientOpen, setIsCreateClientOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  
+  // Generate unique IDs for form fields
+  const getId = useIdPrefix('np');
+  
+  // Ref for first field focus
+  const firstFieldRef = React.useRef<HTMLInputElement>(null);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -148,6 +155,11 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
         nextActionDate: "",
         nextActionTime: "",
       });
+      
+      // Focus first field for accessibility
+      setTimeout(() => {
+        firstFieldRef.current?.focus();
+      }, 100);
     }
   }, [open, preselectedClientId, defaultPhaseId, form, stages, employees]);
 
@@ -218,9 +230,14 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl mx-auto max-h-[80vh] overflow-auto">
+        <DialogContent 
+          className="max-w-6xl mx-auto max-h-[80vh] overflow-auto"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="np-title"
+        >
           <DialogHeader>
-            <DialogTitle>Novo Projeto</DialogTitle>
+            <DialogTitle id="np-title">Novo Projeto</DialogTitle>
           </DialogHeader>
 
           <Form {...form}>
@@ -232,7 +249,7 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                     name="clientId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Cliente *</FormLabel>
+                        <FormLabel htmlFor={getId('clientId')}>Cliente *</FormLabel>
                         <FormControl>
                           <div className="flex gap-2">
                             <Combobox
@@ -243,7 +260,13 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                               searchPlaceholder="Pesquisar cliente..."
                               className="flex-1"
                             />
-                            <Button type="button" variant="outline" onClick={() => setIsCreateClientOpen(true)} title="Criar Novo Cliente">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => setIsCreateClientOpen(true)} 
+                              title="Criar Novo Cliente"
+                              aria-label="Criar Novo Cliente"
+                            >
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
@@ -256,18 +279,32 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="name" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nome do Projeto *</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <FormLabel htmlFor={getId('name')}>Nome do Projeto *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            id={getId('name')}
+                            name="name"
+                            autoComplete="off"
+                            ref={firstFieldRef}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
 
                     <FormField control={form.control} name="responsibleId" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Responsável Comercial</FormLabel>
+                        <FormLabel htmlFor={getId('responsibleId')} id={getId('responsibleId-label')}>Responsável Comercial</FormLabel>
                         <FormControl>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger>
+                          <Select 
+                            value={field.value} 
+                            onValueChange={field.onChange}
+                          >
+                            <SelectTrigger 
+                              id={getId('responsibleId')}
+                              aria-labelledby={getId('responsibleId-label')}
+                            >
                               <SelectValue placeholder="Selecione um responsável" />
                             </SelectTrigger>
                             <SelectContent>
@@ -287,15 +324,31 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Data de Início *</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormLabel htmlFor={getId('startDate')}>Data de Início *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="date" 
+                            {...field} 
+                            id={getId('startDate')}
+                            name="startDate"
+                            autoComplete="off"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="startTime" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hora de Início *</FormLabel>
-                        <FormControl><Input type="time" {...field} /></FormControl>
+                        <FormLabel htmlFor={getId('startTime')}>Hora de Início *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="time" 
+                            {...field} 
+                            id={getId('startTime')}
+                            name="startTime"
+                            autoComplete="off"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -304,15 +357,31 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="endDate" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Data de Fim</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormLabel htmlFor={getId('endDate')}>Data de Fim</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="date" 
+                            {...field} 
+                            id={getId('endDate')}
+                            name="endDate"
+                            autoComplete="off"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hora de Fim</FormLabel>
-                        <FormControl><Input type="time" {...field} /></FormControl>
+                        <FormLabel htmlFor={getId('endTime')}>Hora de Fim</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="time" 
+                            {...field} 
+                            id={getId('endTime')}
+                            name="endTime"
+                            autoComplete="off"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -321,15 +390,31 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="nextActionDate" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Próxima Ação - Data</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormLabel htmlFor={getId('nextActionDate')}>Próxima Ação - Data</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="date" 
+                            {...field} 
+                            id={getId('nextActionDate')}
+                            name="nextActionDate"
+                            autoComplete="off"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="nextActionTime" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Próxima Ação - Hora</FormLabel>
-                        <FormControl><Input type="time" {...field} /></FormControl>
+                        <FormLabel htmlFor={getId('nextActionTime')}>Próxima Ação - Hora</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="time" 
+                            {...field} 
+                            id={getId('nextActionTime')}
+                            name="nextActionTime"
+                            autoComplete="off"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -338,15 +423,31 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="location" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Local *</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <FormLabel htmlFor={getId('location')}>Local *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            id={getId('location')}
+                            name="location"
+                            autoComplete="street-address"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="estimatedValue" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor Estimado</FormLabel>
-                        <FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} /></FormControl>
+                        <FormLabel htmlFor={getId('estimatedValue')}>Valor Estimado</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            {...field} 
+                            id={getId('estimatedValue')}
+                            name="estimatedValue"
+                            autoComplete="off"
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} 
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -356,18 +457,34 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
 
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium mb-2">Serviços de Interesse *</h3>
+                <Label id={getId('serviceIds-label')} className="text-sm font-medium mb-2 block">
+                  Serviços de Interesse *
+                </Label>
                 <FormField control={form.control} name="serviceIds" render={({ field }) => (
-                  <FormControl><MultiSelectServices selected={field.value} onChange={field.onChange} placeholder="Selecione serviços..." /></FormControl>
+                  <FormControl>
+                    <MultiSelectServices 
+                      selected={field.value} 
+                      onChange={field.onChange} 
+                      placeholder="Selecione serviços..."
+                      aria-labelledby={getId('serviceIds-label')}
+                    />
+                  </FormControl>
                 )} />
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Fase do Pipeline *</h3>
+                <Label id={getId('pipelinePhaseId-label')} className="text-sm font-medium mb-2 block">
+                  Fase do Pipeline *
+                </Label>
                 <FormField control={form.control} name="pipelinePhaseId" render={({ field }) => (
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger><SelectValue placeholder="Selecione a fase" /></SelectTrigger>
+                      <SelectTrigger 
+                        id={getId('pipelinePhaseId')}
+                        aria-labelledby={getId('pipelinePhaseId-label')}
+                      >
+                        <SelectValue placeholder="Selecione a fase" />
+                      </SelectTrigger>
                       <SelectContent>
                         {pipelineOptions.map((stage) => (
                           <SelectItem key={stage.value} value={stage.value}>
@@ -381,17 +498,38 @@ export default function CreateProjectModal({ open, onOpenChange, onCreated, pres
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Observações</h3>
+                <Label htmlFor={getId('notes')} className="text-sm font-medium mb-2 block">
+                  Observações
+                </Label>
                 <FormField control={form.control} name="notes" render={({ field }) => (
-                  <FormControl><Textarea rows={8} {...field} /></FormControl>
+                  <FormControl>
+                    <Textarea 
+                      rows={8} 
+                      {...field} 
+                      id={getId('notes')}
+                      name="notes"
+                      autoComplete="off"
+                    />
+                  </FormControl>
                 )} />
               </div>
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-4 px-4 pb-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar Projeto"}</Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={saving}
+            >
+              {saving ? "Salvando..." : "Salvar Projeto"}
+            </Button>
           </div>
             </form>
           </Form>
