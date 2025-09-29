@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useMaterials } from "@/hooks/useMaterials";
+import { useServices } from "@/hooks/useServices";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -34,9 +35,11 @@ interface RosterViewerPopoverProps {
 export const RosterViewerPopover = ({ event, pendingRequests = [] }: RosterViewerPopoverProps) => {
   const { employees } = useEmployees();
   const { materials } = useMaterials();
+  const { services } = useServices();
   
   const getMaterialNameById = (id: string) => materials.find(m => m.id === id)?.name || 'Desconhecido';
   const getEmployeeNameById = (id: string) => employees.find(e => e.id === id)?.name || 'Não definido';
+  const getServiceNameById = (id: string) => services.find(s => s.id === id)?.name || 'Serviço Desconhecido';
   const getResponsibleNameById = (id: string | null | undefined) => {
     if (!id) return 'Não definido';
     return employees.find(e => e.id === id)?.name || 'Não definido';
@@ -56,7 +59,7 @@ export const RosterViewerPopover = ({ event, pendingRequests = [] }: RosterViewe
           <span className="sr-only">Visualizar Detalhes</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96">
+      <PopoverContent className="w-96 max-h-[80vh] overflow-y-auto">
         <div className="grid gap-4">
           <div className="space-y-2">
             <h4 className="font-medium leading-none">{event.name}</h4>
@@ -112,7 +115,7 @@ export const RosterViewerPopover = ({ event, pendingRequests = [] }: RosterViewe
                 <div className="flex flex-wrap gap-1 mt-1">
                   {event.service_ids.map(serviceId => (
                     <Badge key={serviceId} variant="secondary" className="text-xs">
-                      ID: {serviceId}
+                      {getServiceNameById(serviceId)}
                     </Badge>
                   ))}
                 </div>
