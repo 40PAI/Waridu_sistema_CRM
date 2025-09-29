@@ -203,13 +203,27 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
     try {
       await onSaveDetails(event.id, details);
       
-      // Update initial values to reflect saved state (mark as clean)
-      setInitialValues({
-        teamLead,
-        selectedEmployees,
-        selectedMaterials: canAllocateMaterials ? selectedMaterials : (event.roster?.materials || {}),
-        expenses
-      });
+      // For users without material allocation permission, reset selectedMaterials after request
+      if (!canAllocateMaterials) {
+        const effectiveMaterials = event.roster?.materials || {};
+        setSelectedMaterials(effectiveMaterials);
+        
+        // Update initial values to reflect the clean state
+        setInitialValues({
+          teamLead,
+          selectedEmployees,
+          selectedMaterials: effectiveMaterials,
+          expenses
+        });
+      } else {
+        // For users with permission, update initial values to reflect saved state
+        setInitialValues({
+          teamLead,
+          selectedEmployees,
+          selectedMaterials,
+          expenses
+        });
+      }
       
       if (canAllocateMaterials || Object.values(selectedMaterials).some(qty => qty > 0)) {
         showSuccess("Detalhes do evento salvos com sucesso!");
