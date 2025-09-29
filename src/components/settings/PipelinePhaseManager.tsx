@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { showSuccess, showError } from "@/utils/toast";
 import type { PipelinePhase } from "@/types";
+import { useAutoId } from "@/hooks/useAutoId";
 
 const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: { phase: PipelinePhase; onEdit: (p: PipelinePhase) => void; onToggleActive: (id: string, active: boolean) => void; }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: phase.id });
@@ -55,7 +56,14 @@ const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: { phase: PipelineP
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(phase)} aria-label={`Editar ${phase.name}`}>
+        <Button 
+          type="button"
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8" 
+          onClick={() => onEdit(phase)} 
+          aria-label={`Editar ${phase.name}`}
+        >
           <Edit className="h-4 w-4" />
         </Button>
         <Switch checked={phase.active} onCheckedChange={(v) => onToggleActive(phase.id, !!v)} aria-label={`Ativar ${phase.name}`} />
@@ -66,6 +74,13 @@ const SortablePhaseItem = ({ phase, onEdit, onToggleActive }: { phase: PipelineP
 
 const PipelinePhaseManager = () => {
   const { phases, addPhase, updatePhase, togglePhaseActive, reorderPhases, loading } = usePipelinePhases();
+  
+  // Generate unique IDs for form fields
+  const getId = useAutoId('pipeline-phase-manager');
+  
+  // Ref for first field focus
+  const firstFieldRef = React.useRef<HTMLInputElement>(null);
+  
   const [newPhaseName, setNewPhaseName] = React.useState("");
   const [editingPhase, setEditingPhase] = React.useState<PipelinePhase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -111,6 +126,12 @@ const PipelinePhaseManager = () => {
   const openEditDialog = (phase: PipelinePhase) => {
     setEditingPhase({ ...phase });
     setIsEditDialogOpen(true);
+    
+    // Focus the edit input when dialog opens
+    setTimeout(() => {
+      const editInput = document.getElementById(getId('edit-name'));
+      editInput?.focus();
+    }, 100);
   };
 
   const handleSaveEdit = async () => {
@@ -183,16 +204,24 @@ const PipelinePhaseManager = () => {
       <CardContent className="space-y-6">
         <div className="flex w-full max-w-sm items-center space-x-2">
           <div className="flex-1 space-y-1.5">
-            <Label>Nome da nova fase</Label>
+            <Label htmlFor={getId('new-phase')}>Nome da nova fase</Label>
             <Input
+              id={getId('new-phase')}
+              name="newPhaseName"
+              autoComplete="off"
               placeholder="Ex: Orçamento"
               value={newPhaseName}
               onChange={(e) => setNewPhaseName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddPhase()}
               disabled={loading || saving || isReordering}
+              ref={firstFieldRef}
             />
           </div>
-          <Button onClick={handleAddPhase} disabled={loading || saving || isReordering || !(newPhaseName.trim())}>
+          <Button 
+            type="button"
+            onClick={handleAddPhase} 
+            disabled={loading || saving || isReordering || !(newPhaseName.trim())}
+          >
             <Plus className="h-4 w-4 mr-2" /> Adicionar
           </Button>
         </div>
@@ -212,14 +241,21 @@ const PipelinePhaseManager = () => {
         </div>
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
+          <DialogContent 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={getId('edit-title')}
+          >
             <DialogHeader>
-              <DialogTitle>Editar Fase</DialogTitle>
+              <DialogTitle id={getId('edit-title')}>Editar Fase</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label>Nome da Fase</Label>
+                <Label htmlFor={getId('edit-name')}>Nome da Fase</Label>
                 <Input
+                  id={getId('edit-name')}
+                  name="editPhaseName"
+                  autoComplete="off"
                   value={editingPhase?.name ?? ""}
                   onChange={(e) => setEditingPhase(prev => prev ? { ...prev, name: e.target.value } : prev)}
                   disabled={saving}
@@ -227,8 +263,21 @@ const PipelinePhaseManager = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={saving}>Cancelar</Button>
-              <Button onClick={handleSaveEdit} disabled={saving || !editingPhase?.name?.trim()}>Salvar</Button>
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)} 
+                disabled={saving}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="button"
+                onClick={handleSaveEdit} 
+                disabled={saving || !editingPhase?.name?.trim()}
+              >
+                Salvar
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

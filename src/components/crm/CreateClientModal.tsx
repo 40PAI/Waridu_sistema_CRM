@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { HelpCircle } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import { useClients } from "@/hooks/useClients";
+import { useAutoId } from "@/hooks/useAutoId";
 import { 
   NewClientForm, 
   NewClientFormSchema, 
@@ -34,6 +35,12 @@ function isEmailValid(email: string) {
 
 export default function CreateClientModal({ open, onOpenChange, onCreated, client }: Props) {
   const { upsertClient, clients } = useClients();
+  
+  // Generate unique IDs for form fields
+  const getId = useAutoId('client-form');
+  
+  // Ref for first field focus
+  const firstFieldRef = React.useRef<HTMLInputElement>(null);
 
   const [name, setName] = React.useState("");
   const [company, setCompany] = React.useState("");
@@ -74,6 +81,11 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
       }
       setErrors({});
       setSaving(false);
+      
+      // Focus first field for accessibility
+      setTimeout(() => {
+        firstFieldRef.current?.focus();
+      }, 100);
     }
   }, [open, client]);
 
@@ -140,50 +152,94 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
   return (
     <TooltipProvider>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+        <DialogContent 
+          className="max-w-4xl mx-4 max-h-[90vh] overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={getId('title')}
+        >
           <DialogHeader>
-            <DialogTitle>{isEditing ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
+            <DialogTitle id={getId('title')}>{isEditing ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             {/* Linha 1: Nome + Empresa */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="client-name">Nome completo *</Label>
-                <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} className="w-full" />
-                {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+                <Label htmlFor={getId('name')}>Nome completo *</Label>
+                <Input 
+                  id={getId('name')} 
+                  name="name"
+                  autoComplete="name"
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  className="w-full"
+                  aria-describedby={errors.name ? getId('name-error') : undefined}
+                  ref={firstFieldRef}
+                />
+                {errors.name && <p id={getId('name-error')} className="text-xs text-destructive" role="alert" aria-live="polite">{errors.name}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client-company">Empresa *</Label>
-                <Input id="client-company" value={company} onChange={(e) => setCompany(e.target.value)} />
-                {errors.company && <p className="text-xs text-destructive">{errors.company}</p>}
+                <Label htmlFor={getId('company')}>Empresa *</Label>
+                <Input 
+                  id={getId('company')} 
+                  name="company"
+                  autoComplete="organization"
+                  value={company} 
+                  onChange={(e) => setCompany(e.target.value)}
+                  aria-describedby={errors.company ? getId('company-error') : undefined}
+                />
+                {errors.company && <p id={getId('company-error')} className="text-xs text-destructive" role="alert" aria-live="polite">{errors.company}</p>}
               </div>
             </div>
 
             {/* Linha 2: Email + Telefone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="client-email">E-mail *</Label>
-                <Input id="client-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                <Label htmlFor={getId('email')}>E-mail *</Label>
+                <Input 
+                  id={getId('email')} 
+                  name="email"
+                  type="email" 
+                  autoComplete="email"
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)}
+                  aria-describedby={errors.email ? getId('email-error') : undefined}
+                />
+                {errors.email && <p id={getId('email-error')} className="text-xs text-destructive" role="alert" aria-live="polite">{errors.email}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client-phone">Telefone/Contacto *</Label>
-                <Input id="client-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                <Label htmlFor={getId('phone')}>Telefone/Contacto *</Label>
+                <Input 
+                  id={getId('phone')} 
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)}
+                  aria-describedby={errors.phone ? getId('phone-error') : undefined}
+                />
+                {errors.phone && <p id={getId('phone-error')} className="text-xs text-destructive" role="alert" aria-live="polite">{errors.phone}</p>}
               </div>
             </div>
 
             {/* Linha 3: NIF + Setor */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="client-nif">NIF</Label>
-                <Input id="client-nif" value={nif} onChange={(e) => setNif(e.target.value)} />
-                {errors.nif && <p className="text-xs text-destructive">{errors.nif}</p>}
+                <Label htmlFor={getId('nif')}>NIF</Label>
+                <Input 
+                  id={getId('nif')} 
+                  name="nif"
+                  autoComplete="off"
+                  value={nif} 
+                  onChange={(e) => setNif(e.target.value)}
+                  aria-describedby={errors.nif ? getId('nif-error') : undefined}
+                />
+                {errors.nif && <p id={getId('nif-error')} className="text-xs text-destructive" role="alert" aria-live="polite">{errors.nif}</p>}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="client-sector">Setor</Label>
+                  <Label htmlFor={getId('sector')} id={getId('sector-label')}>Setor</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -194,7 +250,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
                   </Tooltip>
                 </div>
                 <Select value={sector} onValueChange={setSector}>
-                  <SelectTrigger id="client-sector">
+                  <SelectTrigger id={getId('sector')} aria-labelledby={getId('sector-label')}>
                     <SelectValue placeholder="Selecione um setor" />
                   </SelectTrigger>
                   <SelectContent>
@@ -212,7 +268,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="client-job-title">Cargo/Departamento</Label>
+                  <Label htmlFor={getId('job-title')}>Cargo/Departamento</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -223,7 +279,9 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
                   </Tooltip>
                 </div>
                 <Input 
-                  id="client-job-title"
+                  id={getId('job-title')}
+                  name="jobTitle"
+                  autoComplete="organization-title"
                   value={jobTitle} 
                   onChange={(e) => setJobTitle(e.target.value)} 
                   placeholder="Ex: Diretor de TI, Gestor de Compras..."
@@ -231,7 +289,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="client-lifecycle">Ciclo de Vida</Label>
+                  <Label htmlFor={getId('lifecycle')} id={getId('lifecycle-label')}>Ciclo de Vida</Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -248,7 +306,7 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
                   </Tooltip>
                 </div>
                 <Select value={lifecycleStage} onValueChange={setLifecycleStage}>
-                  <SelectTrigger id="client-lifecycle">
+                  <SelectTrigger id={getId('lifecycle')} aria-labelledby={getId('lifecycle-label')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -260,15 +318,22 @@ export default function CreateClientModal({ open, onOpenChange, onCreated, clien
 
             {/* Linha 5: Observações */}
             <div className="space-y-2">
-              <Label htmlFor="client-notes">Observações</Label>
-              <Textarea id="client-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+              <Label htmlFor={getId('notes')}>Observações</Label>
+              <Textarea 
+                id={getId('notes')} 
+                name="notes"
+                autoComplete="off"
+                value={notes} 
+                onChange={(e) => setNotes(e.target.value)} 
+                rows={3} 
+              />
             </div>
 
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="button" onClick={handleSave} disabled={saving}>
               {saving ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>

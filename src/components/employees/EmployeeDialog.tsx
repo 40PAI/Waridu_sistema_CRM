@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Role } from "@/types";
 import { showError } from "@/utils/toast";
+import { useAutoId } from "@/hooks/useAutoId";
 
 export type EmployeeStatus = 'Ativo' | 'Inativo';
 
@@ -46,6 +47,12 @@ interface EmployeeDialogProps {
 }
 
 export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, categories, canAssignCategory }: EmployeeDialogProps) {
+  // Generate unique IDs for form fields
+  const getId = useAutoId('employee-dialog');
+  
+  // Ref for first field focus
+  const firstFieldRef = React.useRef<HTMLInputElement>(null);
+  
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState("");
@@ -69,6 +76,11 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, ca
         setStatus("Ativo");
         setTechnicianCategoryId("");
       }
+      
+      // Focus first field for accessibility
+      setTimeout(() => {
+        firstFieldRef.current?.focus();
+      }, 100);
     }
   }, [employee, open]);
 
@@ -98,10 +110,16 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, ca
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={getId('title')}
+        aria-describedby={getId('description')}
+      >
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Funcionário" : "Adicionar Novo Funcionário"}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle id={getId('title')}>{isEditing ? "Editar Funcionário" : "Adicionar Novo Funcionário"}</DialogTitle>
+          <DialogDescription id={getId('description')}>
             {isEditing 
               ? "Atualize as informações do funcionário." 
               : "Preencha os dados para cadastrar um novo funcionário."}
@@ -109,24 +127,25 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, ca
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="employee-name" className="text-right">
+            <Label htmlFor={getId('name')} className="text-right">
               Nome
             </Label>
             <Input 
-              id="employee-name" 
+              id={getId('name')} 
               name="employee-name"
               autoComplete="name"
               value={name} 
               onChange={(e) => setName(e.target.value)} 
-              className="col-span-3" 
+              className="col-span-3"
+              ref={firstFieldRef}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="employee-email" className="text-right">
+            <Label htmlFor={getId('email')} className="text-right">
               Email
             </Label>
             <Input 
-              id="employee-email" 
+              id={getId('email')} 
               name="employee-email"
               autoComplete="email"
               type="email" 
@@ -136,11 +155,15 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, ca
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="employee-role" className="text-right">
+            <Label htmlFor={getId('role')} id={getId('role-label')} className="text-right">
               Função
             </Label>
             <Select value={role} onValueChange={setRole}>
-              <SelectTrigger id="employee-role" className="col-span-3">
+              <SelectTrigger 
+                id={getId('role')} 
+                className="col-span-3"
+                aria-labelledby={getId('role-label')}
+              >
                 <SelectValue placeholder="Selecione uma função" />
               </SelectTrigger>
               <SelectContent>
@@ -154,11 +177,15 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, ca
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="employee-status" className="text-right">
+            <Label htmlFor={getId('status')} id={getId('status-label')} className="text-right">
               Status
             </Label>
             <Select value={status} onValueChange={(value) => setStatus(value as EmployeeStatus)}>
-              <SelectTrigger id="employee-status" className="col-span-3">
+              <SelectTrigger 
+                id={getId('status')} 
+                className="col-span-3"
+                aria-labelledby={getId('status-label')}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -169,13 +196,17 @@ export function EmployeeDialog({ open, onOpenChange, employee, onSave, roles, ca
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="employee-category" className="text-right">Categoria</Label>
+            <Label htmlFor={getId('category')} id={getId('category-label')} className="text-right">Categoria</Label>
             <Select
               value={technicianCategoryId}
               onValueChange={setTechnicianCategoryId}
               disabled={!canAssignCategory}
             >
-              <SelectTrigger id="employee-category" className="col-span-3">
+              <SelectTrigger 
+                id={getId('category')} 
+                className="col-span-3"
+                aria-labelledby={getId('category-label')}
+              >
                 <SelectValue placeholder={canAssignCategory ? "Selecione a categoria" : "Sem permissão para alterar"} />
               </SelectTrigger>
               <SelectContent>

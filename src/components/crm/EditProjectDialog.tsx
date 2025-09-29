@@ -19,6 +19,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import usePipelineStages from "@/hooks/usePipelineStages";
 import { showError, showSuccess } from "@/utils/toast";
 import { MultiSelectServices } from "@/components/MultiSelectServices";
+import { useAutoId } from "@/hooks/useAutoId";
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -62,6 +63,12 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
   const { updateEvent } = useEvents();
   const { employees } = useEmployees(); // Fetch all employees
   const { stages } = usePipelineStages();
+  
+  // Generate unique IDs for form fields
+  const getId = useAutoId('edit-project');
+  
+  // Ref for first field focus
+  const firstFieldRef = React.useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = React.useState(false);
 
@@ -109,6 +116,11 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
         responsible_id: (project as any).responsible_id || "",
       };
       editForm.reset(formData);
+      
+      // Focus first field for accessibility
+      setTimeout(() => {
+        firstFieldRef.current?.focus();
+      }, 100);
     }
   }, [open, project, editForm, stages]);
 
@@ -201,9 +213,14 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-4xl mx-4 max-h-[90vh] overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={getId('title')}
+      >
         <DialogHeader>
-          <DialogTitle>Editar Projeto: {project.name}</DialogTitle>
+          <DialogTitle id={getId('title')}>Editar Projeto: {project.name}</DialogTitle>
         </DialogHeader>
 
         <Form {...editForm}>
@@ -214,9 +231,16 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome do Projeto *</FormLabel>
+                    <FormLabel htmlFor={getId('name')}>Nome do Projeto *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex.: Evento BFA – Conferência" {...field} />
+                      <Input 
+                        {...field}
+                        id={getId('name')}
+                        name="name"
+                        autoComplete="off"
+                        placeholder="Ex.: Evento BFA – Conferência"
+                        ref={firstFieldRef}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -227,10 +251,10 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                 name="client_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cliente *</FormLabel>
+                    <FormLabel htmlFor={getId('client')} id={getId('client-label')}>Cliente *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger id={getId('client')} aria-labelledby={getId('client-label')}>
                           <SelectValue placeholder="Selecione um cliente" />
                         </SelectTrigger>
                       </FormControl>
@@ -254,10 +278,10 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                 name="pipeline_phase_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fase do Pipeline *</FormLabel>
+                    <FormLabel htmlFor={getId('pipeline')} id={getId('pipeline-label')}>Fase do Pipeline *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger id={getId('pipeline')} aria-labelledby={getId('pipeline-label')}>
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -278,10 +302,10 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                 name="responsible_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Responsável Comercial *</FormLabel>
+                    <FormLabel htmlFor={getId('responsible')} id={getId('responsible-label')}>Responsável Comercial *</FormLabel>
                     <FormControl>
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
+                        <SelectTrigger id={getId('responsible')} aria-labelledby={getId('responsible-label')}>
                           <SelectValue placeholder="Selecione um responsável" />
                         </SelectTrigger>
                         <SelectContent>
@@ -305,10 +329,13 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                 name="estimated_value"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Valor Estimado (AOA)</FormLabel>
+                    <FormLabel htmlFor={getId('value')}>Valor Estimado (AOA)</FormLabel>
                     <FormControl>
                       <Input
+                        id={getId('value')}
+                        name="estimatedValue"
                         type="number"
+                        autoComplete="off"
                         value={field.value || ""}
                         onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                         placeholder="0"
@@ -323,9 +350,14 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                 name="service_ids"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Serviços Contratados *</FormLabel>
+                    <FormLabel id={getId('services-label')}>Serviços Contratados *</FormLabel>
                     <FormControl>
-                      <MultiSelectServices selected={field.value} onChange={field.onChange} placeholder="Selecione serviços..." />
+                      <MultiSelectServices 
+                        selected={field.value} 
+                        onChange={field.onChange} 
+                        placeholder="Selecione serviços..."
+                        aria-labelledby={getId('services-label')}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -339,9 +371,15 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                 name="startDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Data de Início *</FormLabel>
+                    <FormLabel htmlFor={getId('start-date')}>Data de Início *</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input 
+                        {...field}
+                        id={getId('start-date')}
+                        name="startDate"
+                        type="date"
+                        autoComplete="off"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -352,9 +390,15 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
                 name="endDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Data de Fim</FormLabel>
+                    <FormLabel htmlFor={getId('end-date')}>Data de Fim</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input 
+                        {...field}
+                        id={getId('end-date')}
+                        name="endDate"
+                        type="date"
+                        autoComplete="off"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -367,9 +411,15 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
               name="location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Local</FormLabel>
+                  <FormLabel htmlFor={getId('location')}>Local</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex.: CCTA, Talatona" {...field} />
+                    <Input 
+                      {...field}
+                      id={getId('location')}
+                      name="location"
+                      autoComplete="street-address"
+                      placeholder="Ex.: CCTA, Talatona"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -381,9 +431,16 @@ export function EditProjectDialog({ open, onOpenChange, project, onSave }: EditP
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notas</FormLabel>
+                  <FormLabel htmlFor={getId('notes')}>Notas</FormLabel>
                   <FormControl>
-                    <Textarea rows={3} placeholder="Observações, follow-up, urgências..." {...field} />
+                    <Textarea 
+                      {...field}
+                      id={getId('notes')}
+                      name="notes"
+                      autoComplete="off"
+                      rows={3}
+                      placeholder="Observações, follow-up, urgências..."
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showError } from "@/utils/toast";
+import { useAutoId } from "@/hooks/useAutoId";
 
 interface EditTaskDialogProps {
   open: boolean;
@@ -17,6 +18,12 @@ interface EditTaskDialogProps {
 }
 
 export const EditTaskDialog = ({ open, onOpenChange, task, onUpdate, technicians, events }: EditTaskDialogProps) => {
+  // Generate unique IDs for form fields
+  const getId = useAutoId('edit-task-dialog');
+  
+  // Ref for first field focus
+  const firstFieldRef = React.useRef<HTMLInputElement>(null);
+  
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [assignedTo, setAssignedTo] = React.useState("");
@@ -28,8 +35,15 @@ export const EditTaskDialog = ({ open, onOpenChange, task, onUpdate, technicians
       setDescription(task.description || "");
       setAssignedTo(task.assigned_to);
       setEventId(task.event_id ? String(task.event_id) : "none");
+      
+      // Focus first field for accessibility when dialog opens
+      if (open) {
+        setTimeout(() => {
+          firstFieldRef.current?.focus();
+        }, 100);
+      }
     }
-  }, [task]);
+  }, [task, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,26 +62,36 @@ export const EditTaskDialog = ({ open, onOpenChange, task, onUpdate, technicians
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent 
+        className="sm:max-w-[500px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={getId('title')}
+        aria-describedby={getId('description')}
+      >
         <DialogHeader>
-          <DialogTitle>Editar Tarefa</DialogTitle>
-          <DialogDescription>Atualize os detalhes da tarefa.</DialogDescription>
+          <DialogTitle id={getId('title')}>Editar Tarefa</DialogTitle>
+          <DialogDescription id={getId('description')}>Atualize os detalhes da tarefa.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="edit-task-title">Título</Label>
+            <Label htmlFor={getId('title-input')}>Título</Label>
             <Input
-              id="edit-task-title"
+              id={getId('title-input')}
+              name="title"
+              autoComplete="off"
               placeholder="Título da tarefa"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required
+              ref={firstFieldRef}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-task-description">Descrição</Label>
+            <Label htmlFor={getId('description-input')}>Descrição</Label>
             <Textarea
-              id="edit-task-description"
+              id={getId('description-input')}
+              name="description"
+              autoComplete="off"
               placeholder="Detalhes da tarefa..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -75,13 +99,15 @@ export const EditTaskDialog = ({ open, onOpenChange, task, onUpdate, technicians
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-task-assigned-to">Atribuir a Técnico *</Label>
+            <Label htmlFor={getId('assigned-to')} id={getId('assigned-to-label')}>Atribuir a Técnico *</Label>
             <Select 
               value={assignedTo} 
-              onValueChange={setAssignedTo} 
-              required
+              onValueChange={setAssignedTo}
             >
-              <SelectTrigger id="edit-task-assigned-to">
+              <SelectTrigger 
+                id={getId('assigned-to')}
+                aria-labelledby={getId('assigned-to-label')}
+              >
                 <SelectValue placeholder="Selecione um técnico ativo" />
               </SelectTrigger>
               <SelectContent>
@@ -94,9 +120,12 @@ export const EditTaskDialog = ({ open, onOpenChange, task, onUpdate, technicians
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-task-event">Evento Relacionado (Opcional)</Label>
+            <Label htmlFor={getId('event')} id={getId('event-label')}>Evento Relacionado (Opcional)</Label>
             <Select value={eventId} onValueChange={setEventId}>
-              <SelectTrigger id="edit-task-event">
+              <SelectTrigger 
+                id={getId('event')}
+                aria-labelledby={getId('event-label')}
+              >
                 <SelectValue placeholder="Selecione um evento" />
               </SelectTrigger>
               <SelectContent>

@@ -13,6 +13,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { Employee } from "../employees/EmployeeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
+import { useAutoId } from "@/hooks/useAutoId";
 
 const EXPENSE_CATEGORIES = ["Transporte", "Alimentação", "Hospedagem", "Marketing", "Aluguel de Equipamento", "Outros"];
 
@@ -26,6 +27,12 @@ interface RosterDialogProps {
 }
 
 export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterialRequest, materials, onRequestsChange }: RosterDialogProps) {
+  // Generate unique IDs for form fields
+  const getId = useAutoId('roster-dialog');
+  
+  // Ref for first field focus
+  const firstFieldRef = React.useRef<HTMLInputElement>(null);
+  
   const [open, setOpen] = React.useState(false);
   const [teamLead, setTeamLead] = React.useState("");
   const [selectedEmployees, setSelectedEmployees] = React.useState<Employee[]>([]);
@@ -53,6 +60,11 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
       setSelectedEmployees(fullTeamMembers || []);
       setSelectedMaterials(event.roster?.materials || {});
       setExpenses(event.expenses || []);
+      
+      // Focus first field for accessibility
+      setTimeout(() => {
+        firstFieldRef.current?.focus();
+      }, 100);
     } else {
       setTeamLead("");
       setSelectedEmployees([]);
@@ -190,10 +202,16 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
       <DialogTrigger asChild>
         <Button size="sm">{event.roster ? "Editar Detalhes" : "Gerenciar Evento"}</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[800px]">
+      <DialogContent 
+        className="sm:max-w-[800px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={getId('title')}
+        aria-describedby={getId('description')}
+      >
         <DialogHeader>
-          <DialogTitle>Gerenciar Evento: {event.name}</DialogTitle>
-          <DialogDescription>Selecione a equipe, materiais e adicione despesas para este evento.</DialogDescription>
+          <DialogTitle id={getId('title')}>Gerenciar Evento: {event.name}</DialogTitle>
+          <DialogDescription id={getId('description')}>Selecione a equipe, materiais e adicione despesas para este evento.</DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="equipe" className="pt-4">
           <TabsList className="grid w-full grid-cols-3">
@@ -203,7 +221,7 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
           </TabsList>
           <TabsContent value="equipe" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label>Responsável pela Equipe</Label>
+              <Label id={getId('team-lead-label')}>Responsável pela Equipe</Label>
               <Combobox
                 options={employeeOptions}
                 value={teamLead}
@@ -211,14 +229,30 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
                 placeholder="Selecione o responsável..."
                 searchPlaceholder="Buscar funcionário..."
                 emptyMessage="Nenhum funcionário encontrado."
+                aria-labelledby={getId('team-lead-label')}
               />
             </div>
             <div className="space-y-2">
-              <Label>Membros da Equipe</Label>
+              <Label id={getId('team-members-label')}>Membros da Equipe</Label>
               <div className="flex gap-2">
-                <Input placeholder="Filtrar por nome..." value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} />
+                <Input 
+                  id={getId('name-filter')}
+                  name="nameFilter"
+                  autoComplete="off"
+                  placeholder="Filtrar por nome..." 
+                  value={nameFilter} 
+                  onChange={(e) => setNameFilter(e.target.value)}
+                  ref={firstFieldRef}
+                  aria-label="Filtrar funcionários por nome"
+                />
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger 
+                    className="w-[200px]"
+                    id={getId('role-filter')}
+                    aria-label="Filtrar funcionários por função"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {employeeRoles.map(role => <SelectItem key={role} value={role}>{role === 'all' ? 'Todas as Funções' : role}</SelectItem>)}
                   </SelectContent>
@@ -235,7 +269,16 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
                         <p className="font-medium">{emp.name}</p>
                         <p className="text-xs text-muted-foreground">{emp.role}</p>
                       </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleSelectEmployee(emp)}><PlusCircle className="h-4 w-4" /></Button>
+                      <Button 
+                        type="button"
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-7 w-7" 
+                        onClick={() => handleSelectEmployee(emp)}
+                        aria-label={`Adicionar ${emp.name} à equipe`}
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </ScrollArea>
@@ -249,7 +292,16 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
                         <p className="font-medium">{emp.name}</p>
                         <p className="text-xs text-muted-foreground">{emp.role}</p>
                       </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDeselectEmployee(emp)}><XCircle className="h-4 w-4" /></Button>
+                      <Button 
+                        type="button"
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-7 w-7 text-destructive" 
+                        onClick={() => handleDeselectEmployee(emp)}
+                        aria-label={`Remover ${emp.name} da equipe`}
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </ScrollArea>
@@ -257,24 +309,36 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
             </div>
           </TabsContent>
           <TabsContent value="materiais" className="space-y-4 mt-4">
-            <Input placeholder="Buscar material..." value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value)} />
+            <Input 
+              id={getId('material-filter')}
+              name="materialFilter"
+              autoComplete="off"
+              placeholder="Buscar material..." 
+              value={materialFilter} 
+              onChange={(e) => setMaterialFilter(e.target.value)}
+              aria-label="Filtrar materiais por nome"
+            />
             <ScrollArea className="h-80 rounded-md border p-4">
               <div className="space-y-3">
                 {filteredMaterials.map((material) => (
                   <div key={material.id} className="flex items-center justify-between gap-2">
                     <div className="flex items-center space-x-2 flex-shrink min-w-0">
-                      <Label htmlFor={`mat-${material.id}`} className="truncate" title={material.name}>
+                      <Label htmlFor={getId(`mat-${material.id}`)} className="truncate" title={material.name}>
                         {material.name} <span className="text-xs text-muted-foreground">({Object.values(material.locations).reduce((a, b) => a + b, 0)})</span>
                       </Label>
                     </div>
                     <Input 
+                      id={getId(`mat-${material.id}`)}
+                      name={`material-${material.id}`}
                       type="number" 
+                      autoComplete="off"
                       className="h-8 w-20" 
                       value={selectedMaterials[material.id] || ''} 
                       placeholder="0" 
                       onChange={(e) => handleQuantityChange(material.id, parseInt(e.target.value) || 0, Object.values(material.locations).reduce((a, b) => a + b, 0))} 
                       min={0} 
-                      max={Object.values(material.locations).reduce((a, b) => a + b, 0)} 
+                      max={Object.values(material.locations).reduce((a, b) => a + b, 0)}
+                      aria-label={`Quantidade de ${material.name}`}
                     />
                   </div>
                 ))}
@@ -289,8 +353,8 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
           <TabsContent value="despesas" className="space-y-4 mt-4">
             <div className="flex justify-between items-center">
                 <Label>Despesas Adicionais</Label>
-                <Button variant="outline" size="sm" onClick={handleAddExpense}>
-                <PlusCircle className="h-4 w-4 mr-2" /> Adicionar Despesa
+                <Button type="button" variant="outline" size="sm" onClick={handleAddExpense}>
+                  <PlusCircle className="h-4 w-4 mr-2" /> Adicionar Despesa
                 </Button>
             </div>
             <ScrollArea className="h-80 rounded-md border p-4">
@@ -298,13 +362,21 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
                 {expenses.length > 0 ? expenses.map((expense, index) => (
                     <div key={expense.id} className="flex items-center gap-2">
                       <Input
+                          id={getId(`expense-desc-${index}`)}
+                          name={`expense-description-${index}`}
+                          autoComplete="off"
                           placeholder="Descrição"
                           value={expense.description}
                           onChange={(e) => handleUpdateExpense(index, 'description', e.target.value)}
                           className="flex-1"
+                          aria-label={`Descrição da despesa ${index + 1}`}
                       />
                       <Select value={expense.category || ''} onValueChange={(value) => handleUpdateExpense(index, 'category', value)}>
-                        <SelectTrigger className="w-[200px]">
+                        <SelectTrigger 
+                          className="w-[200px]"
+                          id={getId(`expense-cat-${index}`)}
+                          aria-label={`Categoria da despesa ${index + 1}`}
+                        >
                           <SelectValue placeholder="Categoria" />
                         </SelectTrigger>
                         <SelectContent>
@@ -312,14 +384,24 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
                         </SelectContent>
                       </Select>
                       <Input
+                          id={getId(`expense-amount-${index}`)}
+                          name={`expense-amount-${index}`}
                           type="number"
+                          autoComplete="off"
                           placeholder="Valor"
                           value={expense.amount || ''}
                           onChange={(e) => handleUpdateExpense(index, 'amount', e.target.value)}
                           className="w-32"
+                          aria-label={`Valor da despesa ${index + 1}`}
                       />
-                      <Button variant="ghost" size="icon" onClick={() => handleRemoveExpense(index)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                      <Button 
+                        type="button"
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleRemoveExpense(index)}
+                        aria-label={`Remover despesa ${index + 1}`}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                 )) : (
@@ -330,7 +412,12 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
           </TabsContent>
         </Tabs>
         <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleSendRequest} disabled={!Object.values(selectedMaterials).some(qty => qty > 0)}>
+          <Button 
+            type="button"
+            variant="outline" 
+            onClick={handleSendRequest} 
+            disabled={!Object.values(selectedMaterials).some(qty => qty > 0)}
+          >
             Enviar Requisição
           </Button>
           <Button type="button" onClick={handleSave} disabled={isSaving}>

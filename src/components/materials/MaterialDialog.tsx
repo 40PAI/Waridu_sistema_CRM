@@ -18,6 +18,7 @@ import type { PageMaterial as Material } from "@/types";
 import { showError, showSuccess } from "@/utils/toast";
 import { useLocations } from "@/hooks/useLocations";
 import { useMaterialCategories } from "@/hooks/useMaterialCategories";
+import { useAutoId } from "@/hooks/useAutoId";
 
 interface MaterialDialogProps {
   open: boolean;
@@ -30,6 +31,12 @@ interface MaterialDialogProps {
 export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInitialStock }: MaterialDialogProps) {
   const { locations } = useLocations();
   const { categories } = useMaterialCategories();
+  
+  // Generate unique IDs for form fields
+  const getId = useAutoId('material-dialog');
+  
+  // Ref for first field focus
+  const firstFieldRef = React.useRef<HTMLInputElement>(null);
   
   const [name, setName] = React.useState("");
   const [category, setCategory] = React.useState("");
@@ -56,6 +63,11 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
         setInitialLocation("");
         setInitialQuantity("");
       }
+      
+      // Focus first field for accessibility
+      setTimeout(() => {
+        firstFieldRef.current?.focus();
+      }, 100);
     }
   }, [material, open]);
 
@@ -121,10 +133,16 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent 
+        className="sm:max-w-[500px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={getId('title')}
+        aria-describedby={getId('description')}
+      >
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Material" : "Adicionar Novo Material"}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle id={getId('title')}>{isEditing ? "Editar Material" : "Adicionar Novo Material"}</DialogTitle>
+          <DialogDescription id={getId('description')}>
             {isEditing 
               ? "Atualize as informações do material."
               : "Preencha as informações para registrar um novo item no inventário."}
@@ -133,21 +151,25 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="material-name">Nome *</Label>
+            <Label htmlFor={getId('name')}>Nome *</Label>
             <Input 
-              id="material-name" 
+              id={getId('name')} 
               name="material-name"
               autoComplete="off"
               value={name} 
               onChange={(e) => setName(e.target.value)} 
               placeholder="Ex: Câmera Sony A7S III"
+              ref={firstFieldRef}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="material-category">Categoria *</Label>
+            <Label htmlFor={getId('category')} id={getId('category-label')}>Categoria *</Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger id="material-category" name="material-category">
+              <SelectTrigger 
+                id={getId('category')}
+                aria-labelledby={getId('category-label')}
+              >
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -161,9 +183,12 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="material-status">Status *</Label>
+            <Label htmlFor={getId('status')} id={getId('status-label')}>Status *</Label>
             <Select value={status} onValueChange={(value) => setStatus(value as Material['status'])}>
-              <SelectTrigger id="material-status" name="material-status">
+              <SelectTrigger 
+                id={getId('status')}
+                aria-labelledby={getId('status-label')}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -179,9 +204,12 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
           {!isEditing && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="material-initial-location">Localização Inicial *</Label>
+                <Label htmlFor={getId('location')} id={getId('location-label')}>Localização Inicial *</Label>
                 <Select value={initialLocation} onValueChange={setInitialLocation}>
-                  <SelectTrigger id="material-initial-location" name="material-initial-location">
+                  <SelectTrigger 
+                    id={getId('location')}
+                    aria-labelledby={getId('location-label')}
+                  >
                     <SelectValue placeholder="Selecione a localização" />
                   </SelectTrigger>
                   <SelectContent>
@@ -195,9 +223,9 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="material-initial-quantity">Quantidade Inicial *</Label>
+                <Label htmlFor={getId('quantity')}>Quantidade Inicial *</Label>
                 <Input
-                  id="material-initial-quantity"
+                  id={getId('quantity')}
                   name="material-initial-quantity"
                   autoComplete="off"
                   type="number"
@@ -211,9 +239,9 @@ export function MaterialDialog({ open, onOpenChange, onSave, material, onAddInit
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="material-description">Descrição</Label>
+            <Label htmlFor={getId('description')}>Descrição</Label>
             <Textarea 
-              id="material-description"
+              id={getId('description')}
               name="material-description"
               autoComplete="off"
               value={description} 
