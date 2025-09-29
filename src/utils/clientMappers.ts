@@ -396,13 +396,7 @@ export function formToEventsInsert(input: NewProjectForm): Database.EventsInsert
   const next_action_date = input.nextActionDate ? combineDateTime(input.nextActionDate) : null;
   
   // Convert services array from strings to numbers (database expects integer[])
-  const service_ids = input.services.map(serviceId => {
-    const numericId = parseInt(serviceId, 10);
-    if (isNaN(numericId)) {
-      throw new Error(`Service ID inválido: ${serviceId}. Deve ser um número.`);
-    }
-    return numericId;
-  });
+  const service_ids = validateServiceIds(input.services);
 
   // Map UI fields to database fields (whitelist approach - only DDL-approved fields)
   const dbPayload: Partial<Database.EventsInsert> = {
@@ -434,7 +428,79 @@ export function formToEventsInsert(input: NewProjectForm): Database.EventsInsert
   
   // NOTE: created_at is handled by database defaults
 
-  return dbPayload as Database.EventsInsert;
+  // Apply sanitizer to ensure only DDL-approved fields are included
+  return sanitizeEventsPayload(dbPayload);
+}
+
+// =============================================================================
+// PAYLOAD SANITIZER (WHITELIST)
+// =============================================================================
+
+/**
+ * Sanitizes events payload using strict whitelist approach
+ * Only DDL-approved fields are allowed in the final payload
+ * 
+ * @param payload Raw payload object
+ * @returns Sanitized payload with only whitelisted fields
+ */
+export function sanitizeEventsPayload(payload: any): Database.EventsInsert {
+  // Whitelist of allowed fields based on events table DDL
+  const ALLOWED_FIELDS = new Set([
+    'id',
+    'name',
+    'start_date',
+    'end_date', 
+    'location',
+    'start_time',
+    'end_time',
+    'revenue',
+    'status',
+    'description',
+    'roster',
+    'expenses',
+    'pipeline_status',
+    'estimated_value',
+    'service_ids',
+    'client_id',
+    'notes',
+    'pipeline_phase_id',
+    'pipeline_phase_label',
+    'pipeline_rank',
+    'tags',
+    'created_at',
+    'updated_at',
+    'next_action_date',
+    'next_action_time',
+    'responsible_id'
+  ]);
+
+  const sanitized: Partial<Database.EventsInsert> = {};
+  
+  // Only include whitelisted fields
+  for (const [key, value] of Object.entries(payload || {})) {
+    if (ALLOWED_FIELDS.has(key)) {
+      sanitized[key as keyof Database.EventsInsert] = value;
+    }
+  }
+
+  return sanitized as Database.EventsInsert;
+}
+
+/**
+ * Validates that service_ids contains only valid integers
+ * Throws error if any service ID is invalid
+ * 
+ * @param serviceIds Array of service IDs
+ * @returns Validated array of integers
+ */
+export function validateServiceIds(serviceIds: string[]): number[] {
+  return serviceIds.map(serviceId => {
+    const numericId = parseInt(serviceId, 10);
+    if (isNaN(numericId)) {
+      throw new Error(`Service ID inválido: ${serviceId}. Deve ser um número.`);
+    }
+    return numericId;
+  });
 }
 
 // =============================================================================
