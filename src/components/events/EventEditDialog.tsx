@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import type { Event } from "@/types";
 import { showSuccess, showError } from "@/utils/toast";
 import { useAutoId } from "@/hooks/useAutoId";
+import { formToEventsUpdate } from "@/utils/eventMappers";
 
 interface EventEditDialogProps {
   open: boolean;

@@ -14,6 +14,7 @@ import { Employee } from "../employees/EmployeeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { useAutoId } from "@/hooks/useAutoId";
+import { useDirty } from "@/hooks/useDirty";
 
 const EXPENSE_CATEGORIES = ["Transporte", "Alimentação", "Hospedagem", "Marketing", "Aluguel de Equipamento", "Outros"];
 
@@ -44,6 +45,23 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
   
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
   const [isSaving, setIsSaving] = React.useState(false);
+  
+  // Store initial values for dirty state detection
+  const [initialValues, setInitialValues] = React.useState({
+    teamLead: "",
+    selectedEmployees: [] as Employee[],
+    selectedMaterials: {} as Record<string, number>,
+    expenses: [] as Expense[]
+  });
+  
+  // Check if form has changes (dirty state)
+  const currentValues = {
+    teamLead,
+    selectedEmployees,
+    selectedMaterials,
+    expenses
+  };
+  const isDirty = useDirty(initialValues, currentValues);
 
   const { user } = useAuth();
   const userRole = user?.profile?.role;
@@ -53,13 +71,27 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
 
   React.useEffect(() => {
     if (open) {
-      setTeamLead(event.roster?.teamLead || "");
+      const initialTeamLead = event.roster?.teamLead || "";
       const fullTeamMembers = event.roster?.teamMembers
         .map(member => activeEmployees.find(e => e.id === member.id))
         .filter(Boolean) as Employee[];
-      setSelectedEmployees(fullTeamMembers || []);
-      setSelectedMaterials(event.roster?.materials || {});
-      setExpenses(event.expenses || []);
+      const initialSelectedEmployees = fullTeamMembers || [];
+      const initialSelectedMaterials = event.roster?.materials || {};
+      const initialExpenses = event.expenses || [];
+      
+      // Set current values
+      setTeamLead(initialTeamLead);
+      setSelectedEmployees(initialSelectedEmployees);
+      setSelectedMaterials(initialSelectedMaterials);
+      setExpenses(initialExpenses);
+      
+      // Set initial values for dirty state comparison
+      setInitialValues({
+        teamLead: initialTeamLead,
+        selectedEmployees: initialSelectedEmployees,
+        selectedMaterials: initialSelectedMaterials,
+        expenses: initialExpenses
+      });
       
       // Focus first field for accessibility
       setTimeout(() => {
@@ -168,32 +200,81 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
       }
     }
 
-    onSaveDetails(event.id, details);
-    if (canAllocateMaterials || Object.values(selectedMaterials).some(qty => qty > 0)) {
-      showSuccess("Detalhes do evento salvos com sucesso!");
+    try {
+      await onSaveDetails(event.id, details);
+      
+      // Update initial values to reflect saved state (mark as clean)
+      setInitialValues({
+        teamLead,
+        selectedEmployees,
+        selectedMaterials: canAllocateMaterials ? selectedMaterials : (event.roster?.materials || {}),
+        expenses
+      });
+      
+      if (canAllocateMaterials || Object.values(selectedMaterials).some(qty => qty > 0)) {
+        showSuccess("Detalhes do evento salvos com sucesso!");
+      }
+    } catch (error) {
+      console.error("Erro ao salvar detalhes do evento:", error);
+      showError("Erro ao salvar detalhes. Tente novamente.");
     }
-    setOpen(false);
+    
+    // DO NOT close modal - keep it open as requested
     setIsSaving(false);
   };
 
   const handleSendRequest = async () => {
     if (!user || !user.email || !user.profile) {
+      console.error("Erro de autenticação:", { 
+        hasUser: !!user, 
+        hasEmail: !!user?.email, 
+        hasProfile: !!user?.profile 
+      });
       showError("Sessão inválida. Faça login novamente.");
       return;
     }
+    
     const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
     if (!hasRequestedItems) {
+      console.warn("Tentativa de envio de requisição sem materiais selecionados");
       showError("Selecione pelo menos um material para requisitar.");
       return;
     }
-    await onCreateMaterialRequest(event.id, selectedMaterials, {
-      name: user.profile.first_name || user.email,
-      email: user.email,
-      role: user.profile.role,
-    });
-    showSuccess("Requisição de materiais enviada para o gestor de materiais.");
-    if (onRequestsChange) {
-      onRequestsChange();
+
+    try {
+      console.log("Enviando requisição de materiais:", {
+        eventId: event.id,
+        materials: selectedMaterials,
+        requestedBy: {
+          name: user.profile.first_name || user.email,
+          email: user.email,
+          role: user.profile.role,
+        }
+      });
+
+      await onCreateMaterialRequest(event.id, selectedMaterials, {
+        name: user.profile.first_name || user.email,
+        email: user.email,
+        role: user.profile.role,
+      });
+      
+      showSuccess("Requisição de materiais enviada para o gestor de materiais.");
+      if (onRequestsChange) {
+        onRequestsChange();
+      }
+    } catch (error: any) {
+      console.error("Erro ao enviar requisição de materiais:", {
+        error,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details || error?.detail,
+        eventId: event.id,
+        selectedMaterials
+      });
+      
+      // Show detailed error message if available
+      const errorMessage = error?.message || error?.details?.message || error?.detail || "Erro desconhecido";
+      showError(`Erro ao enviar requisição: ${errorMessage}`);
     }
   };
 
@@ -420,7 +501,11 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
           >
             Enviar Requisição
           </Button>
-          <Button type="button" onClick={handleSave} disabled={isSaving}>
+          <Button 
+            type="button" 
+            onClick={handleSave} 
+            disabled={isSaving || !isDirty}
+          >
             {isSaving ? "Salvando..." : "Salvar Detalhes"}
           </Button>
         </DialogFooter>
