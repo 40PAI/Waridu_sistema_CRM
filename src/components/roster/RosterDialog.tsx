@@ -15,7 +15,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { useAutoId } from "@/hooks/useAutoId";
 import { useDirty } from "@/hooks/useDirty";
-import { createMaterialRequestWithItems } from "@/utils/materialRequests";
+import { createMaterialRequest } from "@/utils/materialRequests";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const EXPENSE_CATEGORIES = ["Transporte", "Alimentação", "Hospedagem", "Marketing", "Aluguel de Equipamento", "Outros"];
 
@@ -45,6 +47,7 @@ export function RosterDialog({ event, employees, onSaveDetails, materials, onReq
   
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [sending, setSending] = React.useState(false);
   
   // Store initial values for dirty state detection
   const [initialValues, setInitialValues] = React.useState({
@@ -64,6 +67,7 @@ export function RosterDialog({ event, employees, onSaveDetails, materials, onReq
   const isDirty = useDirty(initialValues, currentValues);
 
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const userRole = user?.profile?.role;
   const canAllocateMaterials = !!userRole && hasActionPermission(userRole, 'materials:write');
 
@@ -184,11 +188,7 @@ export function RosterDialog({ event, employees, onSaveDetails, materials, onReq
       const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
       if (hasRequestedItems) {
         try {
-          await createMaterialRequestWithItems(event.id, selectedMaterials, {
-            name: 'Legacy param - ignored',
-            email: 'Legacy param - ignored', 
-            role: 'Legacy param - ignored'
-          });
+          await createMaterialRequest(event.id, `Requisição de ${Object.keys(selectedMaterials).length} itens`);
           
           if (onRequestsChange) {
             onRequestsChange();
@@ -246,21 +246,31 @@ export function RosterDialog({ event, employees, onSaveDetails, materials, onReq
       return;
     }
 
+    setSending(true);
+    
     try {
       console.log("Enviando requisição de materiais:", {
         eventId: event.id,
         materials: selectedMaterials
       });
 
-      await createMaterialRequestWithItems(event.id, selectedMaterials, {
-        name: 'Legacy param - ignored',
-        email: 'Legacy param - ignored',
-        role: 'Legacy param - ignored'
-      });
+      const requestId = await createMaterialRequest(event.id, `Requisição de ${Object.keys(selectedMaterials).length} itens`);
       
+      // Show success toast with request ID
+      toast.success(`Requisição enviada com sucesso (#${requestId})`);
+      
+      // Invalidate react-query caches
+      await queryClient.invalidateQueries({ queryKey: ['material-requests', event.id] });
+      await queryClient.invalidateQueries({ queryKey: ['events', event.id] });
+      
+      // Trigger callback if provided
       if (onRequestsChange) {
         onRequestsChange();
       }
+      
+      // Close modal
+      setOpen(false);
+      
     } catch (error: any) {
       console.error("Erro ao enviar requisição de materiais:", {
         error,
@@ -270,6 +280,11 @@ export function RosterDialog({ event, employees, onSaveDetails, materials, onReq
         eventId: event.id,
         selectedMaterials
       });
+      
+      // Show error toast and keep modal open
+      toast.error(error?.message || error?.code || "Erro ao enviar requisição");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -492,9 +507,9 @@ export function RosterDialog({ event, employees, onSaveDetails, materials, onReq
             type="button"
             variant="outline" 
             onClick={handleSendRequest} 
-            disabled={!Object.values(selectedMaterials).some(qty => qty > 0)}
+            disabled={sending || !Object.values(selectedMaterials).some(qty => qty > 0)}
           >
-            Enviar Requisição
+            {sending ? "Enviando…" : "Enviar Requisição"}
           </Button>
           <Button 
             type="button" 
