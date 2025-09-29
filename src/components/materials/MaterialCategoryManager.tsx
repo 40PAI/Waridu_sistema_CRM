@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
+import { useAutoId } from "@/hooks/useAutoId";
 
 export interface MaterialCategory {
   id: string;
@@ -35,6 +36,12 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
   onCategorySelected
 }) => {
   const { categories: materialCategories, addCategory, updateCategory, deleteCategory } = useMaterialCategories();
+  
+  // Generate unique IDs for form fields
+  const getId = useAutoId('material-category-manager');
+  
+  // Ref for first field focus
+  const firstFieldRef = React.useRef<HTMLInputElement>(null);
 
   const [editingCategory, setEditingCategory] = React.useState<{ id: string; name: string } | null>(null);
   const [newCategoryName, setNewCategoryName] = React.useState("");
@@ -115,7 +122,12 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
   }, [deleteCategory, onCategorySelected]);
 
   React.useEffect(() => {
-    if (!open) {
+    if (open) {
+      // Focus first field for accessibility when component mounts
+      setTimeout(() => {
+        firstFieldRef.current?.focus();
+      }, 100);
+    } else {
       setNewCategoryName("");
       setEditingCategory(null);
       setAddCategoryError(null);
@@ -126,29 +138,36 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        <Label htmlFor="category-search" className="sr-only">Buscar categorias</Label>
+        <Label htmlFor={getId('category-search')} className="sr-only">Buscar categorias</Label>
         <Input
-          id="category-search"
+          id={getId('category-search')}
+          name="categorySearch"
+          autoComplete="off"
           placeholder="Buscar categorias..."
           value={categorySearch}
           onChange={(e) => setCategorySearch(e.target.value)}
           className="flex-1"
+          ref={firstFieldRef}
         />
         <Button
+          type="button"
           variant="outline"
           size="icon"
           onClick={() => setCategorySearch("")}
           disabled={!categorySearch.trim()}
+          aria-label="Limpar busca"
         >
-          <Search className="h-4 w-4" />
+          <X className="h-4 w-4" />
         </Button>
       </div>
 
       <div className="flex gap-2 p-2 border rounded">
         <div className="flex-1 space-y-2">
-          <Label htmlFor="new-category-name">Nome da nova categoria</Label>
+          <Label htmlFor={getId('new-category-name')}>Nome da nova categoria</Label>
           <Input
-            id="new-category-name"
+            id={getId('new-category-name')}
+            name="newCategoryName"
+            autoComplete="off"
             placeholder="Nome da categoria"
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
@@ -158,6 +177,7 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
         </div>
         <div className="flex items-end">
           <Button
+            type="button"
             size="sm"
             onClick={handleAddCategory}
             disabled={adding || !newCategoryName.trim()}
@@ -182,9 +202,11 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
                 {editingCategory?.id === cat.id ? (
                   <div className="flex flex-wrap gap-2 items-end">
                     <div className="flex-1 space-y-1">
-                      <Label htmlFor={`edit-category-name-${cat.id}`}>Nome</Label>
+                      <Label htmlFor={getId(`edit-category-name-${cat.id}`)}>Nome</Label>
                       <Input
-                        id={`edit-category-name-${cat.id}`}
+                        id={getId(`edit-category-name-${cat.id}`)}
+                        name="editCategoryName"
+                        autoComplete="off"
                         value={editingCategory.name}
                         onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
                         placeholder="Nome"
@@ -192,6 +214,7 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
                       />
                     </div>
                     <Button
+                      type="button"
                       size="sm"
                       onClick={handleSaveCategoryEdit}
                       disabled={adding || !editingCategory.name.trim()}
@@ -199,6 +222,7 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
                       Salvar
                     </Button>
                     <Button
+                      type="button"
                       size="sm"
                       variant="outline"
                       onClick={() => setEditingCategory(null)}
@@ -220,10 +244,12 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
+                          type="button"
                           size="sm"
                           variant="outline"
                           onClick={() => openEditCategory(cat)}
                           disabled={adding}
+                          aria-label={`Editar categoria ${cat.name}`}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -237,21 +263,37 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
                       <TooltipTrigger asChild>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" disabled={adding}>
+                            <Button 
+                              type="button"
+                              size="sm" 
+                              variant="outline" 
+                              className="text-destructive hover:text-destructive" 
+                              disabled={adding}
+                              aria-label={`Excluir categoria ${cat.name}`}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent 
+                            role="alertdialog"
+                            aria-modal="true"
+                            aria-labelledby={getId(`alert-title-${cat.id}`)}
+                            aria-describedby={getId(`alert-desc-${cat.id}`)}
+                          >
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Remover Categoria?</AlertDialogTitle>
-                              <AlertDialogDescription>
+                              <AlertDialogTitle id={getId(`alert-title-${cat.id}`)}>Remover Categoria?</AlertDialogTitle>
+                              <AlertDialogDescription id={getId(`alert-desc-${cat.id}`)}>
                                 Materiais existentes não serão afetados, mas esta categoria será removida da lista.
                                 Esta ação não pode ser desfeita.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel disabled={adding}>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)} disabled={adding}>
+                              <AlertDialogCancel type="button" disabled={adding}>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction 
+                                type="button"
+                                onClick={() => handleDeleteCategory(cat.id)} 
+                                disabled={adding}
+                              >
                                 Remover
                               </AlertDialogAction>
                             </AlertDialogFooter>
@@ -274,13 +316,7 @@ export const MaterialCategoryManager: React.FC<MaterialCategoryManagerProps> = (
 
       <div className="flex justify-between pt-4">
         <Button
-          variant="outline"
-          onClick={() => onOpenChange(false)}
-          disabled={adding}
-        >
-          Fechar
-        </Button>
-        <Button
+          type="button"
           variant="outline"
           onClick={() => onOpenChange(false)}
           disabled={adding}
