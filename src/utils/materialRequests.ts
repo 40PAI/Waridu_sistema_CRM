@@ -36,7 +36,7 @@ export async function createMaterialRequest(
     // Get user profile details
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('first_name, email')
+      .select('id, name')
       .eq('id', user.id)
       .single();
 
@@ -55,8 +55,8 @@ export async function createMaterialRequest(
       event_id: eventId,
       requested_by_id: user.id,
       requested_by_details: {
-        name: profile.first_name || profile.email || user.email || 'Usuário',
-        email: profile.email || user.email || ''
+        name: profile?.name || user.user_metadata?.full_name || null,
+        email: user.email || null
       },
       reason: reason || null,
       status: 'Pendente' as const
