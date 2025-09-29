@@ -26,6 +26,8 @@ import {
   formToEventsInsert,
   clientRowToForm,
   getComercialEmployeeOptions,
+  sanitizeEventsPayload,
+  validateServiceIds,
 } from './clientMappers';
 
 // =============================================================================
