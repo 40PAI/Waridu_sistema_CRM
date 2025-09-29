@@ -36,7 +36,7 @@ export async function createMaterialRequest(
     // Get user profile details
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, name')
+      .select('id, first_name, last_name')
       .eq('id', user.id)
       .single();
 
@@ -50,13 +50,18 @@ export async function createMaterialRequest(
       throw new Error(`Erro ao obter dados do usuário: ${profileError.message}`);
     }
 
+    // Create display name from profile data
+    const displayName = profile 
+      ? [profile.first_name, profile.last_name].filter(Boolean).join(" ") || user.user_metadata?.full_name || null
+      : user.user_metadata?.full_name || null;
+
     // Prepare payload according to DDL schema
     const payload = {
       event_id: eventId,
       requested_by_id: user.id,
       requested_by_details: {
-        name: profile?.name || user.user_metadata?.full_name || null,
-        email: user.email || null
+        name: displayName,
+        email: user.email
       },
       reason: reason || null,
       status: 'Pendente' as const
