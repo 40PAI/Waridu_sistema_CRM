@@ -479,7 +479,7 @@ export function sanitizeEventsPayload(payload: any): Database.EventsInsert {
   // Only include whitelisted fields
   for (const [key, value] of Object.entries(payload || {})) {
     if (ALLOWED_FIELDS.has(key)) {
-      sanitized[key as keyof Database.EventsInsert] = value;
+      (sanitized as any)[key] = value;
     }
   }
 

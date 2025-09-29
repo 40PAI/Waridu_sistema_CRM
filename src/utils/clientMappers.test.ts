@@ -876,4 +876,203 @@ describe('Events Mapping Functions', () => {
       });
     });
   });
+
+  // =============================================================================
+  // PAYLOAD SANITIZER TESTS
+  // =============================================================================
+  describe('Payload Sanitizer Functions', () => {
+    describe('sanitizeEventsPayload', () => {
+      it('should only allow whitelisted fields', () => {
+        const dirtyPayload = {
+          name: 'Valid Project',
+          location: 'Valid Location',
+          client_id: 'valid-uuid',
+          invalidField: 'should be removed',
+          anotherInvalidField: 123,
+          technician_id: 'should be removed',
+          labels: ['should', 'be', 'removed'],
+        };
+
+        const result = sanitizeEventsPayload(dirtyPayload);
+
+        // Should include whitelisted fields
+        expect(result.name).toBe('Valid Project');
+        expect(result.location).toBe('Valid Location');
+        expect(result.client_id).toBe('valid-uuid');
+
+        // Should NOT include non-whitelisted fields
+        expect('invalidField' in result).toBe(false);
+        expect('anotherInvalidField' in result).toBe(false);
+        expect('technician_id' in result).toBe(false);
+        expect('labels' in result).toBe(false);
+      });
+
+      it('should handle empty or null payloads', () => {
+        expect(sanitizeEventsPayload(null)).toEqual({});
+        expect(sanitizeEventsPayload(undefined)).toEqual({});
+        expect(sanitizeEventsPayload({})).toEqual({});
+      });
+
+      it('should preserve all DDL-approved fields', () => {
+        const fullPayload = {
+          id: 1,
+          name: 'Project Name',
+          start_date: '2024-01-01T00:00:00Z',
+          end_date: '2024-01-02T00:00:00Z',
+          location: 'Location',
+          start_time: '09:00:00',
+          end_time: '17:00:00',
+          revenue: 1000,
+          status: 'Planejado',
+          description: 'Description',
+          pipeline_status: 'Confirmado',
+          estimated_value: 5000,
+          service_ids: [1, 2, 3],
+          client_id: 'client-uuid',
+          notes: 'Some notes',
+          next_action_date: '2024-01-03T00:00:00Z',
+          next_action_time: '10:00:00',
+          responsible_id: 'responsible-uuid',
+        };
+
+        const result = sanitizeEventsPayload(fullPayload);
+
+        // All DDL fields should be preserved
+        Object.keys(fullPayload).forEach(key => {
+          expect(result).toHaveProperty(key);
+          expect(result[key as keyof typeof result]).toBe(fullPayload[key as keyof typeof fullPayload]);
+        });
+      });
+    });
+
+    describe('validateServiceIds', () => {
+      it('should convert valid string IDs to numbers', () => {
+        const stringIds = ['1', '2', '3', '10'];
+        const result = validateServiceIds(stringIds);
+        
+        expect(result).toEqual([1, 2, 3, 10]);
+        expect(result.every(id => typeof id === 'number')).toBe(true);
+      });
+
+      it('should throw error for invalid service IDs', () => {
+        const invalidIds = ['1', 'invalid', '3'];
+        
+        expect(() => validateServiceIds(invalidIds)).toThrow(
+          'Service ID inválido: invalid. Deve ser um número.'
+        );
+      });
+
+      it('should handle edge cases', () => {
+        // Empty array
+        expect(validateServiceIds([])).toEqual([]);
+        
+        // Zero
+        expect(validateServiceIds(['0'])).toEqual([0]);
+        
+        // Negative numbers (should not throw)
+        expect(() => validateServiceIds(['-1'])).not.toThrow();
+        expect(validateServiceIds(['-1'])).toEqual([-1]);
+      });
+    });
+  });
+
+  // =============================================================================
+  // COMPLETE UI → BD ALIGNMENT TESTS
+  // =============================================================================
+  describe('Complete 14-Field UI → BD Alignment', () => {
+    it('should map all 14 required UI fields to correct BD fields', () => {
+      const complete14FieldForm: NewProjectForm = {
+        projectName: 'Projeto Completo',          // → name
+        clientId: '12345678-1234-5678-9012-123456789012', // → client_id
+        location: 'Luanda, Angola',               // → location
+        startDate: '2025-01-15',                  // → start_date
+        endDate: '2025-01-20',                    // → end_date
+        startTime: '09:00',                       // → start_time
+        endTime: '17:00',                         // → end_time
+        nextActionDate: '2025-01-22',             // → next_action_date
+        nextActionTime: '14:30',                  // → next_action_time
+        services: ['1', '2', '3'],                // → service_ids
+        estimatedValue: 10000,                    // → estimated_value
+        pipelineStatus: 'Confirmado',             // → pipeline_status
+        notes: 'Notas do projeto',                // → notes
+        responsável: '87654321-4321-8765-2109-210987654321', // → responsible_id
+      };
+
+      const result = formToEventsInsert(complete14FieldForm);
+
+      // Verify all 14 mappings
+      expect(result.name).toBe('Projeto Completo');
+      expect(result.client_id).toBe('12345678-1234-5678-9012-123456789012');
+      expect(result.location).toBe('Luanda, Angola');
+      expect(result.start_date).toBeDefined(); // Converted to ISO
+      expect(result.end_date).toBeDefined();   // Converted to ISO
+      expect(result.start_time).toBe('09:00:00');
+      expect(result.end_time).toBe('17:00:00');
+      expect(result.next_action_date).toBeDefined(); // Converted to ISO
+      expect(result.next_action_time).toBe('14:30:00');
+      expect(result.service_ids).toEqual([1, 2, 3]); // Converted to integers
+      expect(result.estimated_value).toBe(10000);
+      expect(result.pipeline_status).toBe('Confirmado');
+      expect(result.notes).toBe('Notas do projeto');
+      expect(result.responsible_id).toBe('87654321-4321-8765-2109-210987654321');
+    });
+
+    it('should handle all optional fields as null when not provided', () => {
+      const minimalForm: NewProjectForm = {
+        projectName: 'Projeto Mínimo',
+        clientId: '12345678-1234-5678-9012-123456789012',
+        location: 'Luanda',
+        startDate: '2025-01-15',
+        services: ['1'],
+        pipelineStatus: '1º Contato',
+      };
+
+      const result = formToEventsInsert(minimalForm);
+
+      // Required fields should be present
+      expect(result.name).toBe('Projeto Mínimo');
+      expect(result.client_id).toBe('12345678-1234-5678-9012-123456789012');
+      expect(result.location).toBe('Luanda');
+      expect(result.service_ids).toEqual([1]);
+      expect(result.pipeline_status).toBe('1º Contato');
+
+      // Optional fields should be undefined or null
+      expect(result.end_date).toBeDefined(); // Uses start_date as fallback
+      expect(result.start_time).toBeUndefined();
+      expect(result.end_time).toBeUndefined();
+      expect(result.next_action_date).toBeNull();
+      expect(result.next_action_time).toBeUndefined();
+      expect(result.estimated_value).toBeUndefined();
+      expect(result.notes).toBeUndefined();
+      expect(result.responsible_id).toBeUndefined();
+    });
+
+    it('should ensure payload contains only DDL-approved fields', () => {
+      const formWithAllFields: NewProjectForm = {
+        projectName: 'Test Project',
+        clientId: '12345678-1234-5678-9012-123456789012',
+        location: 'Test Location',
+        startDate: '2025-01-15',
+        services: ['1'],
+        pipelineStatus: 'Confirmado',
+        notes: 'Test notes',
+        responsável: '87654321-4321-8765-2109-210987654321',
+      };
+
+      const result = formToEventsInsert(formWithAllFields);
+
+      // Should not contain any non-DDL fields
+      const allowedFields = new Set([
+        'id', 'name', 'start_date', 'end_date', 'location', 'start_time', 'end_time',
+        'revenue', 'status', 'description', 'roster', 'expenses', 'pipeline_status',
+        'estimated_value', 'service_ids', 'client_id', 'notes', 'pipeline_phase_id',
+        'pipeline_phase_label', 'pipeline_rank', 'tags', 'created_at', 'updated_at',
+        'next_action_date', 'next_action_time', 'responsible_id'
+      ]);
+
+      Object.keys(result).forEach(key => {
+        expect(allowedFields.has(key)).toBe(true);
+      });
+    });
+  });
 });
