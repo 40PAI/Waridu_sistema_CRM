@@ -22,12 +22,11 @@ interface RosterManagementProps {
   employees: Employee[];
   onUpdateEventDetails: (eventId: number, details: { roster: Roster; expenses: Expense[] }) => void;
   onUpdateEvent: (updatedEvent: Event) => void;
-  onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => void;
   pendingRequests: MaterialRequest[];
   materials: InventoryMaterial[];
 }
 
-const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEvent, onCreateMaterialRequest, pendingRequests, materials }: RosterManagementProps) => {
+const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEvent, pendingRequests, materials }: RosterManagementProps) => {
   const [nameFilter, setNameFilter] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<EventStatus | "all">("all");
   const [dateFilter, setDateFilter] = React.useState<"all" | "this-week" | "next-week" | "this-month">("all");
@@ -229,7 +228,6 @@ const RosterManagement = ({ events, employees, onUpdateEventDetails, onUpdateEve
                             event={event}
                             employees={employees}
                             onSaveDetails={onUpdateEventDetails}
-                            onCreateMaterialRequest={onCreateMaterialRequest}
                             materials={materials}
                             onRequestsChange={handleRequestsChange}
                           />

@@ -76,14 +76,13 @@ const RosterManagementWrapper = () => {
   const { events, updateEventDetails, updateEvent } = useEvents();
   const { employees } = useEmployees();
   const { materials: invMaterials } = useMaterials();
-  const { pendingRequests, createMaterialRequest } = useMaterialRequests(); // Destructure createMaterialRequest
+  const { pendingRequests } = useMaterialRequests();
   return (
     <RosterManagement
       events={events || []}
       employees={employees}
       onUpdateEventDetails={updateEventDetails}
       onUpdateEvent={updateEvent}
-      onCreateMaterialRequest={createMaterialRequest}
       pendingRequests={pendingRequests}
       materials={invMaterials}
     />

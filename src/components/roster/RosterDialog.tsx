@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { hasActionPermission } from "@/config/roles";
 import { useAutoId } from "@/hooks/useAutoId";
 import { useDirty } from "@/hooks/useDirty";
+import { createMaterialRequestWithItems } from "@/utils/materialRequests";
 
 const EXPENSE_CATEGORIES = ["Transporte", "Alimentação", "Hospedagem", "Marketing", "Aluguel de Equipamento", "Outros"];
 
@@ -22,12 +23,11 @@ interface RosterDialogProps {
   event: Event;
   employees: Employee[];
   onSaveDetails: (eventId: number, details: { roster: Roster; expenses: Expense[] }) => void;
-  onCreateMaterialRequest: (eventId: number, items: Record<string, number>, requestedBy: { name: string; email: string; role: string }) => void;
   materials: InventoryMaterial[];
   onRequestsChange?: () => void;
 }
 
-export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterialRequest, materials, onRequestsChange }: RosterDialogProps) {
+export function RosterDialog({ event, employees, onSaveDetails, materials, onRequestsChange }: RosterDialogProps) {
   // Generate unique IDs for form fields
   const getId = useAutoId('roster-dialog');
   
@@ -183,19 +183,20 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
     if (!canAllocateMaterials) {
       const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
       if (hasRequestedItems) {
-        if (!user || !user.email || !user.profile) {
-          showError("Sessão inválida. Faça login novamente.");
+        try {
+          await createMaterialRequestWithItems(event.id, selectedMaterials, {
+            name: 'Legacy param - ignored',
+            email: 'Legacy param - ignored', 
+            role: 'Legacy param - ignored'
+          });
+          
+          if (onRequestsChange) {
+            onRequestsChange();
+          }
+        } catch (error) {
+          console.error("Erro ao criar requisição de material:", error);
           setIsSaving(false);
           return;
-        }
-        await onCreateMaterialRequest(event.id, selectedMaterials, {
-          name: user.profile.first_name || user.email,
-          email: user.email,
-          role: user.profile.role,
-        });
-        showSuccess("Requisição de materiais enviada para aprovação.");
-        if (onRequestsChange) {
-          onRequestsChange();
         }
       }
     }
@@ -238,16 +239,6 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
   };
 
   const handleSendRequest = async () => {
-    if (!user || !user.email || !user.profile) {
-      console.error("Erro de autenticação:", { 
-        hasUser: !!user, 
-        hasEmail: !!user?.email, 
-        hasProfile: !!user?.profile 
-      });
-      showError("Sessão inválida. Faça login novamente.");
-      return;
-    }
-    
     const hasRequestedItems = Object.values(selectedMaterials).some(qty => qty > 0);
     if (!hasRequestedItems) {
       console.warn("Tentativa de envio de requisição sem materiais selecionados");
@@ -258,21 +249,15 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
     try {
       console.log("Enviando requisição de materiais:", {
         eventId: event.id,
-        materials: selectedMaterials,
-        requestedBy: {
-          name: user.profile.first_name || user.email,
-          email: user.email,
-          role: user.profile.role,
-        }
+        materials: selectedMaterials
       });
 
-      await onCreateMaterialRequest(event.id, selectedMaterials, {
-        name: user.profile.first_name || user.email,
-        email: user.email,
-        role: user.profile.role,
+      await createMaterialRequestWithItems(event.id, selectedMaterials, {
+        name: 'Legacy param - ignored',
+        email: 'Legacy param - ignored',
+        role: 'Legacy param - ignored'
       });
       
-      showSuccess("Requisição de materiais enviada para o gestor de materiais.");
       if (onRequestsChange) {
         onRequestsChange();
       }
@@ -285,10 +270,6 @@ export function RosterDialog({ event, employees, onSaveDetails, onCreateMaterial
         eventId: event.id,
         selectedMaterials
       });
-      
-      // Show detailed error message if available
-      const errorMessage = error?.message || error?.details?.message || error?.detail || "Erro desconhecido";
-      showError(`Erro ao enviar requisição: ${errorMessage}`);
     }
   };
 
