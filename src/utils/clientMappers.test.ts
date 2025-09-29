@@ -662,8 +662,8 @@ describe('Events Mapping Functions', () => {
       
       expect(result.estimated_value).toBeUndefined();
       expect(result.notes).toBe(''); // Empty string is kept
-      expect(result.start_time).toBe(':00'); // Empty string becomes ":00"
-      expect(result.end_time).toBe(':00');
+      expect(result.start_time).toBeUndefined(); // Empty string becomes undefined
+      expect(result.end_time).toBeUndefined(); // Empty string becomes undefined
       expect(result.next_action_date).toBeNull(); // Empty date becomes null
     });
 
@@ -707,6 +707,38 @@ describe('Events Mapping Functions', () => {
       // Undefined fields should not be included in database payload
       expect(result.next_action_time).toBeUndefined();
       expect(result.responsible_id).toBeUndefined();
+    });
+
+    it('should handle empty string time fields without creating invalid timestamps', () => {
+      const formWithEmptyTimes = {
+        ...validProjectForm,
+        startTime: '',
+        endTime: '',
+        nextActionTime: '',
+      };
+      
+      const result = formToEventsInsert(formWithEmptyTimes);
+      
+      // Empty time strings should not be converted to invalid ":00" values
+      expect(result.start_time).toBeUndefined();
+      expect(result.end_time).toBeUndefined();
+      expect(result.next_action_time).toBeUndefined();
+    });
+
+    it('should create valid HH:mm:ss format for non-empty time fields', () => {
+      const formWithValidTimes = {
+        ...validProjectForm,
+        startTime: '09:30',
+        endTime: '17:45',
+        nextActionTime: '14:15',
+      };
+      
+      const result = formToEventsInsert(formWithValidTimes);
+      
+      // Should append :00 for seconds to valid times
+      expect(result.start_time).toBe('09:30:00');
+      expect(result.end_time).toBe('17:45:00');
+      expect(result.next_action_time).toBe('14:15:00');
     });
   });
 
