@@ -6,6 +6,23 @@ This is a comprehensive React application built with Vite, TypeScript, and Shadc
 ## Recent Changes
 
 ### September 30, 2025
+- ✅ **Gestor de Material Dashboard Specialization**:
+  - **Feature Added**: Created dedicated materials management dashboard for Gestor de Material role
+  - **Files Created**: `src/pages/material-manager/Dashboard.tsx`
+  - **Files Modified**: `src/pages/Index.tsx` (added conditional rendering based on user role)
+  - **Dashboard Features**:
+    - **Key Metrics**: Total materials, pending requests, low stock alerts, available materials
+    - **Visualizations**: Pie chart showing material status distribution
+    - **Critical Alerts**: Materials in use or maintenance status
+    - **Low Stock Warnings**: Materials below 10 units with sortable table
+    - **Pending Requests**: Recent requisitions awaiting approval with quick access links
+  - **Technical Implementation**:
+    - Hooks properly ordered to comply with React Rules of Hooks
+    - Guards added for materials without locations map to prevent crashes
+    - Responsive design with grid layout for desktop and mobile
+    - Real-time data from useMaterials, useMaterialRequests, and useLocations hooks
+  - **User Experience**: Gestor de Material users now see a focused dashboard relevant to their responsibilities instead of generic metrics
+  - **Code Quality**: Passed architect review with no critical issues, security concerns, or performance regressions
 - ✅ **Gestor de Material Sidebar Enhancement**:
   - **Feature Added**: Added "Materiais" and "Requisições" links to Gestor de Material sidebar navigation
   - **Files Modified**: `src/components/layout/Sidebar.tsx`
