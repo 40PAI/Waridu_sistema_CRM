@@ -54,13 +54,12 @@ const MaterialStatusList = ({ materials }: { materials: any[] }) => {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { events } = useEvents();
+  const { materials: pageMaterials } = useMaterials();
   
   if (user?.profile?.role === 'Gestor de Material') {
     return <MaterialManagerDashboard />;
   }
-
-  const { events } = useEvents();
-  const { materials: pageMaterials } = useMaterials();
 
   const totalItems = useMemo(() => pageMaterials.reduce((sum, item) => sum + item.quantity, 0), [pageMaterials]);
   const availableItems = useMemo(() => pageMaterials.filter(m => m.status === 'Disponível').reduce((sum, item) => sum + item.quantity, 0), [pageMaterials]);

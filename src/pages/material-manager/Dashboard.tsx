@@ -34,12 +34,16 @@ const MaterialManagerDashboard = () => {
     const manutencao = materials.filter(m => m.status === 'Manutenção').length;
     
     const totalQuantity = materials.reduce((sum, mat) => {
-      const locQty = Object.values(mat.locations).reduce((s, q) => s + q, 0);
+      const locQty = mat.locations 
+        ? Object.values(mat.locations).reduce((s, q) => s + q, 0)
+        : 0;
       return sum + locQty;
     }, 0);
 
     const lowStockMaterials = materials.filter(mat => {
-      const qty = Object.values(mat.locations).reduce((s, q) => s + q, 0);
+      const qty = mat.locations 
+        ? Object.values(mat.locations).reduce((s, q) => s + q, 0)
+        : 0;
       return qty > 0 && qty < 10;
     });
 
@@ -63,7 +67,9 @@ const MaterialManagerDashboard = () => {
   const lowStockMaterials = React.useMemo(() => {
     return materials
       .map(mat => {
-        const qty = Object.values(mat.locations).reduce((s, q) => s + q, 0);
+        const qty = mat.locations 
+          ? Object.values(mat.locations).reduce((s, q) => s + q, 0)
+          : 0;
         return { ...mat, totalQty: qty };
       })
       .filter(mat => mat.totalQty > 0 && mat.totalQty < 10)
