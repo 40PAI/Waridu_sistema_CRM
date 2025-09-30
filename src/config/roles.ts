@@ -17,7 +17,7 @@ export const PAGE_PERMISSIONS: Record<Role, string[]> = {
     '/', '/calendar', '/roster-management',
     '/employees', '/roles', '/materials', '/admin/tasks', '/admin/create-task',
     '/invite-member', '/admin/members', '/admin/users',
-    '/notifications',
+    '/notifications', '/coordinator/profile',
     // Allow access to services management UI for Gestor Comercial (view + manage but no create/delete)
     '/admin/services'
   ],
