@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showError, showSuccess } from "@/utils/toast";
-import { loadProfiles, loadEvents, createTask, ProfileOption, EventOption } from "@/utils/taskUtils";
+import { loadAssigneesByEvent, loadEvents, createTask, ProfileOption, EventOption } from "@/utils/taskUtils";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface CreateTaskDialogProps {
@@ -23,10 +23,11 @@ export const CreateTaskDialog = ({ open, onOpenChange, onSuccess }: CreateTaskDi
   const [assignedTo, setAssignedTo] = React.useState("");
   const [eventId, setEventId] = React.useState<string>("none");
   
-  const [profiles, setProfiles] = React.useState<ProfileOption[]>([]);
+  const [assignees, setAssignees] = React.useState<ProfileOption[]>([]);
   const [events, setEvents] = React.useState<EventOption[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [dataLoading, setDataLoading] = React.useState(false);
+  const [assigneesLoading, setAssigneesLoading] = React.useState(false);
   
   const [titleError, setTitleError] = React.useState("");
   const [assignedToError, setAssignedToError] = React.useState("");
@@ -34,7 +35,7 @@ export const CreateTaskDialog = ({ open, onOpenChange, onSuccess }: CreateTaskDi
   const titleInputRef = React.useRef<HTMLInputElement>(null);
   const assignedToRef = React.useRef<HTMLButtonElement>(null);
 
-  // Load profiles and events when dialog opens
+  // Load events and initial assignees when dialog opens
   React.useEffect(() => {
     if (open) {
       loadData();
@@ -43,20 +44,42 @@ export const CreateTaskDialog = ({ open, onOpenChange, onSuccess }: CreateTaskDi
     }
   }, [open]);
 
+  // Reload assignees when event changes
+  React.useEffect(() => {
+    if (open) {
+      loadAssigneesForEvent();
+    }
+  }, [eventId, open]);
+
   const loadData = async () => {
     setDataLoading(true);
     try {
-      const [profilesData, eventsData] = await Promise.all([
-        loadProfiles(),
-        loadEvents()
-      ]);
-      setProfiles(profilesData);
+      const eventsData = await loadEvents();
       setEvents(eventsData);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error loading events:', error);
       showError('Erro ao carregar dados. Tente novamente.');
     } finally {
       setDataLoading(false);
+    }
+  };
+
+  const loadAssigneesForEvent = async () => {
+    setAssigneesLoading(true);
+    try {
+      const eventIdNum = eventId === "none" ? null : Number(eventId);
+      const assigneesData = await loadAssigneesByEvent(eventIdNum);
+      setAssignees(assigneesData);
+      
+      // Reset assigned_to if current selection is not in new list
+      if (assignedTo && !assigneesData.find(a => a.id === assignedTo)) {
+        setAssignedTo("");
+      }
+    } catch (error) {
+      console.error('Error loading assignees:', error);
+      showError('Erro ao carregar utilizadores. Tente novamente.');
+    } finally {
+      setAssigneesLoading(false);
     }
   };
 
@@ -219,7 +242,7 @@ export const CreateTaskDialog = ({ open, onOpenChange, onSuccess }: CreateTaskDi
                   setAssignedTo(value);
                   if (assignedToError) setAssignedToError("");
                 }}
-                disabled={loading || dataLoading}
+                disabled={loading || dataLoading || assigneesLoading}
               >
                 <SelectTrigger 
                   ref={assignedToRef}
@@ -227,12 +250,21 @@ export const CreateTaskDialog = ({ open, onOpenChange, onSuccess }: CreateTaskDi
                   aria-invalid={!!assignedToError}
                   aria-describedby={assignedToError ? "assigned-to-error" : undefined}
                 >
-                  <SelectValue placeholder={dataLoading ? "Carregando..." : "Selecione um utilizador"} />
+                  <SelectValue placeholder={
+                    assigneesLoading ? "Carregando..." : 
+                    assignees.length === 0 ? "Nenhum utilizador disponível" :
+                    "Selecione um utilizador"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {profiles.map((profile) => (
-                    <SelectItem key={profile.id} value={profile.id}>
-                      {profile.label}
+                  {assignees.length === 0 && !assigneesLoading && (
+                    <SelectItem value="no-options" disabled>
+                      {eventId !== "none" ? "Nenhum técnico escalado para este evento" : "Nenhum utilizador disponível"}
+                    </SelectItem>
+                  )}
+                  {assignees.map((assignee) => (
+                    <SelectItem key={assignee.id} value={assignee.id}>
+                      {assignee.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -276,7 +308,7 @@ export const CreateTaskDialog = ({ open, onOpenChange, onSuccess }: CreateTaskDi
             </Button>
             <Button 
               type="submit"
-              disabled={loading || dataLoading}
+              disabled={loading || dataLoading || assigneesLoading || assignees.length === 0}
             >
               {loading ? "A criar..." : "Criar Tarefa"}
             </Button>
