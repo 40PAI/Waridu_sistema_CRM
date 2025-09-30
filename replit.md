@@ -6,6 +6,12 @@ This is a comprehensive React application built with Vite, TypeScript, and Shadc
 ## Recent Changes
 
 ### September 30, 2025
+- ✅ **Gestor de Material Sidebar Enhancement**:
+  - **Feature Added**: Added "Materiais" and "Requisições" links to Gestor de Material sidebar navigation
+  - **Files Modified**: `src/components/layout/Sidebar.tsx`
+  - **Navigation Items**: Dashboard, Calendário, Escalações, Materiais, Requisições
+  - **Permissions**: Already configured in roles.ts - no changes needed
+  - **User Experience**: Gestor de Material users now see all their accessible pages in sidebar
 - ✅ **Coordenador Profile Page Implementation**:
   - **Feature Added**: Created dedicated profile page for Coordenador role identical to Admin profile
   - **Files Created**: `src/pages/coordinator/Profile.tsx`
