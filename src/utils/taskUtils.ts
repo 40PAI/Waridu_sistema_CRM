@@ -45,27 +45,58 @@ function employeeLabel(employee: any): string {
 /**
  * Load assignees based on selected event
  * - If eventId is null: returns all employees
- * - If eventId is set: returns only employees assigned to that event (via event_employees)
+ * - If eventId is set: returns only employees assigned to that event (from roster JSONB field)
  * NO filters applied for role or status
  */
 export async function loadAssigneesByEvent(eventId: number | null): Promise<ProfileOption[]> {
   try {
     if (eventId) {
-      // Funcionários escalados para o evento (sem filtros de role/status)
-      const { data, error } = await supabase
-        .from('event_employees')
-        .select('employee_id, employees(id, name, email)')
-        .eq('event_id', eventId);
+      // Buscar evento com campo roster
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .select('roster')
+        .eq('id', eventId)
+        .single();
       
-      if (error) throw error;
+      if (eventError) throw eventError;
       
-      return (data ?? []).map((item: any) => {
-        const employee = item.employees;
-        return {
-          id: employee.id,
-          label: employeeLabel(employee)
-        };
-      });
+      // Extrair IDs dos funcionários escalados do roster
+      const roster = eventData?.roster as any;
+      const employeeIds: string[] = [];
+      
+      if (roster) {
+        // Adicionar teamLead se existir
+        if (roster.teamLead) {
+          employeeIds.push(roster.teamLead);
+        }
+        
+        // Adicionar teamMembers se existir
+        if (roster.teamMembers && Array.isArray(roster.teamMembers)) {
+          roster.teamMembers.forEach((member: any) => {
+            if (member.id && !employeeIds.includes(member.id)) {
+              employeeIds.push(member.id);
+            }
+          });
+        }
+      }
+      
+      // Se não há funcionários escalados, retornar array vazio
+      if (employeeIds.length === 0) {
+        return [];
+      }
+      
+      // Buscar detalhes completos dos funcionários escalados
+      const { data: employeesData, error: employeesError } = await supabase
+        .from('employees')
+        .select('id, name, email')
+        .in('id', employeeIds);
+      
+      if (employeesError) throw employeesError;
+      
+      return (employeesData ?? []).map(e => ({
+        id: e.id,
+        label: employeeLabel(e)
+      }));
     }
     
     // Sem evento: todos os funcionários (sem filtros)
