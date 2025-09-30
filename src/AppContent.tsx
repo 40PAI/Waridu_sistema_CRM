@@ -39,6 +39,7 @@ import Notifications from "@/pages/Notifications";
 import MaterialManagerProfile from "@/pages/material-manager/Profile";
 import AdminTasks from "@/pages/admin/Tasks";
 import CreateTask from "@/pages/admin/CreateTask";
+import CoordinatorProfile from "@/pages/coordinator/Profile";
 
 // CRM Pages
 import CRMDashboard from "@/pages/crm/Dashboard";
@@ -217,6 +218,9 @@ const AppContent = () => {
 
             {/* Gestor de Material */}
             <Route path="/material-manager/profile" element={<MaterialManagerProfile />} />
+
+            {/* Coordenador */}
+            <Route path="/coordinator/profile" element={<CoordinatorProfile />} />
 
             {/* Admin */}
             <Route path="/admin/profile" element={<AdminProfile />} />
