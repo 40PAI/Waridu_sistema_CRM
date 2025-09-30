@@ -1,0 +1,44 @@
+Cria a lógica do modal “Criar Nova Tarefa” com Supabase:
+
+Contexto:
+- Tabela public.tasks já existe com as colunas:
+  id (uuid, pk, default gen_random_uuid),
+  title (text, not null),
+  description (text),
+  done (boolean, default false),
+  has_issues (boolean, default false),
+  issue_description (text),
+  assigned_to (uuid, fk profiles.id),
+  event_id (integer, fk events.id),
+  created_at (timestamptz, default now()),
+  created_by (uuid, fk profiles.id)  <-- preenchido por trigger
+- RLS ativo:
+  * SELECT: apenas created_by OU assigned_to
+  * INSERT: autenticado
+  * UPDATE: criador pode tudo; destinatário só done/has_issues/issue_description
+  * DELETE: só criador
+
+Requisitos UI (NÃO alterar o schema):
+1) Validar título obrigatório (min 3 caracteres).
+2) “Atribuir a”: carregar opções a partir da tabela profiles.
+   - Buscar pelo menos [id, algum campo de nome/label disponível].
+   - Renderizar label com o que existir (ex.: full_name, name, email). Se não existir, exibir id truncado.
+3) “Evento Relacionado (Opcional)”: carregar lista de events(id, [name se existir]) e permitir “Sem evento”.
+4) Ao clicar “Criar Tarefa”:
+   - Desativar botão e mostrar loading.
+   - Efetuar insert em public.tasks com: { title, description, assigned_to, event_id (ou null) }.
+   - NÃO enviar created_by; a trigger preenche.
+   - Após sucesso, fechar modal, limpar formulário e mostrar toast “Tarefa criada”.
+   - Atualizar a lista local (optimistic update) e depois refetch da query de tarefas do utilizador.
+5) Tratamento de erros:
+   - Se for erro de RLS ou 401, mostrar “Sem permissão para criar a tarefa”.
+   - Se for erro de FK (technico ou evento inválidos), mostrar “Seleção inválida”.
+   - Outros: “Não foi possível criar a tarefa. Tenta novamente.”
+6) Acessibilidade e UX:
+   - Enter no campo “Título” submete se o formulário estiver válido.
+   - Esc fecha o modal.
+   - Manter foco no primeiro campo com erro.
+7) Código:
+   - Usar Supabase JS client já existente (não criar novo).
+   - Escrever funções puras: loadProfiles(), loadEvents(), createTask(payload).
+   - Não assumes colunas além das listadas. Em labels do dropdown, tenta na ordem: full_name > name > email > id.
