@@ -66,6 +66,7 @@ const SidebarNav = () => {
     }
 
     const profileLink = role === 'Admin' ? '/admin/profile' :
+                      role === 'Coordenador' ? '/coordinator/profile' :
                       role === 'Financeiro' ? '/finance/profile' :
                       role === 'Gestor de Material' ? '/material-manager/profile' :
                       role === 'Técnico' ? '/technician/profile' :
