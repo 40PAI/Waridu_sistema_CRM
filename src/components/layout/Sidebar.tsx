@@ -29,6 +29,16 @@ const SidebarNav = () => {
       );
     }
 
+    if (role === 'Gestor de Material') {
+      items.push(
+        { to: "/", icon: <Home className="h-4 w-4 mr-2" />, label: "Dashboard" },
+        { to: "/calendar", icon: <Calendar className="h-4 w-4 mr-2" />, label: "Calendário" },
+        { to: "/roster-management", icon: <Users className="h-4 w-4 mr-2" />, label: "Escalações" },
+        { to: "/materials", icon: <Package className="h-4 w-4 mr-2" />, label: "Materiais" },
+        { to: "/material-requests", icon: <Package className="h-4 w-4 mr-2" />, label: "Requisições" }
+      );
+    }
+
     if (role === 'Admin' || role === 'Comercial') {
       items.push(
         { to: "/crm/dashboard", icon: <LayoutGrid className="h-4 w-4 mr-2" />, label: "Dashboard CRM" },
