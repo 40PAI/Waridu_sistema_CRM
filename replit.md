@@ -6,6 +6,32 @@ This is a comprehensive React application built with Vite, TypeScript, and Shadc
 ## Recent Changes
 
 ### September 30, 2025
+- ✅ **Mobile-First Responsive Design Implementation**:
+  - **Feature Added**: Complete mobile responsiveness for the entire application
+  - **Files Modified**: `src/components/layout/DashboardLayout.tsx`, `src/components/layout/Header.tsx`, `src/components/layout/Sidebar.tsx`, `src/pages/Index.tsx`, `src/pages/material-manager/Dashboard.tsx`
+  - **Shell Responsiveness**:
+    - Mobile drawer/sheet navigation with hamburger button in Header
+    - Desktop sticky sidebar that doesn't overlap content
+    - Automatic sheet closing on route changes (browser back/forward support)
+    - Sidebar links properly close drawer on navigation
+  - **Dashboard Responsiveness**:
+    - Grid layouts: 1 column mobile → 2 columns tablet → 4 columns desktop
+    - Responsive spacing: gap-3/p-3 mobile → gap-6/p-6 desktop
+    - Responsive typography: smaller text on mobile, larger on desktop
+    - Tables with overflow-x-auto for horizontal scrolling
+    - Charts with responsive heights and font sizes
+  - **Component Patterns**:
+    - Cards: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` for metric cards
+    - Tables: `overflow-x-auto` wrapper + `whitespace-nowrap` headers
+    - Lists: `flex-col sm:flex-row` for stacked mobile → horizontal desktop
+    - Text: `truncate` for long content, `text-sm sm:text-base` for sizing
+  - **Technical Implementation**:
+    - Tailwind breakpoints: sm: (640px), md: (768px), lg: (1024px)
+    - Mobile-first approach: base styles for mobile, breakpoints for larger screens
+    - useLocation hook for automatic drawer closing
+    - Sticky positioning for desktop sidebar instead of fixed
+  - **User Experience**: All pages now work seamlessly on smartphones, tablets, and desktops
+  - **Code Quality**: Passed architect review with no regressions or accessibility issues
 - ✅ **Gestor de Material Dashboard Specialization**:
   - **Feature Added**: Created dedicated materials management dashboard for Gestor de Material role
   - **Files Created**: `src/pages/material-manager/Dashboard.tsx`
