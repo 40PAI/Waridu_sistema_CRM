@@ -6,14 +6,18 @@ This is a comprehensive React application built with Vite, TypeScript, and Shadc
 ## Recent Changes
 
 ### September 30, 2025
-- ✅ **Logout Button Implementation**:
+- ✅ **Logout Button Implementation & Fix**:
   - **Feature Added**: Global logout button added to all role pages (Admin, Técnico, Financeiro, etc.)
   - **Location**: Button placed next to notification bell icon in Header component
+  - **Bug Fix**: Resolved logout button not working issue
+    - **Root Cause**: Logout function wasn't clearing session/user states manually, causing timing issues
+    - **Solution**: Updated AuthContext to manually clear states after signOut and added error handling
   - **Functionality**: 
-    - Calls Supabase auth.signOut() to clear session
-    - Redirects user to /login page after logout
+    - Calls Supabase auth.signOut() and clears local states
+    - Redirects user to /login page after logout (even if logout fails for better UX)
     - Works across all authenticated pages via shared DashboardLayout
-  - **Component Modified**: `src/components/layout/Header.tsx`
+  - **Components Modified**: `src/components/layout/Header.tsx`, `src/contexts/AuthContext.tsx`
+  - **Error Handling**: Added try/catch blocks and error logging for debugging
   - **Accessibility**: Proper ARIA labels and screen reader support included
 - ✅ **Task Management - Employee Assignment Fix**:
   - **Critical Bug Fix**: Resolved issue where task creation modal couldn't load assigned employees for events
