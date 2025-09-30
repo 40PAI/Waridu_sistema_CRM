@@ -1,0 +1,67 @@
+Objetivo:
+No modal “Criar Nova Tarefa”, após selecionar um evento, o dropdown “Atribuir a *” deve listar SOMENTE os funcionários escalados (event_employees) que são técnicos ativos (employees.role='technician' e status='Ativo'). Se nenhum evento for selecionado, listar todos os técnicos ativos.
+
+Dados:
+- employees(id, name, role, email, status)
+- events(id, name)
+- event_employees(event_id, employee_id)
+- VIEW event_technicians(event_id, employee_id, employee_name, employee_email)
+
+Implementação (Supabase JS):
+
+function empLabel(e) { return e.employee_name ?? e.name ?? e.email ?? String(e.employee_id ?? e.id); }
+
+async function loadEvents(supabase) {
+  const { data, error } = await supabase.from('events').select('id, name').order('id', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(ev => ({ value: ev.id, label: ev.name ?? `Evento #${ev.id}` }));
+}
+
+async function loadAssigneesByEvent(supabase, eventId) {
+  if (eventId) {
+    // Técnicos ATIVOS escalados para o evento (via VIEW)
+    const { data, error } = await supabase
+      .from('event_technicians')
+      .select('employee_id, employee_name, employee_email')
+      .eq('event_id', eventId);
+    if (error) throw error;
+    return (data ?? []).map(e => ({ value: e.employee_id, label: empLabel(e) }));
+  }
+  // Sem evento: todos os técnicos ATIVOS
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id, name, email, role, status')
+    .eq('role', 'technician')
+    .eq('status', 'Ativo');
+  if (error) throw error;
+  return (data ?? []).map(e => ({ value: e.id, label: empLabel(e) }));
+}
+
+async function createTask(supabase, payload) {
+  // payload: { title, description, assigned_to, event_id }
+  if (!payload?.title || payload.title.trim().length < 3) throw new Error('Título inválido');
+  if (!payload?.assigned_to) throw new Error('Selecione um funcionário');
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert({
+      title: payload.title.trim(),
+      description: payload.description?.trim() ?? null,
+      assigned_to: payload.assigned_to,     // <- employees.id
+      event_id: payload.event_id ?? null
+    })
+    .select('id')
+    .limit(1);
+  if (error) throw error;
+  return data?.[0]?.id ?? null;
+}
+
+Wiring do modal:
+- Ao abrir: carregar eventos (loadEvents) e, sem evento selecionado, carregar técnicos ativos (loadAssigneesByEvent(null)).
+- Ao mudar o evento: chamar loadAssigneesByEvent(eventId) e atualizar o dropdown “Atribuir a *”.
+- Ao submeter: validar campos e chamar createTask; fechar modal, limpar formulário, toast “Tarefa criada”, refetch da lista.
+
+Boas práticas:
+- Não usar .single() em listas.
+- Converter o valor do evento para número (Number(value) || null).
+- Mensagens de erro claras para 401/403 (RLS) e violação de FK.
