@@ -34,6 +34,7 @@ export const CreateTaskDialog = ({ open, onOpenChange, onSuccess }: CreateTaskDi
   
   const titleInputRef = React.useRef<HTMLInputElement>(null);
   const assignedToRef = React.useRef<HTMLButtonElement>(null);
+  const loadAssigneesRequestId = React.useRef(0);
 
   // Load events and initial assignees when dialog opens
   React.useEffect(() => {
@@ -65,21 +66,35 @@ export const CreateTaskDialog = ({ open, onOpenChange, onSuccess }: CreateTaskDi
   };
 
   const loadAssigneesForEvent = async () => {
+    // Increment request ID to track the latest request
+    const currentRequestId = ++loadAssigneesRequestId.current;
+    const targetEventId = eventId;
+    
     setAssigneesLoading(true);
     try {
       const eventIdNum = eventId === "none" ? null : Number(eventId);
       const assigneesData = await loadAssigneesByEvent(eventIdNum);
-      setAssignees(assigneesData);
       
-      // Reset assigned_to if current selection is not in new list
-      if (assignedTo && !assigneesData.find(a => a.id === assignedTo)) {
-        setAssignedTo("");
+      // Only update state if this is still the latest request and event hasn't changed
+      if (currentRequestId === loadAssigneesRequestId.current && targetEventId === eventId) {
+        setAssignees(assigneesData);
+        
+        // Reset assigned_to if current selection is not in new list
+        if (assignedTo && !assigneesData.find(a => a.id === assignedTo)) {
+          setAssignedTo("");
+        }
       }
     } catch (error) {
-      console.error('Error loading assignees:', error);
-      showError('Erro ao carregar utilizadores. Tente novamente.');
+      // Only show error if this is still the latest request
+      if (currentRequestId === loadAssigneesRequestId.current) {
+        console.error('Error loading assignees:', error);
+        showError('Erro ao carregar utilizadores. Tente novamente.');
+      }
     } finally {
-      setAssigneesLoading(false);
+      // Only clear loading if this is still the latest request
+      if (currentRequestId === loadAssigneesRequestId.current) {
+        setAssigneesLoading(false);
+      }
     }
   };
 
