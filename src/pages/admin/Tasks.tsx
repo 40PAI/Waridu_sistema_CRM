@@ -102,45 +102,6 @@ const AdminTasks = () => {
     }
   }, []);
 
-  // Create task
-  const createTask = async (taskData: Omit<Task, 'id' | 'created_at'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert({
-          title: taskData.title,
-          description: taskData.description,
-          done: false,
-          assigned_to: taskData.assigned_to,
-          event_id: taskData.event_id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const newTask: TaskWithEmployee = {
-        task: {
-          id: data.id,
-          title: data.title,
-          description: data.description,
-          done: data.done,
-          assigned_to: data.assigned_to,
-          event_id: data.event_id,
-          created_at: data.created_at,
-        },
-        employee: employeeMap[taskData.assigned_to],
-      };
-
-      setTasks(prev => [newTask, ...prev]);
-      showSuccess("Tarefa criada com sucesso!");
-      setShowCreateDialog(false);
-    } catch (error) {
-      console.error("Error creating task:", error);
-      showError("Erro ao criar tarefa.");
-    }
-  };
-
   // Update task
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
@@ -267,9 +228,7 @@ const AdminTasks = () => {
       <CreateTaskDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        onCreate={createTask}
-        technicians={technicians}
-        events={events || []} // Safely access events
+        onSuccess={fetchTasks}
       />
 
       <EditTaskDialog
