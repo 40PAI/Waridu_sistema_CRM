@@ -6,6 +6,18 @@ This is a comprehensive React application built with Vite, TypeScript, and Shadc
 ## Recent Changes
 
 ### September 30, 2025
+- ✅ **Coordenador Profile Page Implementation**:
+  - **Feature Added**: Created dedicated profile page for Coordenador role identical to Admin profile
+  - **Files Created**: `src/pages/coordinator/Profile.tsx`
+  - **Routing**: Added `/coordinator/profile` route in AppContent.tsx
+  - **Navigation**: Updated Sidebar to include Coordenador in profile link mapping
+  - **Permissions**: Added `/coordinator/profile` to Coordenador role permissions in roles.ts
+  - **Functionality**: 
+    - Full profile editing capabilities (name, avatar upload)
+    - Supabase storage integration for avatar management
+    - Form validation and error handling
+    - Loading states and user feedback
+  - **Authorization**: Properly configured hasPermission checks for route access
 - ✅ **Logout Button Implementation & Fix**:
   - **Feature Added**: Global logout button added to all role pages (Admin, Técnico, Financeiro, etc.)
   - **Location**: Button placed next to notification bell icon in Header component
