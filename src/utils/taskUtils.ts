@@ -43,33 +43,35 @@ function employeeLabel(employee: any): string {
 }
 
 /**
- * Load assignees (technicians) based on selected event
- * - If eventId is null: returns all active technicians from employees table
- * - If eventId is set: returns only active technicians assigned to that event (via event_technicians VIEW)
+ * Load assignees based on selected event
+ * - If eventId is null: returns all employees
+ * - If eventId is set: returns only employees assigned to that event (via event_employees)
+ * NO filters applied for role or status
  */
 export async function loadAssigneesByEvent(eventId: number | null): Promise<ProfileOption[]> {
   try {
     if (eventId) {
-      // Técnicos ATIVOS escalados para o evento (via VIEW)
+      // Funcionários escalados para o evento (sem filtros de role/status)
       const { data, error } = await supabase
-        .from('event_technicians')
-        .select('employee_id, employee_name, employee_email')
+        .from('event_employees')
+        .select('employee_id, employees(id, name, email)')
         .eq('event_id', eventId);
       
       if (error) throw error;
       
-      return (data ?? []).map(e => ({
-        id: e.employee_id,
-        label: employeeLabel(e)
-      }));
+      return (data ?? []).map((item: any) => {
+        const employee = item.employees;
+        return {
+          id: employee.id,
+          label: employeeLabel(employee)
+        };
+      });
     }
     
-    // Sem evento: todos os técnicos ATIVOS
+    // Sem evento: todos os funcionários (sem filtros)
     const { data, error } = await supabase
       .from('employees')
-      .select('id, name, email, role, status')
-      .eq('role', 'technician')
-      .eq('status', 'Ativo');
+      .select('id, name, email');
     
     if (error) throw error;
     
