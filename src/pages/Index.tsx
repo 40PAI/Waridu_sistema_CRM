@@ -10,6 +10,9 @@ import type { Event } from "@/types";
 import { parseISO, isWithinInterval, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 import { ptBR } from "date-fns/locale"; // Import ptBR
 import { useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
+import MaterialManagerDashboard from "@/pages/material-manager/Dashboard";
 
 const getMaterialStatusVariant = (status: string) => {
   switch (status) {
@@ -50,6 +53,12 @@ const MaterialStatusList = ({ materials }: { materials: any[] }) => {
 };
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  
+  if (user?.profile?.role === 'Gestor de Material') {
+    return <MaterialManagerDashboard />;
+  }
+
   const { events } = useEvents();
   const { materials: pageMaterials } = useMaterials();
 
