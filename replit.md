@@ -3,7 +3,21 @@
 ## Overview
 This is a comprehensive React application built with Vite, TypeScript, and Shadcn UI components. It features a CRM system, project management tools, employee management, materials management, and integration with Supabase for backend services.
 
-## Recent Changes (September 29, 2025)
+## Recent Changes
+
+### September 30, 2025
+- ✅ **Task Management - Employee Assignment Fix**:
+  - **Critical Bug Fix**: Resolved issue where task creation modal couldn't load assigned employees for events
+  - **Root Cause**: Function was querying non-existent `event_employees` table instead of using the roster JSONB field
+  - **Solution**: Rewrote `loadAssigneesByEvent()` in `src/utils/taskUtils.ts` to correctly fetch from `events.roster` JSONB field
+  - **Functionality**: 
+    - When no event selected: Shows all employees from `employees` table
+    - When event selected: Extracts teamLead + teamMembers from roster JSONB and fetches their details
+    - Handles edge cases: Empty roster, missing event, no assignments
+  - **Data Structure**: Roster stores `{ teamLead: "uuid", teamMembers: [{ id, name, role }], materials: {} }`
+  - **Testing**: Manual test scenarios created for events with/without rosters
+
+### September 29, 2025
 - ✅ Configured Vite for Replit environment (port 5000, host 0.0.0.0)
 - ✅ Set up frontend development workflow
 - ✅ Installed all project dependencies
