@@ -22,86 +22,73 @@ export interface CreateTaskPayload {
 }
 
 /**
- * Build profile label from available fields
- * Priority: full_name > name > email > id
+ * Build employee label from available fields
+ * Priority: name > email > id
  */
-function profileLabel(profile: any): string {
-  const firstName = profile.first_name || '';
-  const lastName = profile.last_name || '';
-  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-  const name = profile.name || '';
-  
-  // Try full_name first
-  if (fullName) {
-    return profile.email ? `${fullName} (${profile.email})` : fullName;
+function employeeLabel(employee: any): string {
+  if (employee.name) {
+    return employee.email ? `${employee.name} (${employee.email})` : employee.name;
   }
   
-  // Try name field
-  if (name) {
-    return profile.email ? `${name} (${profile.email})` : name;
-  }
-  
-  // Try email
-  if (profile.email) {
-    return profile.email;
+  if (employee.email) {
+    return employee.email;
   }
   
   // Fallback to truncated ID
-  return profile.id.length > 8 ? `${profile.id.substring(0, 8)}...` : profile.id;
+  return employee.id.length > 8 ? `${employee.id.substring(0, 8)}...` : employee.id;
 }
 
 /**
- * Load assignees based on selected event
- * - If eventId is null: returns all profiles except current user
- * - If eventId is set: returns only event_staff profiles for that event, excluding current user
+ * Load assignees (technicians) based on selected event
+ * - If eventId is null: returns all active technicians from employees table
+ * - If eventId is set: returns only active technicians assigned to that event (via roster.teamMembers)
  */
 export async function loadAssigneesByEvent(eventId: number | null): Promise<ProfileOption[]> {
   try {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    const currentUserId = user?.id;
+    let employeeIds: string[] | null = null;
 
-    let profileIds: string[] | null = null;
-
-    // If event is selected, get staff assigned to that event
+    // If event is selected, get technicians assigned to that event from roster
     if (eventId !== null) {
-      const { data: staffData, error: staffError } = await supabase
-        .from('event_staff')
-        .select('profile_id')
-        .eq('event_id', eventId);
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .select('roster')
+        .eq('id', eventId)
+        .single();
 
-      if (staffError) throw staffError;
+      if (eventError) throw eventError;
 
-      profileIds = (staffData || []).map(s => s.profile_id);
+      // Extract employee IDs from roster.teamMembers
+      const teamMembers = eventData?.roster?.teamMembers || [];
+      employeeIds = teamMembers.map((m: any) => m.id);
       
-      // If no staff assigned to event, return empty array
-      if (profileIds.length === 0) {
+      // If no team members assigned to event, return empty array
+      if (employeeIds.length === 0) {
         return [];
       }
     }
 
-    // Build query for profiles
+    // Build query for employees
     let query = supabase
-      .from('profiles')
-      .select('id, first_name, last_name, name, email');
+      .from('employees')
+      .select('id, name, email')
+      .eq('role', 'Técnico')
+      .eq('status', 'Ativo');
 
-    // Filter by event staff if event selected
-    if (profileIds !== null) {
-      query = query.in('id', profileIds);
+    // Filter by event team members if event selected
+    if (employeeIds !== null) {
+      query = query.in('id', employeeIds);
     }
 
     // Execute query
-    const { data, error } = await query.order('first_name', { ascending: true });
+    const { data, error } = await query.order('name', { ascending: true });
 
     if (error) throw error;
 
-    // Filter out current user and map to ProfileOption
-    return (data || [])
-      .filter(profile => profile.id !== currentUserId)
-      .map(profile => ({
-        id: profile.id,
-        label: profileLabel(profile)
-      }));
+    // Map to ProfileOption
+    return (data || []).map(employee => ({
+      id: employee.id,
+      label: employeeLabel(employee)
+    }));
   } catch (error) {
     console.error('Error loading assignees by event:', error);
     throw error;
