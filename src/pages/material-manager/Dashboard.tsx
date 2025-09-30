@@ -98,15 +98,15 @@ const MaterialManagerDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard de Gestão de Materiais</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-xl sm:text-2xl font-bold">Dashboard de Gestão de Materiais</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Visão geral do inventário e requisições
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Materiais</CardTitle>
@@ -160,7 +160,7 @@ const MaterialManagerDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Status dos Materiais</CardTitle>
@@ -196,19 +196,19 @@ const MaterialManagerDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Materiais Críticos</CardTitle>
-            <CardDescription>Em uso ou manutenção</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Materiais Críticos</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Em uso ou manutenção</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {criticalMaterials.length > 0 ? (
                 criticalMaterials.map((material) => (
-                  <div key={material.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{material.name}</p>
-                      <p className="text-xs text-muted-foreground">{material.category}</p>
+                  <div key={material.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{material.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{material.category}</p>
                     </div>
-                    <Badge variant={material.status === 'Manutenção' ? 'destructive' : 'secondary'}>
+                    <Badge variant={material.status === 'Manutenção' ? 'destructive' : 'secondary'} className="self-start sm:self-auto whitespace-nowrap">
                       {material.status}
                     </Badge>
                   </div>
@@ -219,7 +219,7 @@ const MaterialManagerDashboard = () => {
                 </p>
               )}
               {criticalMaterials.length > 0 && (
-                <Button variant="outline" className="w-full" asChild>
+                <Button variant="outline" className="w-full text-sm sm:text-base" asChild>
                   <Link to="/materials">Ver Todos os Materiais</Link>
                 </Button>
               )}
@@ -228,20 +228,20 @@ const MaterialManagerDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Alertas de Estoque Baixo</CardTitle>
-            <CardDescription>Materiais com menos de 10 unidades</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Alertas de Estoque Baixo</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Materiais com menos de 10 unidades</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             {lowStockMaterials.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead className="text-right">Quantidade</TableHead>
+                    <TableHead className="whitespace-nowrap">Material</TableHead>
+                    <TableHead className="whitespace-nowrap">Categoria</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Quantidade</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -268,24 +268,24 @@ const MaterialManagerDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Requisições Pendentes</CardTitle>
-            <CardDescription>Aguardando sua aprovação</CardDescription>
+            <CardTitle className="text-base sm:text-lg">Requisições Pendentes</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Aguardando sua aprovação</CardDescription>
           </CardHeader>
           <CardContent>
             {recentRequests.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {recentRequests.map((request) => (
-                  <div key={request.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                  <div key={request.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-3 last:border-0 gap-2">
                     <div>
                       <p className="text-sm font-medium">{request.requestedBy.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(request.createdAt), "dd MMM yyyy 'às' HH:mm", { locale: ptBR })}
                       </p>
                     </div>
-                    <Badge variant="secondary">{request.items.length} itens</Badge>
+                    <Badge variant="secondary" className="self-start sm:self-auto">{request.items.length} itens</Badge>
                   </div>
                 ))}
-                <Button variant="outline" className="w-full" asChild>
+                <Button variant="outline" className="w-full text-sm sm:text-base" asChild>
                   <Link to="/material-requests">Ver Todas as Requisições</Link>
                 </Button>
               </div>

@@ -8,10 +8,20 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/config/roles";
 
-const SidebarNav = () => {
+interface SidebarNavProps {
+  onNavigate?: () => void;
+}
+
+const SidebarNav = ({ onNavigate }: SidebarNavProps = {}) => {
   const { user } = useAuth();
   const location = useLocation();
   const role = user?.profile?.role;
+
+  const handleLinkClick = () => {
+    if (onNavigate) {
+      onNavigate();
+    }
+  };
 
   const getNavItems = () => {
     const items: { to: string; icon: React.ReactNode; label: string }[] = [];
@@ -105,7 +115,7 @@ const SidebarNav = () => {
       <SidebarContent className="flex flex-col">
         <div className="p-2">
           <Button variant="ghost" size="icon" className="w-full justify-start" asChild>
-            <Link to="/">
+            <Link to="/" onClick={handleLinkClick}>
               <Home className="h-5 w-5 mr-2" />
               <span className="hidden md:inline">Dashboard</span>
             </Link>
@@ -121,7 +131,7 @@ const SidebarNav = () => {
                   {mainGroup.map((item) => (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                        <Link to={item.to} onClick={handleLinkClick} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
                           {item.icon}
                           <span>{item.label}</span>
                         </Link>
@@ -141,7 +151,7 @@ const SidebarNav = () => {
                   {crmGroup.map((item) => (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                        <Link to={item.to} onClick={handleLinkClick} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
                           {item.icon}
                           <span>{item.label}</span>
                         </Link>
@@ -161,7 +171,7 @@ const SidebarNav = () => {
                   {financeGroup.map((item) => (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                        <Link to={item.to} onClick={handleLinkClick} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
                           {item.icon}
                           <span>{item.label}</span>
                         </Link>
@@ -181,7 +191,7 @@ const SidebarNav = () => {
                   {technicianGroup.map((item) => (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                        <Link to={item.to} onClick={handleLinkClick} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
                           {item.icon}
                           <span>{item.label}</span>
                         </Link>
@@ -201,7 +211,7 @@ const SidebarNav = () => {
                   {adminGroup.map((item) => (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton asChild>
-                        <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                        <Link to={item.to} onClick={handleLinkClick} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
                           {item.icon}
                           <span>{item.label}</span>
                         </Link>
@@ -222,7 +232,7 @@ const SidebarNav = () => {
                 {generalGroup.map((item) => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton asChild>
-                      <Link to={item.to} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
+                      <Link to={item.to} onClick={handleLinkClick} className={location.pathname === item.to ? "bg-accent text-accent-foreground" : ""}>
                         {item.icon}
                         <span>{item.label}</span>
                       </Link>

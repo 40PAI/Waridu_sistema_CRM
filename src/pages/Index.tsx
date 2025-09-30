@@ -112,8 +112,8 @@ const Dashboard = () => {
     })), [events]);
 
   return (
-    <div className="flex-1 space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="flex-1 space-y-4 sm:space-y-6">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Itens</CardTitle>
@@ -161,13 +161,13 @@ const Dashboard = () => {
           <CardTitle>Receita vs. Despesa</CardTitle>
           <CardDescription>Últimos 4 meses</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={financeData}>
-              <XAxis dataKey="name" />
-              <YAxis />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: '12px' }} />
               <Bar dataKey="Receita" fill="#8884d8" />
               <Bar dataKey="Despesa" fill="#82ca9d" />
             </BarChart>
@@ -177,32 +177,33 @@ const Dashboard = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Eventos Recentes</CardTitle>
-          <CardDescription>Últimos eventos registrados</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Eventos Recentes</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Últimos eventos registrados</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Evento</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="whitespace-nowrap">Evento</TableHead>
+                <TableHead className="whitespace-nowrap">Data</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentEvents.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell className="font-medium">{e.name}</TableCell>
-                  <TableCell>{e.date}</TableCell>
-                  <TableCell>
-                    <Badge variant={getEventStatusVariant(e.status)}>{e.status}</Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {recentEvents.length === 0 && (
+              {recentEvents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center">Sem eventos</TableCell>
                 </TableRow>
+              ) : (
+                recentEvents.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell className="font-medium">{e.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{e.date}</TableCell>
+                    <TableCell>
+                      <Badge variant={getEventStatusVariant(e.status)}>{e.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
