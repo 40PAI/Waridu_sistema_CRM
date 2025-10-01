@@ -54,120 +54,15 @@ const CommercialServicesPage = lazy(() => import("@/pages/commercial/Services"))
 // Components
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
-// Hooks for wrappers
-import { useEvents } from "@/hooks/useEvents";
-import { useEmployees } from "@/hooks/useEmployees";
-import { useLocations } from "@/hooks/useLocations";
-import { useMaterials } from "@/hooks/useMaterials";
-import { useMaterialRequests } from "@/hooks/useMaterialRequests";
-import { useRoles } from "@/hooks/useRoles";
-import { useTechnicianCategories } from "@/hooks/useTechnicianCategories";
-
-// Wrappers to provide required props
-const CalendarWrapper = () => {
-  const { events } = useEvents();
-  return <Calendar events={events || []} />;
-};
-
-// const CreateEventWrapper = () => {
-//   const { updateEvent } = useEvents();
-//   // Pass updateEvent as onAddEvent; CreateEventPage expects onAddEvent(payload)
-//   return <CreateEventPage onAddEvent={updateEvent} />;
-// };
-
-const RosterManagementWrapper = () => {
-  const { events, updateEventDetails, updateEvent } = useEvents();
-  const { employees } = useEmployees();
-  const { materials: invMaterials } = useMaterials();
-  const { pendingRequests } = useMaterialRequests();
-  return (
-    <RosterManagement
-      events={events || []}
-      employees={employees}
-      onUpdateEventDetails={updateEventDetails}
-      onUpdateEvent={updateEvent}
-      pendingRequests={pendingRequests}
-      materials={invMaterials}
-    />
-  );
-};
-
-const EmployeesWrapper = () => {
-  const { roles } = useRoles();
-  const { employees, saveEmployee, refreshEmployees } = useEmployees();
-  return <Employees roles={roles || []} employees={employees} onSaveEmployee={saveEmployee} onDeleteEmployee={refreshEmployees} />;
-};
-
-const RolesWrapper = () => {
-  const { roles } = useRoles();
-  const { employees } = useEmployees();
-  const { events } = useEvents();
-  return <Roles roles={roles || []} employees={employees} events={events || []} />;
-};
-
-const RoleDetailWrapper = () => {
-  const { roles } = useRoles();
-  const { employees } = useEmployees();
-  const { events } = useEvents();
-  return <RoleDetail roles={roles || []} employees={employees} events={events || []} />;
-};
-
-const MaterialsWrapper = () => {
-  const { materials, addInitialStock, saveMaterial, transferMaterial, deleteMaterial } = useMaterials();
-  const { locations } = useLocations();
-  const { pendingRequests } = useMaterialRequests();
-  return (
-    <Materials
-      materials={materials}
-      locations={locations}
-      onSaveMaterial={saveMaterial}
-      onAddInitialStock={addInitialStock}
-      onTransferMaterial={transferMaterial}
-      onDeleteMaterial={deleteMaterial}
-      history={[]}
-      pendingRequests={pendingRequests}
-    />
-  );
-};
-
-const MaterialRequestsWrapper = () => {
-  const { materialRequests, approveMaterialRequest, rejectMaterialRequest, createMaterialRequest } = useMaterialRequests();
-  const { events } = useEvents();
-  const { materials } = useMaterials();
-  const materialNameMap = React.useMemo(
-    () => materials.reduce<Record<string, string>>((acc, m) => { acc[m.id] = m.name; return acc; }, {}),
-    [materials]
-  );
-  return (
-    <MaterialRequests
-      requests={materialRequests}
-      events={events || []}
-      materialNameMap={materialNameMap}
-      onApproveRequest={approveMaterialRequest}
-      onRejectRequest={rejectMaterialRequest}
-    />
-  );
-};
-
-const AdminSettingsWrapper = () => {
-  // AdminSettings now manages its own roles and locations internally
-  return (
-    <AdminSettings />
-  );
-};
-
-const ProfitabilityWrapper = () => {
-  return <Profitability />;
-};
-
-const FinanceCalendarWrapper = () => {
-  const { events } = useEvents();
-  return <FinanceCalendar events={events || []} />;
-};
-
-const CostManagementWrapper = () => {
-  return <CostManagement />;
-};
+// Lazy-loaded wrappers
+const CalendarWrapper = lazy(() => import("@/wrappers/CalendarWrapper"));
+const RosterManagementWrapper = lazy(() => import("@/wrappers/RosterManagementWrapper"));
+const EmployeesWrapper = lazy(() => import("@/wrappers/EmployeesWrapper"));
+const RolesWrapper = lazy(() => import("@/wrappers/RolesWrapper"));
+const RoleDetailWrapper = lazy(() => import("@/wrappers/RoleDetailWrapper"));
+const MaterialsWrapper = lazy(() => import("@/wrappers/MaterialsWrapper"));
+const MaterialRequestsWrapper = lazy(() => import("@/wrappers/MaterialRequestsWrapper"));
+const FinanceCalendarWrapper = lazy(() => import("@/wrappers/FinanceCalendarWrapper"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -209,7 +104,7 @@ const AppContent = () => {
             <Route path="/roles/:roleId" element={<RoleDetailWrapper />} />
             <Route path="/materials" element={<MaterialsWrapper />} />
             <Route path="/material-requests" element={<MaterialRequestsWrapper />} />
-            <Route path="/admin-settings" element={<AdminSettingsWrapper />} />
+            <Route path="/admin-settings" element={<AdminSettings />} />
             <Route path="/invite-member" element={<InviteMember />} />
 
             {/* Técnico */}
@@ -225,9 +120,9 @@ const AppContent = () => {
             {/* Financeiro */}
             <Route path="/finance/dashboard" element={<FinanceDashboard />} />
             <Route path="/finance/profile" element={<FinanceProfile />} />
-            <Route path="/finance-profitability" element={<ProfitabilityWrapper />} />
+            <Route path="/finance-profitability" element={<Profitability />} />
             <Route path="/finance-calendar" element={<FinanceCalendarWrapper />} />
-            <Route path="/finance-costs" element={<CostManagementWrapper />} />
+            <Route path="/finance-costs" element={<CostManagement />} />
             <Route path="/finance/reports" element={<Reports />} />
 
             {/* Gestor de Material */}
@@ -255,8 +150,8 @@ const AppContent = () => {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
-        </Suspense>
         <Toaster />
+        </Suspense>
       </div>
     </Router>
   );

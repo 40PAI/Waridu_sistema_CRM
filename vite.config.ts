@@ -80,5 +80,14 @@ export default defineConfig(() => ({
     chunkSizeWarningLimit: 1000,
     sourcemap: false,
     minify: 'esbuild' as const,
+    cssCodeSplit: true,
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@supabase/supabase-js',
+    ],
   },
 }));
