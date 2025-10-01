@@ -153,7 +153,7 @@ export const LoginForm = ({ onForgotPasswordClick }: LoginFormProps) => {
             </Button>
           </div>
 
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center space-y-2">
             <Button
               variant="link"
               type="button"
@@ -163,6 +163,18 @@ export const LoginForm = ({ onForgotPasswordClick }: LoginFormProps) => {
             >
               Esqueci minha senha
             </Button>
+            <div className="text-sm text-muted-foreground">
+              Não tem uma conta?{" "}
+              <Button
+                variant="link"
+                type="button"
+                onClick={() => (window.location.href = "/register")}
+                className="text-sm p-0 h-auto font-semibold"
+                disabled={loading}
+              >
+                Criar nova conta
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
