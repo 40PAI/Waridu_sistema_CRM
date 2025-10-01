@@ -5,6 +5,30 @@ This is a comprehensive React application built with Vite, TypeScript, and Shadc
 
 ## Recent Changes
 
+### October 01, 2025
+- ✅ **User Registration System Implementation**:
+  - **Feature Added**: Complete user registration functionality with dedicated signup page
+  - **Files Created**: `src/components/auth/RegisterForm.tsx`, `src/pages/Register.tsx`
+  - **Files Modified**: `src/components/auth/LoginForm.tsx`, `src/AppContent.tsx`
+  - **Registration Features**:
+    - Email and password-based registration with Supabase Auth
+    - Password confirmation validation
+    - Minimum 6-character password requirement
+    - Email verification flow (Supabase sends confirmation email)
+    - Success message and automatic redirect to login after registration
+    - Error handling for duplicate emails and invalid inputs
+  - **Login Page Enhancement**:
+    - Added "Criar nova conta" (Create new account) button on login page
+    - Button appears below "Esqueci minha senha" link
+    - Direct navigation to /register page
+  - **User Experience**: Users can now self-register from the login page without admin intervention
+  - **Technical Implementation**:
+    - Uses Supabase Auth signUp API
+    - Form validation with React state
+    - Consistent UI design matching LoginForm
+    - Bidirectional navigation between login and register pages
+  - **Code Quality**: No LSP diagnostics, hot module reload working correctly
+
 ### September 30, 2025
 - ✅ **Mobile-First Responsive Design Foundation**:
   - **Scope**: Implemented responsive shell and main dashboards as foundation for mobile support
