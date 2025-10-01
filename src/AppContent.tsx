@@ -1,54 +1,55 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Pages
-import Index from "@/pages/Index";
-import NotFound from "@/pages/NotFound";
+// Critical pages - loaded immediately
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ResetPasswordPage from "@/pages/ResetPassword";
-import Calendar from "@/pages/Calendar";
-// import CreateEventPage from "@/pages/CreateEvent"; // page expects onAddEvent prop
-import RosterManagement from "@/pages/RosterManagement";
-import Employees from "@/pages/Employees";
-import Roles from "@/pages/Roles";
-import RoleDetail from "@/pages/RoleDetail";
-import Materials from "@/pages/Materials";
-import MaterialRequests from "@/pages/MaterialRequests";
-import AdminSettings from "@/pages/AdminSettings";
-import InviteMember from "@/pages/InviteMember";
-import HealthCheck from "@/pages/HealthCheck";
-import Debug from "@/pages/Debug";
-import AdminProfile from "@/pages/AdminProfile";
-import TechnicianDashboard from "@/pages/technician/Dashboard";
-import TechnicianCalendar from "@/pages/technician/Calendar";
-import TechnicianEvents from "@/pages/technician/Events";
-import TechnicianEventDetail from "@/pages/technician/EventDetail";
-import TechnicianTasks from "@/pages/technician/Tasks";
-import TechnicianProfile from "@/pages/technician/Profile";
-import TechnicianNotifications from "@/pages/technician/Notifications";
-import TechnicianTasksKanban from "@/pages/technician/TasksKanban";
-import FinanceDashboard from "@/pages/finance/Dashboard";
-import FinanceProfile from "@/pages/finance/Profile";
-import Profitability from "@/pages/finance/Profitability";
-import FinanceCalendar from "@/pages/finance/Calendar";
-import CostManagement from "@/pages/finance/CostManagement";
-import Reports from "@/pages/finance/Reports";
-import Notifications from "@/pages/Notifications";
-import MaterialManagerProfile from "@/pages/material-manager/Profile";
-import AdminTasks from "@/pages/admin/Tasks";
-import CreateTask from "@/pages/admin/CreateTask";
-import CoordinatorProfile from "@/pages/coordinator/Profile";
+
+// Lazy-loaded pages
+const Index = lazy(() => import("@/pages/Index"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Calendar = lazy(() => import("@/pages/Calendar"));
+const RosterManagement = lazy(() => import("@/pages/RosterManagement"));
+const Employees = lazy(() => import("@/pages/Employees"));
+const Roles = lazy(() => import("@/pages/Roles"));
+const RoleDetail = lazy(() => import("@/pages/RoleDetail"));
+const Materials = lazy(() => import("@/pages/Materials"));
+const MaterialRequests = lazy(() => import("@/pages/MaterialRequests"));
+const AdminSettings = lazy(() => import("@/pages/AdminSettings"));
+const InviteMember = lazy(() => import("@/pages/InviteMember"));
+const HealthCheck = lazy(() => import("@/pages/HealthCheck"));
+const Debug = lazy(() => import("@/pages/Debug"));
+const AdminProfile = lazy(() => import("@/pages/AdminProfile"));
+const TechnicianDashboard = lazy(() => import("@/pages/technician/Dashboard"));
+const TechnicianCalendar = lazy(() => import("@/pages/technician/Calendar"));
+const TechnicianEvents = lazy(() => import("@/pages/technician/Events"));
+const TechnicianEventDetail = lazy(() => import("@/pages/technician/EventDetail"));
+const TechnicianTasks = lazy(() => import("@/pages/technician/Tasks"));
+const TechnicianProfile = lazy(() => import("@/pages/technician/Profile"));
+const TechnicianNotifications = lazy(() => import("@/pages/technician/Notifications"));
+const TechnicianTasksKanban = lazy(() => import("@/pages/technician/TasksKanban"));
+const FinanceDashboard = lazy(() => import("@/pages/finance/Dashboard"));
+const FinanceProfile = lazy(() => import("@/pages/finance/Profile"));
+const Profitability = lazy(() => import("@/pages/finance/Profitability"));
+const FinanceCalendar = lazy(() => import("@/pages/finance/Calendar"));
+const CostManagement = lazy(() => import("@/pages/finance/CostManagement"));
+const Reports = lazy(() => import("@/pages/finance/Reports"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+const MaterialManagerProfile = lazy(() => import("@/pages/material-manager/Profile"));
+const AdminTasks = lazy(() => import("@/pages/admin/Tasks"));
+const CreateTask = lazy(() => import("@/pages/admin/CreateTask"));
+const CoordinatorProfile = lazy(() => import("@/pages/coordinator/Profile"));
 
 // CRM Pages
-import CRMDashboard from "@/pages/crm/Dashboard";
-import ClientsPage from "@/pages/crm/Clients";
-import PipelinePage from "@/pages/crm/Pipeline";
-import CRMReports from "@/pages/crm/Reports";
-import AdminServicesPage from "@/pages/admin/Services";
-import CommercialServicesPage from "@/pages/commercial/Services";
+const CRMDashboard = lazy(() => import("@/pages/crm/Dashboard"));
+const ClientsPage = lazy(() => import("@/pages/crm/Clients"));
+const PipelinePage = lazy(() => import("@/pages/crm/Pipeline"));
+const CRMReports = lazy(() => import("@/pages/crm/Reports"));
+const AdminServicesPage = lazy(() => import("@/pages/admin/Services"));
+const CommercialServicesPage = lazy(() => import("@/pages/commercial/Services"));
 
 // Components
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -168,17 +169,28 @@ const CostManagementWrapper = () => {
   return <CostManagement />;
 };
 
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center gap-2">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <p className="text-sm text-muted-foreground">Carregando...</p>
+    </div>
+  </div>
+);
+
 const AppContent = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <PageLoader />;
   }
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-background">
-        <Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           {/* Rotas públicas - SEM autenticação */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -243,6 +255,7 @@ const AppContent = () => {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
         <Toaster />
       </div>
     </Router>
