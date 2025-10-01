@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import ResetPasswordPage from "@/pages/ResetPassword";
 import Calendar from "@/pages/Calendar";
 // import CreateEventPage from "@/pages/CreateEvent"; // page expects onAddEvent prop
@@ -180,6 +181,7 @@ const AppContent = () => {
         <Routes>
           {/* Rotas públicas - SEM autenticação */}
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/health-check" element={<HealthCheck />} />
           <Route path="/debug" element={<Debug />} />
