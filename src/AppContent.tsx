@@ -93,8 +93,8 @@ const RosterManagementWrapper = () => {
 
 const EmployeesWrapper = () => {
   const { roles } = useRoles();
-  const { employees, saveEmployee } = useEmployees();
-  return <Employees roles={roles || []} employees={employees} onSaveEmployee={saveEmployee} />;
+  const { employees, saveEmployee, refreshEmployees } = useEmployees();
+  return <Employees roles={roles || []} employees={employees} onSaveEmployee={saveEmployee} onDeleteEmployee={refreshEmployees} />;
 };
 
 const RolesWrapper = () => {

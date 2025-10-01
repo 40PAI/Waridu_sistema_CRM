@@ -57,3 +57,12 @@ export const upsertEmployee = async (payload: Partial<Employee>) => {
     return data;
   }
 };
+
+export const deleteEmployee = async (employeeId: string) => {
+  const { error } = await supabase
+    .from("employees")
+    .delete()
+    .eq("id", employeeId);
+  
+  if (error) throw error;
+};
