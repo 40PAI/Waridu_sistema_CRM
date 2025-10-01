@@ -90,4 +90,5 @@ export default defineConfig(() => ({
       '@supabase/supabase-js',
     ],
   },
+  envPrefix: ['VITE_', 'SUPABASE_'], // Ensure Vite loads SUPABASE_ prefixed env vars
 }));
