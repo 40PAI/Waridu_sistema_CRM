@@ -31,4 +31,54 @@ export default defineConfig(() => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React libraries
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          
+          // UI Component libraries (Radix)
+          'vendor-ui': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-alert-dialog',
+          ],
+          
+          // Form libraries
+          'vendor-forms': [
+            'react-hook-form',
+            '@hookform/resolvers',
+            'zod',
+          ],
+          
+          // Charts library
+          'vendor-charts': ['recharts'],
+          
+          // PDF generation
+          'vendor-pdf': ['jspdf', 'jspdf-autotable'],
+          
+          // Supabase
+          'vendor-supabase': [
+            '@supabase/supabase-js',
+            '@supabase/auth-ui-react',
+            '@supabase/auth-ui-shared',
+          ],
+          
+          // Date utilities
+          'vendor-date': ['date-fns', 'react-day-picker'],
+          
+          // Icons
+          'vendor-icons': ['lucide-react'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+    sourcemap: false,
+    minify: 'esbuild' as const,
+  },
 }));
