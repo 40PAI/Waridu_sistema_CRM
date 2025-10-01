@@ -18,6 +18,12 @@ export default defineConfig(() => ({
   preview: {
     host: "0.0.0.0",
     port: 5000,
+    allowedHosts: [
+      ".replit.dev", 
+      ".replit.app",
+      ".repl.co", 
+      ".repl.run",
+    ],
   },
   plugins: [dyadComponentTagger(), react()],
   resolve: {
